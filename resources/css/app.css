@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Accessibility and motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+:focus-visible { outline: 3px solid #6366f1; outline-offset: 2px; }
+.focus-ring { outline: 3px solid #6366f1; outline-offset: 2px; }
+
+/* Link underline animation (consistent) */
+.link-underline { position: relative; }
+.link-underline::after {
+  content: ""; position: absolute; left: 0; bottom: -2px; height: 2px; width: 0; background: linear-gradient(90deg,#6366f1,#ec4899); transition: width .25s ease;
+}
+.link-underline:hover::after { width: 100%; }
+
+/* Basic reveal utility */
+[data-animate] { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+[data-animate].in-view { opacity: 1; transform: translateY(0); }
