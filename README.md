@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Cordillera Adivay Lions Club Volunteer Portal
 
 A comprehensive volunteer management system built with Laravel 11, featuring role-based access control, event management, and community engagement tools.
@@ -200,3 +201,6 @@ For support and questions, please contact the development team or create an issu
 ---
 
 **Cordillera Adivay Lions Club** - Making a Difference Together
+=======
+# volunteer-system
+>>>>>>> 132a952fa27ea03a47e282ea15813ad1f645f1c4
