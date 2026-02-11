@@ -87,7 +87,6 @@
                             <option value="">All Roles</option>
                             <option value="superadmin" {{ request('role') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                             <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                            <option value="officer" {{ request('role') == 'officer' ? 'selected' : '' }}>Officer</option>
                             <option value="volunteer" {{ request('role') == 'volunteer' ? 'selected' : '' }}>Volunteer</option>
                         </select>
                     </div>
@@ -137,7 +136,6 @@
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @if($user->role === 'superadmin') bg-purple-100 text-purple-800
                                             @elseif($user->role === 'admin') bg-blue-100 text-blue-800
-                                            @elseif($user->role === 'officer') bg-amber-100 text-amber-800
                                             @else bg-green-100 text-green-800
                                             @endif">
                                             {{ ucfirst($user->role) }}

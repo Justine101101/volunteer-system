@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\MessagingController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\MessagingController as SharedMessagingController;
 use App\Http\Controllers\VolunteerDashboardController;
 use App\Http\Controllers\SupabaseController;
@@ -39,10 +40,8 @@ Route::get('/dashboard', function () {
     $user = auth()->user();
     
     
-    if ($user->isSuperAdmin()) {
+    if ($user->isSuperAdmin() || $user->isAdmin()) {
         return redirect()->route('admin.dashboard');
-    } elseif ($user->isOfficer()) {
-        return redirect()->route('officer.dashboard');
     } elseif ($user->isVolunteer()) {
         return redirect()->route('volunteer.dashboard');
     }
@@ -83,11 +82,6 @@ Route::middleware('auth')->group(function () {
     
     // Volunteer Dashboard
     Route::get('/volunteer/dashboard', [VolunteerDashboardController::class, 'index'])->name('volunteer.dashboard');
-
-    // Officer Dashboard
-    Route::middleware('role:officer')->group(function () {
-        Route::get('/officer/dashboard', [\App\Http\Controllers\OfficerDashboardController::class, 'index'])->name('officer.dashboard');
-    });
     
     // Messaging routes (for all authenticated users)
     Route::get('/messaging', [SharedMessagingController::class, 'index'])->name('messaging');
@@ -96,19 +90,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/messaging/{message}', [SharedMessagingController::class, 'update'])->name('messaging.update');
     Route::delete('/messaging/{message}', [SharedMessagingController::class, 'destroy'])->name('messaging.destroy');
     
-    // Superadmin only routes
-    // Admin-only routes]
-    Route::middleware(['role:superadmin', 'auth'])->group(function () {
+    // Admin and Superadmin shared routes (Events, Users, Attendance, Approvals)
+    Route::middleware(['role:admin', 'auth'])->group(function () {
         Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
         
-        // Admin Messaging
-        Route::get('/admin/messaging', [MessagingController::class, 'index'])->name('admin.messaging');
-        Route::get('/admin/messaging/chat/{user}', [MessagingController::class, 'chat'])->name('admin.messaging.chat');
-        Route::post('/admin/messaging/send', [MessagingController::class, 'send'])->name('admin.messaging.send');
-        Route::put('/admin/messaging/{message}', [MessagingController::class, 'update'])->name('admin.messaging.update');
-        Route::delete('/admin/messaging/{message}', [MessagingController::class, 'destroy'])->name('admin.messaging.destroy');
-        
-        // User Management
+        // User Management (Admin and Superadmin)
         Route::resource('admin/users', UserController::class)->names([
             'index' => 'admin.users.index',
             'create' => 'admin.users.create',
@@ -118,26 +104,38 @@ Route::middleware('auth')->group(function () {
             'destroy' => 'admin.users.destroy',
         ]);
         
-        // Event registration management
-        Route::patch('/registrations/{registration}/approve', [EventRegistrationController::class, 'approve'])->name('registrations.approve');
-        Route::patch('/registrations/{registration}/reject', [EventRegistrationController::class, 'reject'])->name('registrations.reject');
-
-        // Bulk registration actions
-        Route::post('/registrations/bulk-approve', [EventRegistrationController::class, 'bulkApprove'])->name('registrations.bulk-approve');
-        Route::post('/registrations/bulk-reject', [EventRegistrationController::class, 'bulkReject'])->name('registrations.bulk-reject');
-    });
-
-    // Admin + Officer shared routes
-    Route::middleware('role:superadmin|officer')->group(function () {
-        // Attendance & Reports
-        Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance');
-        Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports');
-
-        // Event management
+        // Event management (Admin and Superadmin)
         Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
         Route::post('/events', [EventController::class, 'store'])->name('events.store');
         Route::get('/events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
         Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
         Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+        
+        // Attendance (Admin and Superadmin)
+        Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance');
+        
+        // Event registration management (Admin and Superadmin)
+        Route::patch('/registrations/{registration}/approve', [EventRegistrationController::class, 'approve'])->name('registrations.approve');
+        Route::patch('/registrations/{registration}/reject', [EventRegistrationController::class, 'reject'])->name('registrations.reject');
+
+        // Bulk registration actions (Admin and Superadmin)
+        Route::post('/registrations/bulk-approve', [EventRegistrationController::class, 'bulkApprove'])->name('registrations.bulk-approve');
+        Route::post('/registrations/bulk-reject', [EventRegistrationController::class, 'bulkReject'])->name('registrations.bulk-reject');
+    });
+
+    // Superadmin only routes
+    Route::middleware(['role:superadmin', 'auth'])->group(function () {
+        // Admin Messaging (Superadmin only)
+        Route::get('/admin/messaging', [MessagingController::class, 'index'])->name('admin.messaging');
+        Route::get('/admin/messaging/chat/{user}', [MessagingController::class, 'chat'])->name('admin.messaging.chat');
+        Route::post('/admin/messaging/send', [MessagingController::class, 'send'])->name('admin.messaging.send');
+        Route::put('/admin/messaging/{message}', [MessagingController::class, 'update'])->name('admin.messaging.update');
+        Route::delete('/admin/messaging/{message}', [MessagingController::class, 'destroy'])->name('admin.messaging.destroy');
+        
+        // Reports (Superadmin only)
+        Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports');
+
+        // Audit logs (Superadmin only)
+        Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
     });
 });

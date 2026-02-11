@@ -82,7 +82,6 @@
                                 <option value="">Select a role</option>
                                 <option value="superadmin" {{ old('role') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                                <option value="officer" {{ old('role') == 'officer' ? 'selected' : '' }}>Officer</option>
                                 <option value="volunteer" {{ old('role') == 'volunteer' ? 'selected' : '' }}>Volunteer</option>
                             </select>
                             @error('role')

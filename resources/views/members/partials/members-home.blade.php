@@ -30,6 +30,10 @@
 <!-- Members Grid -->
 <div class="py-16 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        @php
+            // Ensure we always have a Collection for stats, even if $members is an array
+            $membersCollection = collect($members);
+        @endphp
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @forelse($members as $index => $member)
                 @php
@@ -109,7 +113,7 @@
         </div>
 
         <!-- Stats Section -->
-        @if($members->count() > 0)
+        @if($membersCollection->count() > 0)
             <div class="mt-16 rounded-lg shadow-lg p-8" style="background: linear-gradient(to bottom right, #1a5f3f, #2d7a5a);">
                 <div class="text-center mb-8">
                     <h2 class="text-2xl font-bold text-white mb-2">Our Community at a Glance</h2>
@@ -118,20 +122,20 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div class="text-center rounded-lg p-6" style="background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
-                        <div class="text-4xl font-bold text-white mb-2">{{ $members->count() }}</div>
+                        <div class="text-4xl font-bold text-white mb-2">{{ $membersCollection->count() }}</div>
                         <div class="font-medium" style="color: #90EE90;">Total Members</div>
                     </div>
 
                     <div class="text-center rounded-lg p-6" style="background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
                         <div class="text-4xl font-bold text-white mb-2">
-                            {{ $members->whereIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])->count() }}
+                            {{ $membersCollection->whereIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])->count() }}
                         </div>
                         <div class="font-medium" style="color: #90EE90;">Officers</div>
                     </div>
 
                     <div class="text-center rounded-lg p-6" style="background-color: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
                         <div class="text-4xl font-bold text-white mb-2">
-                            {{ $members->whereNotIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])->count() }}
+                            {{ $membersCollection->whereNotIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])->count() }}
                         </div>
                         <div class="font-medium" style="color: #90EE90;">Committee Members</div>
                     </div>

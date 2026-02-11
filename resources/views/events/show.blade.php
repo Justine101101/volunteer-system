@@ -54,7 +54,7 @@
                             </div>
                         </div>
                         @auth
-                            @if(auth()->user()->isSuperAdmin())
+                            @if(auth()->user()->isAdminOrSuperAdmin())
                                 <div class="flex space-x-2">
                                     <a href="{{ route('events.edit', $event) }}" 
                                        class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition duration-300">
@@ -181,7 +181,7 @@
 
                     <!-- Registered Volunteers (for superadmin) -->
                     @auth
-                        @if(auth()->user()->isSuperAdmin() && $event->registrations->count() > 0)
+                        @if(auth()->user()->isAdminOrSuperAdmin() && $event->registrations->count() > 0)
                             <div class="bg-gray-50 p-6 rounded-lg">
                                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Registered Volunteers ({{ $event->registrations->count() }})</h3>
                                 <div class="space-y-3">

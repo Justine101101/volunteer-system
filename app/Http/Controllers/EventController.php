@@ -15,20 +15,44 @@ class EventController extends Controller
     public function __construct(private DatabaseQueryService $queryService)
     {
         $this->middleware('auth')->except(['index', 'show']);
-        $this->middleware('role:superadmin|officer')->except(['index', 'show']);
+        $this->middleware('role:admin')->except(['index', 'show']);
     }
 
     /**
      * Display a listing of the resource.
+     * Primary Database: Supabase
      */
     public function index()
     {
-        $events = Event::orderBy('date', 'asc')->get();
+        $result = $this->queryService->getEvents(1, 1000); // Get all events
+        
+        if (isset($result['error'])) {
+            Log::error('Failed to fetch events: ' . $result['error']);
+            $events = [];
+        } else {
+            $events = is_array($result) ? $result : [];
+            // Transform Supabase response to match expected format
+            $events = array_map(function($event) {
+                return (object) [
+                    'id' => $event['id'] ?? null,
+                    'title' => $event['title'] ?? '',
+                    'description' => $event['description'] ?? '',
+                    'date' => isset($event['event_date']) ? \Carbon\Carbon::parse($event['event_date']) : null,
+                    'time' => $event['event_time'] ?? '',
+                    'location' => $event['location'] ?? '',
+                    'photo_url' => $event['photo_url'] ?? null,
+                    'created_by' => $event['created_by'] ?? null,
+                    'event_status' => $event['event_status'] ?? 'active',
+                ];
+            }, $events);
+        }
+        
         return view('events.index', compact('events'));
     }
 
     /**
      * Display the calendar view.
+     * Primary Database: Supabase
      */
     public function calendar(Request $request)
     {
@@ -42,14 +66,33 @@ class EventController extends Controller
         $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
         
-        // Get events for the month
-        $events = Event::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->orderBy('date', 'asc')
-            ->orderBy('time', 'asc')
-            ->get()
-            ->groupBy(function($event) {
+        // Get events for the month from Supabase
+        $result = $this->queryService->getEvents(1, 1000, [
+            'date_from' => $startDate->format('Y-m-d'),
+            'date_to' => $endDate->format('Y-m-d'),
+        ]);
+        
+        $events = [];
+        if (!isset($result['error']) && is_array($result)) {
+            // Transform and group events by date
+            $events = collect($result)->map(function($event) {
+                return (object) [
+                    'id' => $event['id'] ?? null,
+                    'title' => $event['title'] ?? '',
+                    'description' => $event['description'] ?? '',
+                    'date' => isset($event['event_date']) ? \Carbon\Carbon::parse($event['event_date']) : null,
+                    'time' => $event['event_time'] ?? '',
+                    'location' => $event['location'] ?? '',
+                    'photo_url' => $event['photo_url'] ?? null,
+                ];
+            })->filter(function($event) {
+                return $event->date !== null;
+            })->sortBy(function($event) {
+                return $event->date->format('Y-m-d') . ' ' . ($event->time ?? '00:00:00');
+            })->groupBy(function($event) {
                 return $event->date->format('Y-m-d');
             });
+        }
         
         // Get previous and next month
         $prevMonth = $startDate->copy()->subMonth();
@@ -71,6 +114,7 @@ class EventController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * Single Source of Truth: Supabase only
      */
     public function store(Request $request)
     {
@@ -94,38 +138,70 @@ class EventController extends Controller
             $photoUrl = Storage::url($path);
         }
 
-        $event = Event::create([
+        // Write only to Supabase (Single Source of Truth)
+        $result = $this->queryService->createEvent([
             'title' => $request->title,
             'description' => $request->description,
-            'date' => $request->date,
-            'time' => $request->time,
+            'event_date' => $request->date,
+            'event_time' => $request->time,
             'location' => $request->location,
             'photo_url' => $photoUrl,
             'created_by' => Auth::id(),
+            'event_status' => 'active',
+            'max_participants' => $request->max_participants ?? null,
         ]);
 
-        // Write-through to Supabase events
-        $this->queryService->createEvent([
-            'title' => $event->title,
-            'description' => $event->description,
-            'event_date' => $event->date->format('Y-m-d'),
-            'event_time' => $event->time,
-            'location' => $event->location,
-            'created_by' => $event->created_by,
-            'event_status' => 'active',
-            'max_participants' => $event->max_participants ?? null,
-        ]);
+        if (isset($result['error'])) {
+            Log::error('Failed to create event in Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create event. Please try again.');
+        }
 
         return redirect()->route('events.index')->with('success', 'Event created successfully!');
     }
 
     /**
      * Display the specified resource.
+     * Primary Database: Supabase
+     * Note: Route model binding still uses MySQL Event model for compatibility
      */
     public function show(Event $event)
     {
-        $event->load('creator', 'registrations.user');
-        return view('events.show', compact('event'));
+        // Find the Supabase event by matching fields
+        $supabaseEvent = $this->queryService->findEventByFields(
+            $event->title,
+            $event->date->format('Y-m-d'),
+            $event->location
+        );
+
+        if (!$supabaseEvent) {
+            // Fallback: try to get by ID if it's a UUID
+            if (is_string($event->id) && strlen($event->id) > 10) {
+                $supabaseEvent = $this->queryService->getEventById($event->id);
+            }
+        }
+
+        if (!$supabaseEvent || isset($supabaseEvent['error'])) {
+            abort(404, 'Event not found');
+        }
+
+        // Transform Supabase response to object for view compatibility
+        $eventData = (object) [
+            'id' => $supabaseEvent['id'] ?? null,
+            'title' => $supabaseEvent['title'] ?? '',
+            'description' => $supabaseEvent['description'] ?? '',
+            'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
+            'time' => $supabaseEvent['event_time'] ?? '',
+            'location' => $supabaseEvent['location'] ?? '',
+            'photo_url' => $supabaseEvent['photo_url'] ?? null,
+            'created_by' => $supabaseEvent['created_by'] ?? null,
+            'event_status' => $supabaseEvent['event_status'] ?? 'active',
+            'creator' => isset($supabaseEvent['creator']) ? (object) $supabaseEvent['creator'] : null,
+            'registrations' => isset($supabaseEvent['registrations']) ? collect($supabaseEvent['registrations']) : collect(),
+        ];
+
+        return view('events.show', ['event' => $eventData]);
     }
 
     /**
@@ -138,6 +214,10 @@ class EventController extends Controller
 
     /**
      * Update the specified resource in storage.
+     * Single Source of Truth: Supabase only
+     * 
+     * Note: This method still accepts Event model for route binding,
+     * but we need to find the corresponding Supabase event by matching fields
      */
     public function update(Request $request, Event $event)
     {
@@ -151,6 +231,43 @@ class EventController extends Controller
         ], [
             'date.after_or_equal' => 'The event date must be today or a future date.',
         ]);
+
+        // Get the Supabase event ID by matching the local event
+        // Since IDs don't match, we'll find by title+date+location
+        $supabaseEvent = $this->queryService->getEventById($event->id);
+        
+        // If not found by ID, try to find by matching fields
+        if (isset($supabaseEvent['error']) || !$supabaseEvent) {
+            $events = $this->queryService->getEvents(1, 100, [
+                'date_from' => $event->date->format('Y-m-d'),
+                'date_to' => $event->date->format('Y-m-d'),
+            ]);
+            
+            $supabaseEvent = null;
+            if (is_array($events) && !isset($events['error'])) {
+                foreach ($events as $evt) {
+                    if (isset($evt['title']) && $evt['title'] === $event->title &&
+                        isset($evt['location']) && $evt['location'] === $event->location) {
+                        $supabaseEvent = $evt;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!$supabaseEvent || isset($supabaseEvent['error'])) {
+            Log::error('Could not find Supabase event to update for local event ID: ' . $event->id);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Event not found in database. Please refresh and try again.');
+        }
+
+        $supabaseEventId = is_array($supabaseEvent) ? ($supabaseEvent['id'] ?? null) : null;
+        if (!$supabaseEventId) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Could not identify event. Please refresh and try again.');
+        }
 
         $photoUrl = $event->photo_url;
         
@@ -168,36 +285,58 @@ class EventController extends Controller
             $photoUrl = Storage::url($path);
         }
 
-        $event->update([
+        // Update only in Supabase (Single Source of Truth)
+        $result = $this->queryService->updateEvent($supabaseEventId, [
             'title' => $request->title,
             'description' => $request->description,
-            'date' => $request->date,
-            'time' => $request->time,
+            'event_date' => $request->date,
+            'event_time' => $request->time,
             'location' => $request->location,
             'photo_url' => $photoUrl,
         ]);
 
-        // Refresh the model to ensure date is cast properly
-        $event->refresh();
-
-        // Update in Supabase (best-effort, non-blocking)
-        $this->queryService->updateEvent($event->id, [
-            'title' => $event->title,
-            'description' => $event->description,
-            'event_date' => $event->date->format('Y-m-d'),
-            'event_time' => $event->time,
-            'location' => $event->location,
-        ]);
+        if (isset($result['error'])) {
+            Log::error('Failed to update event in Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update event. Please try again.');
+        }
 
         return redirect()->route('events.index')->with('success', 'Event updated successfully!');
     }
 
     /**
      * Remove the specified resource from storage.
+     * Single Source of Truth: Supabase only
      */
     public function destroy(Event $event)
     {
-        $eventId = $event->id;
+        // Get the Supabase event ID by matching the local event
+        $supabaseEvent = $this->queryService->getEventById($event->id);
+        
+        // If not found by ID, try to find by matching fields
+        if (isset($supabaseEvent['error']) || !$supabaseEvent) {
+            $events = $this->queryService->getEvents(1, 100, [
+                'date_from' => $event->date->format('Y-m-d'),
+                'date_to' => $event->date->format('Y-m-d'),
+            ]);
+            
+            $supabaseEvent = null;
+            if (is_array($events) && !isset($events['error'])) {
+                foreach ($events as $evt) {
+                    if (isset($evt['title']) && $evt['title'] === $event->title &&
+                        isset($evt['location']) && $evt['location'] === $event->location) {
+                        $supabaseEvent = $evt;
+                        break;
+                    }
+                }
+            }
+        }
+
+        $supabaseEventId = null;
+        if ($supabaseEvent && !isset($supabaseEvent['error'])) {
+            $supabaseEventId = is_array($supabaseEvent) ? ($supabaseEvent['id'] ?? null) : null;
+        }
         
         // Delete photo if exists
         if ($event->photo_url) {
@@ -205,12 +344,16 @@ class EventController extends Controller
             Storage::disk('public')->delete($oldPath);
         }
         
-        // Delete from Supabase (best-effort, non-blocking)
-        // This won't throw exceptions - it handles errors internally
-        $this->queryService->deleteEvent($eventId);
-        
-        // Delete from local database
-        $event->delete();
+        // Delete from Supabase (Single Source of Truth)
+        if ($supabaseEventId) {
+            $result = $this->queryService->deleteEvent($supabaseEventId);
+            if (isset($result['error'])) {
+                Log::error('Failed to delete event from Supabase: ' . ($result['error'] ?? 'Unknown error'));
+                return redirect()->back()->with('error', 'Failed to delete event. Please try again.');
+            }
+        } else {
+            Log::warning('Could not find Supabase event to delete for local event ID: ' . $event->id);
+        }
         
         return redirect()->route('events.index')->with('success', 'Event deleted successfully!');
     }

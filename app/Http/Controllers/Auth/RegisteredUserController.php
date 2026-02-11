@@ -37,10 +37,29 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'role' => ['required', 'string', Rule::in(['volunteer', 'officer'])],
+            'role' => ['required', 'string', Rule::in(['volunteer'])],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Single Source of Truth: Write to Supabase first
+        // Note: We still need to create a local user for Laravel authentication
+        // This is a hybrid approach - auth in MySQL, data in Supabase
+        $supabaseResult = $this->queryService->upsertUser([
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role ?? 'volunteer',
+            'notification_pref' => true,
+            'dark_mode' => false,
+            'password' => Hash::make($request->password), // Store hashed password in Supabase
+        ]);
+
+        if (isset($supabaseResult['error'])) {
+            Log::error('Failed to create user in Supabase: ' . ($supabaseResult['error'] ?? 'Unknown error'));
+            // Continue with local user creation for auth, but log the error
+        }
+
+        // Still create local user for Laravel authentication
+        // TODO: Consider migrating to Supabase Auth in the future
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -48,22 +67,12 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // Write-through to Supabase (privileged upsert by email)
-        $this->queryService->upsertUser([
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role ?? 'volunteer',
-            'notification_pref' => $user->notification_pref ?? true,
-            'dark_mode' => $user->dark_mode ?? false,
-            'email_verified_at' => $user->email_verified_at?->toISOString(),
-        ]);
-
         event(new Registered($user));
 
         Auth::login($user);
 
         // Redirect admins/superadmins to admin dashboard
-        $redirectRoute = $user->isSuperAdmin() ? 'admin.dashboard' : 'dashboard';
+        $redirectRoute = $user->isAdminOrSuperAdmin() ? 'admin.dashboard' : 'dashboard';
         return redirect(route($redirectRoute, absolute: false));
     }
 }

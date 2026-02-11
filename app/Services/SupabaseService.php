@@ -11,6 +11,9 @@ class SupabaseService
     protected ?string $serviceRoleKey;
     protected ?string $table;
     protected bool $verifySsl;
+    protected array $queryParams = [];
+    protected ?string $selectColumns = null;
+    protected bool $useServiceRole = false;
 
     public function __construct()
     {
@@ -19,6 +22,8 @@ class SupabaseService
         $this->serviceRoleKey = config('supabase.service_role_key');
         $this->table = null;
         $this->verifySsl = (bool) config('supabase.verify_ssl', true);
+        $this->queryParams = [];
+        $this->selectColumns = null;
     }
 
     /**
@@ -27,23 +32,126 @@ class SupabaseService
     public function from(string $table): self
     {
         $this->table = $table;
+        $this->queryParams = [];
+        $this->selectColumns = null;
+        $this->useServiceRole = false;
         return $this;
     }
 
     /**
-     * Select data from table
+     * Select columns
      */
-    public function select($columns = '*')
+    public function select(string $columns = '*'): self
     {
+        $this->selectColumns = $columns;
+        return $this;
+    }
+
+    /**
+     * Add equality filter
+     */
+    public function eq(string $column, $value): self
+    {
+        $this->queryParams[$column] = 'eq.' . $value;
+        return $this;
+    }
+
+    /**
+     * Add greater than or equal filter
+     */
+    public function gte(string $column, $value): self
+    {
+        $this->queryParams[$column] = 'gte.' . $value;
+        return $this;
+    }
+
+    /**
+     * Add less than or equal filter
+     */
+    public function lte(string $column, $value): self
+    {
+        $this->queryParams[$column] = 'lte.' . $value;
+        return $this;
+    }
+
+    /**
+     * Add OR filter
+     */
+    public function or(string $condition): self
+    {
+        $this->queryParams['or'] = $condition;
+        return $this;
+    }
+
+    /**
+     * Add order by
+     */
+    public function order(string $column, string $direction = 'asc'): self
+    {
+        $this->queryParams['order'] = $column . '.' . $direction;
+        return $this;
+    }
+
+    /**
+     * Add range for pagination
+     */
+    public function range(int $from, int $to): self
+    {
+        $this->queryParams['offset'] = $from;
+        $this->queryParams['limit'] = $to - $from + 1;
+        return $this;
+    }
+
+    /**
+     * Add limit
+     */
+    public function limit(int $limit): self
+    {
+        $this->queryParams['limit'] = $limit;
+        return $this;
+    }
+
+    /**
+     * Get single result
+     */
+    public function single(): self
+    {
+        $this->queryParams['limit'] = 1;
+        return $this;
+    }
+
+    /**
+     * Execute the query
+     */
+    public function execute()
+    {
+        $queryParams = $this->queryParams;
+        if ($this->selectColumns) {
+            $queryParams['select'] = $this->selectColumns;
+        }
+
+        $queryString = http_build_query($queryParams);
+        $url = "{$this->url}/rest/v1/{$this->table}";
+        if ($queryString) {
+            $url .= '?' . $queryString;
+        }
+
+        $apiKey = $this->useServiceRole ? ($this->serviceRoleKey ?: $this->apiKey) : $this->apiKey;
+        $authHeader = 'Bearer ' . $apiKey;
+
         $response = Http::withOptions(['verify' => $this->verifySsl])->withHeaders([
-            'apikey' => $this->apiKey,
-            'Authorization' => "Bearer {$this->apiKey}",
-        ])->get("{$this->url}/rest/v1/{$this->table}", [
-            'select' => $columns,
-        ]);
+            'apikey' => $apiKey,
+            'Authorization' => $authHeader,
+        ])->get($url);
+
+        // Reset query state
+        $this->queryParams = [];
+        $this->selectColumns = null;
+        $this->useServiceRole = false;
 
         return $response->json();
     }
+
 
     /**
      * Insert data into table

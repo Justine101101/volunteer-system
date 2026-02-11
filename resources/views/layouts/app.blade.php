@@ -17,7 +17,7 @@
     <body class="font-sans antialiased bg-white">
         <a href="#main" class="sr-only focus:not-sr-only focus-ring px-3 py-2 bg-white text-gray-800">Skip to content</a>
         <div class="min-h-screen bg-white" role="document">
-            @if(request()->routeIs('admin.*') || request()->routeIs('officer.*') || (request()->routeIs('messaging*') && auth()->user()?->isSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && (auth()->user()?->isSuperAdmin() || auth()->user()?->isOfficer())) || (request()->routeIs('events.*') && auth()->check() && (auth()->user()?->isSuperAdmin() || auth()->user()?->isOfficer())) || (request()->routeIs('settings*') && auth()->check() && (auth()->user()?->isSuperAdmin() || auth()->user()?->isOfficer())) || (request()->routeIs('profile.*') && auth()->check() && (auth()->user()?->isSuperAdmin() || auth()->user()?->isOfficer())))
+            @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
                 <!-- Admin top purple title strip -->
                 <div class="w-full bg-purple-900 text-white">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3">

@@ -13,7 +13,7 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('role:superadmin');
+        $this->middleware('role:admin');
     }
 
     /**
@@ -65,7 +65,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'officer', 'volunteer'])],
+            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);
@@ -100,7 +100,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'officer', 'volunteer'])],
+            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);

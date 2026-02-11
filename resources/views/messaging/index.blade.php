@@ -93,7 +93,10 @@
                             </div>
 
                             <!-- Messages Area -->
-                            <div class="flex-1 overflow-y-auto p-4 bg-white space-y-4" id="messagesContainer">
+                            <div class="flex-1 overflow-y-auto p-4 bg-white space-y-4" 
+                                 id="messagesContainer"
+                                 data-current-user-id="{{ auth()->id() }}"
+                                 data-other-user-id="{{ $otherUser->id }}">
                                 @foreach($messages as $message)
                                     <div class="flex {{ $message->sender_id === auth()->id() ? 'justify-end' : 'justify-start' }}">
                                         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg {{ $message->sender_id === auth()->id() ? '' : 'shadow' }}"
@@ -164,7 +167,8 @@
                                                   placeholder="Type your message..." 
                                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 resize-none"></textarea>
                                         <button type="submit" 
-                                                class="inline-flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition">
+                                                id="sendButton"
+                                                class="inline-flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                                             </svg>
@@ -250,28 +254,97 @@
             document.getElementById('newMessageModal').classList.add('hidden');
         }
 
-        // Auto-scroll to bottom of messages
+        // Initialize Realtime Chat
+        let realtimeChat = null;
+        
         document.addEventListener('DOMContentLoaded', function() {
             const messagesContainer = document.getElementById('messagesContainer');
             if (messagesContainer) {
+                // Auto-scroll to bottom on initial load
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Initialize Supabase Realtime Chat if we have the required data
+                const currentUserId = messagesContainer.getAttribute('data-current-user-id');
+                const otherUserId = messagesContainer.getAttribute('data-other-user-id');
+                
+                if (currentUserId && otherUserId && window.RealtimeChat) {
+                    // Get Supabase config from Laravel
+                    const supabaseConfig = {
+                        url: @json(config('supabase.url')),
+                        anonKey: @json(config('supabase.anon_key')),
+                        currentUserId: parseInt(currentUserId),
+                        otherUserId: parseInt(otherUserId)
+                    };
+                    
+                    if (supabaseConfig.url && supabaseConfig.anonKey) {
+                        realtimeChat = new window.RealtimeChat(supabaseConfig);
+                    }
+                }
+            }
+
+            // Enhanced form submission with AJAX (prevents page reload)
+            const messageForm = document.getElementById('messageForm');
+            if (messageForm) {
+                messageForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const sendButton = document.getElementById('sendButton');
+                    const originalButtonText = sendButton.innerHTML;
+                    
+                    // Disable button during submission
+                    sendButton.disabled = true;
+                    sendButton.innerHTML = '<span class="text-sm">Sending...</span>';
+                    
+                    try {
+                        const response = await fetch(this.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || formData.get('_token')
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            // Clear form
+                            document.getElementById('message').value = '';
+                            document.getElementById('subject').value = '';
+                            
+                            // Scroll to bottom (new message will appear via Realtime)
+                            if (messagesContainer) {
+                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            }
+                            
+                            // Show success message
+                            const successDiv = document.createElement('div');
+                            successDiv.className = 'mb-4 bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-lg';
+                            successDiv.textContent = 'Message sent successfully.';
+                            const header = document.querySelector('x-slot[name="header"]')?.parentElement || document.body;
+                            header.insertBefore(successDiv, header.firstChild);
+                            
+                            // Remove success message after 3 seconds
+                            setTimeout(() => successDiv.remove(), 3000);
+                        } else {
+                            throw new Error('Failed to send message');
+                        }
+                    } catch (error) {
+                        console.error('Error sending message:', error);
+                        alert('Failed to send message. Please try again.');
+                    } finally {
+                        // Re-enable button
+                        sendButton.disabled = false;
+                        sendButton.innerHTML = originalButtonText;
+                    }
+                });
             }
         });
 
-        // Clear message input after sending (for better UX, but form will submit normally)
-        document.getElementById('messageForm')?.addEventListener('submit', function(e) {
-            // Let the form submit normally - Laravel will handle the redirect
-            // Just clear the message field for better UX
-            setTimeout(() => {
-                const messageInput = document.getElementById('message');
-                if (messageInput) {
-                    messageInput.value = '';
-                }
-                const subjectInput = document.getElementById('subject');
-                if (subjectInput) {
-                    subjectInput.value = '';
-                }
-            }, 100);
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (realtimeChat) {
+                realtimeChat.destroy();
+            }
         });
 
         // Close modal on outside click

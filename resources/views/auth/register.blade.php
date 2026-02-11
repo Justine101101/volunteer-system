@@ -39,7 +39,6 @@
             <x-input-label for="role" :value="__('Role')" />
             <select id="role" name="role" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500" required aria-invalid="{{ $errors->has('role') ? 'true' : 'false' }}">
                 <option value="volunteer" {{ old('role', 'volunteer') === 'volunteer' ? 'selected' : '' }}>Volunteer</option>
-                <option value="officer" {{ old('role') === 'officer' ? 'selected' : '' }}>Officer</option>
             </select>
             <x-input-error :messages="$errors->get('role')" class="mt-2" />
         </div>

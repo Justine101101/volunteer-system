@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Services\DatabaseQueryService;
 
 class SettingsController extends Controller
@@ -32,6 +33,31 @@ class SettingsController extends Controller
             'dark_mode' => 'boolean',
         ]);
 
+        // Single Source of Truth: Update Supabase first
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $user->role ?? 'volunteer',
+            'notification_pref' => $request->has('notification_pref'),
+            'dark_mode' => $request->has('dark_mode'),
+            'email_verified_at' => $user->email_verified_at?->toISOString(),
+        ];
+
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make($request->password);
+        }
+
+        $result = $queryService->upsertUser($updateData);
+
+        if (isset($result['error'])) {
+            Log::error('Failed to update user in Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update settings. Please try again.');
+        }
+
+        // Sync to local user for Laravel authentication
+        // TODO: Consider migrating to Supabase Auth in the future
         $user->name = $request->name;
         $user->email = $request->email;
         $user->notification_pref = $request->has('notification_pref');
@@ -42,16 +68,6 @@ class SettingsController extends Controller
         }
 
         $user->save();
-
-        // Reflect profile preferences in Supabase users
-        $queryService->upsertUser([
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->role ?? 'volunteer',
-            'notification_pref' => (bool) $user->notification_pref,
-            'dark_mode' => (bool) $user->dark_mode,
-            'email_verified_at' => $user->email_verified_at?->toISOString(),
-        ]);
 
         return redirect()->route('settings')->with('success', 'Settings updated successfully!');
     }

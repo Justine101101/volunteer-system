@@ -27,7 +27,12 @@ class RoleMiddleware
         foreach ($requiredRoles as $required) {
             $required = trim($required);
             if ($required === 'superadmin') {
-                if (in_array($userRole, ['superadmin', 'admin'], true)) {
+                if ($userRole === 'superadmin') {
+                    $allow = true;
+                    break;
+                }
+            } elseif ($required === 'admin') {
+                if (in_array($userRole, ['admin', 'superadmin'], true)) {
                     $allow = true;
                     break;
                 }

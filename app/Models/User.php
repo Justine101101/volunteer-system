@@ -86,19 +86,36 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is superadmin or admin.
+     * Check if user is superadmin.
      */
     public function isSuperAdmin()
     {
-        return $this->role === 'superadmin' || $this->role === 'admin';
+        return $this->role === 'superadmin';
+    }
+
+    /**
+     * Check if user is admin.
+     */
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is admin or superadmin.
+     */
+    public function isAdminOrSuperAdmin()
+    {
+        return $this->role === 'admin' || $this->role === 'superadmin';
     }
 
     /**
      * Check if user is officer.
+     * @deprecated Officer role has been removed. This method always returns false.
      */
     public function isOfficer()
     {
-        return $this->role === 'officer';
+        return false;
     }
 
     /**

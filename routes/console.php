@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schedule;
 use App\Models\User;
 
 Artisan::command('inspire', function () {
@@ -40,3 +41,8 @@ Artisan::command('admin:create {email} {--name=Admin} {--password=} {--role=supe
     $this->line('Role: ' . $user->role);
     $this->comment('Note: "admin" and "superadmin" roles have the same permissions.');
 })->purpose('Create or update an admin/superadmin user');
+
+// Schedule: Send event reminders daily at 9:00 AM
+Schedule::command('events:send-reminders')
+    ->dailyAt('09:00')
+    ->description('Send email reminders to volunteers for events happening tomorrow');

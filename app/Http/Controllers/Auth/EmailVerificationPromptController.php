@@ -17,7 +17,7 @@ class EmailVerificationPromptController extends Controller
         $user = $request->user();
         
         if ($user->hasVerifiedEmail()) {
-            $redirectRoute = $user->isSuperAdmin() ? 'admin.dashboard' : 'dashboard';
+            $redirectRoute = $user->isAdminOrSuperAdmin() ? 'admin.dashboard' : 'dashboard';
             return redirect()->intended(route($redirectRoute, absolute: false));
         }
         

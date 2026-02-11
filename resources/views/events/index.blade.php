@@ -22,7 +22,7 @@
                     View Calendar
                 </a>
                 @auth
-                    @if(auth()->user()->isSuperAdmin())
+                    @if(auth()->user()->isAdminOrSuperAdmin())
                         <a href="{{ route('events.create') }}" 
                            class="inline-flex items-center px-6 py-3 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150 shadow-lg bg-yellow-300 hover:bg-yellow-400"
                            style="color: #1a5f3f;">
@@ -85,7 +85,8 @@
                             <div class="flex justify-between items-start mb-4">
                                 <h3 class="event-title text-2xl font-bold transition-colors duration-300" style="color: {{ $cardColor }};">{{ e($event->title) }}</h3>
                                 @auth
-                                    @if(auth()->user()->isSuperAdmin())
+                                    {{-- Only show edit/delete if this event is a real Eloquent model instance --}}
+                                    @if($event instanceof \App\Models\Event && auth()->user()->isSuperAdmin())
                                         <div class="flex space-x-2">
                                             <a href="{{ route('events.edit', $event) }}" 
                                                class="text-sm font-medium transition-colors duration-300" style="color: #1a5f3f; hover:color: #2d7a5a;">
@@ -121,56 +122,71 @@
                                     </svg>
                                     <span class="text-gray-700 font-medium">{{ e($event->time) }}</span>
                                 </div>
-                                <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300" style="background-color: rgba(26, 95, 63, 0.1);">
-                                    <svg class="w-5 h-5 mr-2" style="color: #1a5f3f;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                    <span class="text-gray-700 font-medium">Created by {{ e($event->creator->name) }}</span>
-                                </div>
+                                @php
+                                    // Only attempt to read creator when this is an Eloquent Event model
+                                    $creatorName = $event instanceof \App\Models\Event
+                                        ? optional($event->creator)->name
+                                        : null;
+                                @endphp
+                                @if($creatorName)
+                                    <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300" style="background-color: rgba(26, 95, 63, 0.1);">
+                                        <svg class="w-5 h-5 mr-2" style="color: #1a5f3f;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                        <span class="text-gray-700 font-medium">
+                                            Created by {{ e($creatorName) }}
+                                        </span>
+                                    </div>
+                                @endif
                             </div>
 
                             <!-- Registration Section -->
                             @auth
-                                @php
-                                    $userRegistration = $event->registrations->where('user_id', auth()->id())->first();
-                                @endphp
-                                
-                                @if($userRegistration)
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center">
-                                            <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
-                                                @if($userRegistration->status === 'approved') style="background: linear-gradient(to right, #1a5f3f, #2d7a5a); color: white;"
-                                                @elseif($userRegistration->status === 'rejected') style="background-color: #fee2e2; color: #991b1b;"
-                                                @else style="background: linear-gradient(to right, #4a1a5f, #6b2d8a); color: white;"
-                                                @endif>
-                                                @if($userRegistration->status === 'approved')
-                                                    ✓ Approved
-                                                @elseif($userRegistration->status === 'rejected')
-                                                    ✗ Rejected
-                                                @else
-                                                    ⏳ Pending
-                                                @endif
-                                            </span>
+                                {{-- Only show registration controls when this is an Eloquent Event model --}}
+                                @if($event instanceof \App\Models\Event)
+                                    @php
+                                        $userRegistration = $event->registrations
+                                            ? $event->registrations->where('user_id', auth()->id())->first()
+                                            : null;
+                                    @endphp
+                                    
+                                    @if($userRegistration)
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
+                                                    @if($userRegistration->status === 'approved') style="background: linear-gradient(to right, #1a5f3f, #2d7a5a); color: white;"
+                                                    @elseif($userRegistration->status === 'rejected') style="background-color: #fee2e2; color: #991b1b;"
+                                                    @else style="background: linear-gradient(to right, #4a1a5f, #6b2d8a); color: white;"
+                                                    @endif>
+                                                    @if($userRegistration->status === 'approved')
+                                                        ✓ Approved
+                                                    @elseif($userRegistration->status === 'rejected')
+                                                        ✗ Rejected
+                                                    @else
+                                                        ⏳ Pending
+                                                    @endif
+                                                </span>
+                                            </div>
+                                            <form method="POST" action="{{ route('events.leave', $event) }}" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" 
+                                                        class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-300"
+                                                        onclick="return confirm('Are you sure you want to leave this event?')">
+                                                    Leave Event
+                                                </button>
+                                            </form>
                                         </div>
-                                        <form method="POST" action="{{ route('events.leave', $event) }}" class="inline">
+                                    @else
+                                        <form method="POST" action="{{ route('events.join', $event) }}" class="inline">
                                             @csrf
-                                            @method('DELETE')
                                             <button type="submit" 
-                                                    class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-300"
-                                                    onclick="return confirm('Are you sure you want to leave this event?')">
-                                                Leave Event
+                                                    class="px-6 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                                                    style="background: linear-gradient(to right, #1a5f3f, #2d7a5a);">
+                                                Join Event
                                             </button>
                                         </form>
-                                    </div>
-                                @else
-                                    <form method="POST" action="{{ route('events.join', $event) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" 
-                                                class="px-6 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                                style="background: linear-gradient(to right, #1a5f3f, #2d7a5a);">
-                                            Join Event
-                                        </button>
-                                    </form>
+                                    @endif
                                 @endif
                             @else
                                 <div class="text-center">

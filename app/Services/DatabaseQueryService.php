@@ -4,9 +4,11 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Traits\RecordsAuditLogs;
 
 class DatabaseQueryService
 {
+    use RecordsAuditLogs;
     protected SupabaseService $supabase;
 
     public function __construct(SupabaseService $supabase)
@@ -50,8 +52,9 @@ class DatabaseQueryService
 
     /**
      * Get event by ID with full details
+     * Accepts UUID string (Supabase) or can find by title+date+location for compatibility
      */
-    public function getEventById(int $eventId)
+    public function getEventById(string $eventId)
     {
         try {
             return $this->supabase->from('events')
@@ -66,6 +69,30 @@ class DatabaseQueryService
     }
 
     /**
+     * Find event by matching fields (for compatibility with MySQL integer IDs)
+     */
+    public function findEventByFields(string $title, string $date, string $location)
+    {
+        try {
+            $events = $this->supabase->from('events')
+                ->select('*')
+                ->eq('title', $title)
+                ->eq('event_date', $date)
+                ->eq('location', $location)
+                ->limit(1)
+                ->execute();
+
+            if (is_array($events) && count($events) > 0) {
+                return $events[0];
+            }
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Error finding event by fields: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Create a new event
      */
     public function createEvent(array $eventData)
@@ -75,9 +102,28 @@ class DatabaseQueryService
             $eventData['updated_at'] = now()->toISOString();
 
             // Privileged upsert by title+event_date+event_time+location as a simple uniqueness proxy
-            return $this->supabase->from('events')
+            $result = $this->supabase->from('events')
                 ->insertPrivileged([$eventData])
             ;
+
+            if (isset($result['error'])) {
+                return $result;
+            }
+
+            // Return the created event (Supabase returns array of created records)
+            $created = is_array($result) && count($result) > 0 ? $result[0] : $result;
+
+            // Audit log
+            $this->audit(
+                action: 'event.created',
+                resourceType: 'Event',
+                resourceId: $created['id'] ?? null,
+                payload: [
+                    'new' => $created,
+                ],
+            );
+
+            return $created;
         } catch (\Exception $e) {
             Log::error('Error creating event: ' . $e->getMessage());
             return ['error' => 'Failed to create event'];
@@ -85,56 +131,83 @@ class DatabaseQueryService
     }
 
     /**
-     * Update an event in Supabase (best-effort, non-blocking)
-     * Note: Supabase uses UUIDs while local DB uses integers, so this may not always work
+     * Update an event in Supabase
+     * Note: Supabase uses UUIDs, so eventId should be a UUID string
      */
-    public function updateEvent(int $eventId, array $eventData): void
+    public function updateEvent(string $eventId, array $eventData): array
     {
         // Skip if Supabase is not configured
         if (!config('supabase.url') || !config('supabase.service_role_key')) {
-            return;
+            return ['error' => 'Supabase not configured'];
         }
 
         try {
             $eventData['updated_at'] = now()->toISOString();
 
-            // Try to update by ID using the correct API format
+            // Update by ID using the correct API format
             // Supabase REST API requires filter format: id=eq.{value}
-            // May fail if IDs don't match between systems
-            $this->supabase->from('events')
-                ->updatePrivileged($eventData, ['id' => 'eq.' . (string) $eventId]);
+            $result = $this->supabase->from('events')
+                ->updatePrivileged($eventData, ['id' => 'eq.' . $eventId]);
+
+            if (isset($result['error'])) {
+                Log::error('Error updating event in Supabase: ' . ($result['error'] ?? 'Unknown error'));
+                return $result;
+            }
+
+            // Return the updated event (Supabase returns array of updated records)
+            $updated = is_array($result) && count($result) > 0 ? $result[0] : $result;
+
+            $this->audit(
+                action: 'event.updated',
+                resourceType: 'Event',
+                resourceId: $eventId,
+                payload: [
+                    'new' => $updated,
+                    // Optionally include partial update data
+                    'changed' => $eventData,
+                ],
+            );
+
+            return $updated;
         } catch (\Exception $e) {
-            // Silently log and continue - Supabase update is optional
-            Log::debug('Could not update event in Supabase (ID mismatch expected): ' . $e->getMessage());
-        } catch (\Throwable $e) {
-            // Catch any other errors (including fatal errors)
-            Log::debug('Could not update event in Supabase: ' . $e->getMessage());
+            Log::error('Error updating event in Supabase: ' . $e->getMessage());
+            return ['error' => 'Failed to update event'];
         }
     }
 
     /**
-     * Delete an event from Supabase (best-effort, non-blocking)
-     * Note: Supabase uses UUIDs while local DB uses integers, so this may not always work
+     * Delete an event from Supabase
+     * Note: Supabase uses UUIDs, so eventId should be a UUID string
      */
-    public function deleteEvent(int $eventId): void
+    public function deleteEvent(string $eventId): array
     {
         // Skip if Supabase is not configured
         if (!config('supabase.url') || !config('supabase.service_role_key')) {
-            return;
+            return ['error' => 'Supabase not configured'];
         }
 
         try {
-            // Attempt to delete from Supabase using the correct API format
+            // Delete from Supabase using the correct API format
             // Supabase REST API requires filter format: id=eq.{value}
-            // Since Supabase uses UUIDs and local DB uses integers, this is best-effort only
-            $this->supabase->from('events')
-                ->deletePrivileged(['id' => 'eq.' . (string) $eventId]);
+            $result = $this->supabase->from('events')
+                ->deletePrivileged(['id' => 'eq.' . $eventId]);
+
+            if (isset($result['error'])) {
+                Log::error('Error deleting event from Supabase: ' . ($result['error'] ?? 'Unknown error'));
+                return $result;
+            }
+
+            $this->audit(
+                action: 'event.deleted',
+                resourceType: 'Event',
+                resourceId: $eventId,
+                payload: null,
+            );
+
+            return ['success' => true];
         } catch (\Exception $e) {
-            // Silently log and continue - Supabase deletion is optional
-            Log::debug('Could not delete event from Supabase (ID mismatch expected): ' . $e->getMessage());
-        } catch (\Throwable $e) {
-            // Catch any other errors (including fatal errors)
-            Log::debug('Could not delete event from Supabase: ' . $e->getMessage());
+            Log::error('Error deleting event from Supabase: ' . $e->getMessage());
+            return ['error' => 'Failed to delete event'];
         }
     }
 
@@ -169,9 +242,9 @@ class DatabaseQueryService
     }
 
     /**
-     * Get user by ID
+     * Get user by ID (UUID string)
      */
-    public function getUserById(int $userId)
+    public function getUserById(string $userId)
     {
         try {
             return $this->supabase->from('users')
@@ -182,6 +255,23 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error fetching user: ' . $e->getMessage());
             return ['error' => 'User not found'];
+        }
+    }
+
+    /**
+     * Get user by email (for compatibility)
+     */
+    public function getUserByEmail(string $email)
+    {
+        try {
+            return $this->supabase->from('users')
+                ->select('*')
+                ->eq('email', $email)
+                ->single()
+                ->execute();
+        } catch (\Exception $e) {
+            Log::debug('User not found by email: ' . $e->getMessage());
+            return null;
         }
     }
 
@@ -205,7 +295,22 @@ class DatabaseQueryService
                 'updated_at' => now()->toISOString(),
             ]];
 
-            return $this->supabase->from('users')->insertPrivileged($payload, 'email');
+            $result = $this->supabase->from('users')->insertPrivileged($payload, 'email');
+
+            if (!isset($result['error'])) {
+                $userRecord = is_array($result) && isset($result[0]) ? $result[0] : ($result ?: $payload[0]);
+
+                $this->audit(
+                    action: 'user.upserted',
+                    resourceType: 'User',
+                    resourceId: $userRecord['id'] ?? ($user['id'] ?? ($user['email'] ?? null)),
+                    payload: [
+                        'new' => $userRecord,
+                    ],
+                );
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Error upserting user to Supabase: ' . $e->getMessage());
             return ['error' => 'Failed to upsert user to Supabase'];
@@ -248,8 +353,9 @@ class DatabaseQueryService
 
     /**
      * Register user for an event
+     * Accepts UUID strings for user_id and event_id
      */
-    public function registerForEvent(int $userId, int $eventId, array $additionalData = [])
+    public function registerForEvent(string $userId, string $eventId, array $additionalData = [])
     {
         try {
             $registrationData = array_merge([
@@ -260,9 +366,25 @@ class DatabaseQueryService
                 'updated_at' => now()->toISOString(),
             ], $additionalData);
 
-            return $this->supabase->from('event_registrations')
-                ->insertPrivileged([$registrationData], 'user_id,event_id')
-            ;
+            $result = $this->supabase->from('event_registrations')
+                ->insertPrivileged([$registrationData], 'user_id,event_id');
+
+            if (isset($result['error'])) {
+                return $result;
+            }
+
+            $created = is_array($result) && count($result) > 0 ? $result[0] : $result;
+
+            $this->audit(
+                action: 'registration.created',
+                resourceType: 'EventRegistration',
+                resourceId: $created['id'] ?? null,
+                payload: [
+                    'new' => $created,
+                ],
+            );
+
+            return $created;
         } catch (\Exception $e) {
             Log::error('Error registering for event: ' . $e->getMessage());
             return ['error' => 'Failed to register for event'];
@@ -270,17 +392,122 @@ class DatabaseQueryService
     }
 
     /**
-     * Update registration status
+     * Get event registration by user and event
+     * Accepts UUID strings
      */
-    public function updateRegistrationStatus(int $registrationId, string $status)
+    public function getEventRegistration(string $userId, string $eventId)
     {
         try {
             return $this->supabase->from('event_registrations')
+                ->select('*')
+                ->eq('user_id', $userId)
+                ->eq('event_id', $eventId)
+                ->single()
+                ->execute();
+        } catch (\Exception $e) {
+            Log::debug('Event registration not found: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Delete an event registration from Supabase
+     */
+    public function deleteEventRegistration(string $registrationId): array
+    {
+        try {
+            $result = $this->supabase->from('event_registrations')
+                ->deletePrivileged(['id' => 'eq.' . $registrationId]);
+
+            if (!isset($result['error'])) {
+                $this->audit(
+                    action: 'registration.deleted',
+                    resourceType: 'EventRegistration',
+                    resourceId: $registrationId,
+                );
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Error deleting event registration: ' . $e->getMessage());
+            return ['error' => 'Failed to delete event registration'];
+        }
+    }
+
+    /**
+     * Delete event registration by user and event
+     * Accepts UUID strings
+     */
+    public function deleteEventRegistrationByUserAndEvent(string $userId, string $eventId): array
+    {
+        try {
+            $result = $this->supabase->from('event_registrations')
+                ->deletePrivileged([
+                    'user_id' => 'eq.' . $userId,
+                    'event_id' => 'eq.' . $eventId,
+                ]);
+
+            if (isset($result['error'])) {
+                return $result;
+            }
+
+            $this->audit(
+                action: 'registration.deleted',
+                resourceType: 'EventRegistration',
+                resourceId: null,
+                payload: [
+                    'user_id' => $userId,
+                    'event_id' => $eventId,
+                ],
+            );
+
+            return ['success' => true];
+        } catch (\Exception $e) {
+            Log::error('Error deleting event registration: ' . $e->getMessage());
+            return ['error' => 'Failed to delete event registration'];
+        }
+    }
+
+    /**
+     * Find member by name (for compatibility)
+     */
+    public function findMemberByName(string $name)
+    {
+        try {
+            $members = $this->supabase->from('members')
+                ->select('*')
+                ->eq('name', $name)
+                ->limit(1)
+                ->execute();
+
+            if (is_array($members) && count($members) > 0) {
+                return $members[0];
+            }
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Error finding member by name: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Update registration status
+     * Accepts UUID string for registrationId
+     */
+    public function updateRegistrationStatus(string $registrationId, string $status): array
+    {
+        try {
+            $result = $this->supabase->from('event_registrations')
                 ->updatePrivileged([
                     'registration_status' => $status,
                     'updated_at' => now()->toISOString(),
-                ], ['id' => $registrationId])
-            ;
+                ], ['id' => 'eq.' . $registrationId]);
+
+            if (isset($result['error'])) {
+                return $result;
+            }
+
+            return is_array($result) && count($result) > 0 ? $result[0] : $result;
         } catch (\Exception $e) {
             Log::error('Error updating registration: ' . $e->getMessage());
             return ['error' => 'Failed to update registration'];
@@ -309,6 +536,54 @@ class DatabaseQueryService
         }
     }
 
+    /**
+     * Get all members with pagination
+     */
+    public function getMembers(int $page = 1, int $limit = 10, array $filters = [])
+    {
+        try {
+            $query = $this->supabase->from('members')
+                ->select('*')
+                ->order('order', 'asc')
+                ->order('name', 'asc');
+
+            // Apply filters
+            if (isset($filters['status'])) {
+                $query = $query->eq('member_status', $filters['status']);
+            }
+
+            if (isset($filters['search'])) {
+                $query = $query->or('name.ilike.%' . $filters['search'] . '%,email.ilike.%' . $filters['search'] . '%');
+            }
+
+            // Apply pagination
+            $offset = ($page - 1) * $limit;
+            $query = $query->range($offset, $offset + $limit - 1);
+
+            return $query->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching members: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch members'];
+        }
+    }
+
+    /**
+     * Get member by ID
+     */
+    public function getMemberById(string $memberId)
+    {
+        try {
+            return $this->supabase->from('members')
+                ->select('*')
+                ->eq('id', $memberId)
+                ->single()
+                ->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching member: ' . $e->getMessage());
+            return ['error' => 'Member not found'];
+        }
+    }
+
     /** Members: privileged upsert by email */
     public function upsertMember(array $data): array
     {
@@ -323,6 +598,9 @@ class DatabaseQueryService
                 'emergency_contact_name' => $data['emergency_contact_name'] ?? null,
                 'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
                 'member_status' => $data['member_status'] ?? 'active',
+                'role' => $data['role'] ?? null,
+                'photo_url' => $data['photo_url'] ?? null,
+                'order' => $data['order'] ?? 0,
                 'created_at' => now()->toISOString(),
                 'updated_at' => now()->toISOString(),
             ]];
@@ -331,6 +609,36 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error upserting member: ' . $e->getMessage());
             return ['error' => 'Failed to upsert member'];
+        }
+    }
+
+    /**
+     * Update a member in Supabase
+     */
+    public function updateMember(string $memberId, array $memberData): array
+    {
+        try {
+            $memberData['updated_at'] = now()->toISOString();
+
+            return $this->supabase->from('members')
+                ->updatePrivileged($memberData, ['id' => 'eq.' . $memberId]);
+        } catch (\Exception $e) {
+            Log::error('Error updating member: ' . $e->getMessage());
+            return ['error' => 'Failed to update member'];
+        }
+    }
+
+    /**
+     * Delete a member from Supabase
+     */
+    public function deleteMember(string $memberId): array
+    {
+        try {
+            return $this->supabase->from('members')
+                ->deletePrivileged(['id' => 'eq.' . $memberId]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting member: ' . $e->getMessage());
+            return ['error' => 'Failed to delete member'];
         }
     }
 
@@ -478,6 +786,52 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error fetching analytics: ' . $e->getMessage());
             return ['error' => 'Failed to fetch analytics'];
+        }
+    }
+
+    /**
+     * Create a new message in Supabase
+     */
+    public function createMessage(array $messageData): array
+    {
+        try {
+            $messageData['created_at'] = now()->toISOString();
+            $messageData['updated_at'] = now()->toISOString();
+
+            $result = $this->supabase->from('messages')
+                ->insertPrivileged([$messageData]);
+
+            if (isset($result['error'])) {
+                return $result;
+            }
+
+            // Return the created message (Supabase returns array of created records)
+            return is_array($result) && count($result) > 0 ? $result[0] : $result;
+        } catch (\Exception $e) {
+            Log::error('Error creating message: ' . $e->getMessage());
+            return ['error' => 'Failed to create message'];
+        }
+    }
+
+    /**
+     * Get messages for a conversation
+     */
+    public function getMessages(string $userId1, string $userId2, int $page = 1, int $limit = 100)
+    {
+        try {
+            $query = $this->supabase->from('messages')
+                ->select('*, sender:users(name, email), receiver:users(name, email)')
+                ->or(`and(sender_id.eq.${userId1},receiver_id.eq.${userId2}),and(sender_id.eq.${userId2},receiver_id.eq.${userId1})`)
+                ->order('created_at', 'asc');
+
+            // Apply pagination
+            $offset = ($page - 1) * $limit;
+            $query = $query->range($offset, $offset + $limit - 1);
+
+            return $query->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching messages: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch messages'];
         }
     }
 }
