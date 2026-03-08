@@ -10,9 +10,9 @@
         </div>
     </x-slot>
 
-    <div class="py-12 bg-white">
+    <div class="py-12 bg-slate-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                 <form method="POST" action="{{ route('admin.users.store') }}">
                     @csrf
                     

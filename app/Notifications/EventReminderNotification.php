@@ -50,7 +50,7 @@ class EventReminderNotification extends Notification implements ShouldQueue
             ->line('**Location:** ' . $eventLocation)
             ->line('**Description:**')
             ->line($this->event->description)
-            ->action('View Event Details', route('events.show', $this->event))
+            ->action('View Event Details', route('events.show', $this->event->id))
             ->line('Thank you for your commitment to volunteering!')
             ->salutation('Best regards, Volunteer Management System');
     }

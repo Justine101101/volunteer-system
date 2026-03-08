@@ -41,11 +41,26 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        $maxAttempts = 3;
+
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+            // Check how many attempts are left before this failure is recorded
+            $remainingBeforeHit = RateLimiter::remaining($this->throttleKey(), $maxAttempts);
+
             RateLimiter::hit($this->throttleKey());
 
+            $remainingAfterHit = max(0, $remainingBeforeHit - 1);
+
+            $baseMessage = trans('auth.failed');
+            $message = $baseMessage;
+
+            if ($remainingAfterHit > 0) {
+                $attemptWord = $remainingAfterHit === 1 ? 'attempt' : 'attempts';
+                $message = $baseMessage.' You have '.$remainingAfterHit.' '.$attemptWord.' remaining before temporary lockout.';
+            }
+
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => $message,
             ]);
         }
 

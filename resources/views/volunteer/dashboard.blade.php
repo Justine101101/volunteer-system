@@ -50,98 +50,113 @@
         </div>
     </x-slot>
 
-    <div class="py-12 bg-white">
+    <div class="py-12 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Welcome Section -->
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Welcome back, {{ auth()->user()->name }}!</h1>
-                <p class="mt-2 text-gray-600">Here's an overview of your volunteer activities and upcoming events.</p>
+            <!-- Welcome Banner -->
+            <div class="mb-8 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-indigo-600 text-white p-8 shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2">Welcome back, {{ auth()->user()->name }}! 👋</h1>
+                        <p class="text-emerald-50 text-base">Here's an overview of your volunteer activities and upcoming events.</p>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="w-24 h-24 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Analytics Header Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white rounded-xl shadow p-6">
-                    <p class="text-sm text-gray-600">Participation Growth</p>
+                <div class="rounded-2xl p-6 border border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/50 shadow-sm hover:shadow-md transition-shadow">
+                    <p class="text-sm text-slate-600 font-medium">Participation Growth</p>
                     <div class="mt-2 flex items-end justify-between">
-                        <p class="text-3xl font-semibold text-emerald-700">{{ $analytics['growth_rate_pct'] }}%</p>
-                        <span class="inline-flex items-center text-emerald-700 text-sm">
+                        <p class="text-3xl font-bold text-indigo-700">{{ $analytics['growth_rate_pct'] }}%</p>
+                        <span class="inline-flex items-center text-emerald-600 text-sm font-medium">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l4-4 4 4m0 0l4-4m-4 4v10"/></svg>
                             QoQ
                         </span>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">My participation growth this period</p>
+                    <p class="text-xs text-slate-500 mt-1">My participation growth this period</p>
                 </div>
-                <div class="bg-white rounded-xl shadow p-6">
-                    <p class="text-sm text-gray-600">Participation Rate</p>
+                <div class="rounded-2xl p-6 border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-sm hover:shadow-md transition-shadow">
+                    <p class="text-sm text-slate-600 font-medium">Participation Rate</p>
                     <div class="mt-2 flex items-end justify-between">
-                        <p class="text-3xl font-semibold text-emerald-700">{{ $analytics['participation_rate'] }}%</p>
-                        <span class="text-sm text-gray-500">of events</span>
+                        <p class="text-3xl font-bold text-emerald-700">{{ $analytics['participation_rate'] }}%</p>
+                        <span class="text-sm text-slate-500">of events</span>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Based on my approved registrations</p>
+                    <p class="text-xs text-slate-500 mt-1">Based on my approved registrations</p>
                 </div>
-                <div class="bg-white rounded-xl shadow p-6">
-                    <p class="text-sm text-gray-600">Approval Rate</p>
+                <div class="rounded-2xl p-6 border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 shadow-sm hover:shadow-md transition-shadow">
+                    <p class="text-sm text-slate-600 font-medium">Approval Rate</p>
                     <div class="mt-2 flex items-end justify-between">
-                        <p class="text-3xl font-semibold text-emerald-700">{{ $analytics['event_success_pct'] }}%</p>
+                        <p class="text-3xl font-bold text-slate-800">{{ $analytics['event_success_pct'] }}%</p>
                         <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">My approved registrations</p>
+                    <p class="text-xs text-slate-500 mt-1">My approved registrations</p>
                 </div>
             </div>
 
             <!-- Top Metric Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <!-- Total Registrations -->
-                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow border border-gray-200 bg-white text-gray-900 hover:shadow-lg transition">
+                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow-sm border border-indigo-200 bg-white text-gray-900 hover:shadow-lg hover:border-indigo-300 transition-all">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400 via-indigo-500 to-emerald-500"></div>
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm leading-5 text-gray-700">My Registrations</p>
-                            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ $stats['total_registrations'] }}</p>
-                            <p class="mt-2 text-xs text-gray-500">All time</p>
+                            <p class="text-sm leading-5 text-slate-600 font-medium">My Registrations</p>
+                            <p class="mt-1 text-3xl font-bold text-slate-900">{{ $stats['total_registrations'] }}</p>
+                            <p class="mt-2 text-xs text-slate-500">All time</p>
                         </div>
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-700">
+                        <div class="p-3 rounded-xl bg-indigo-100 text-indigo-600">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         </div>
                     </div>
                 </a>
 
                 <!-- Approved Events -->
-                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow border border-gray-200 bg-white text-gray-900 hover:shadow-lg transition">
+                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow-sm border border-emerald-200 bg-white text-gray-900 hover:shadow-lg hover:border-emerald-300 transition-all">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-indigo-500"></div>
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm leading-5 text-gray-700">Approved Events</p>
-                            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ $stats['approved_registrations'] }}</p>
-                            <p class="mt-2 text-xs text-gray-500">Confirmed participation</p>
+                            <p class="text-sm leading-5 text-slate-600 font-medium">Approved Events</p>
+                            <p class="mt-1 text-3xl font-bold text-slate-900">{{ $stats['approved_registrations'] }}</p>
+                            <p class="mt-2 text-xs text-slate-500">Confirmed participation</p>
                         </div>
-                        <div class="p-3 rounded-full bg-emerald-100 text-emerald-700">
+                        <div class="p-3 rounded-xl bg-emerald-100 text-emerald-600">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         </div>
                     </div>
                 </a>
 
                 <!-- Pending Applications -->
-                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow border border-gray-200 bg-white text-gray-900 hover:shadow-lg transition">
+                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow-sm border border-amber-200 bg-white text-gray-900 hover:shadow-lg hover:border-amber-300 transition-all">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500"></div>
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm leading-5 text-gray-700">Pending</p>
-                            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ $stats['pending_registrations'] }}</p>
-                            <p class="mt-2 text-xs text-gray-500">Awaiting review</p>
+                            <p class="text-sm leading-5 text-slate-600 font-medium">Pending</p>
+                            <p class="mt-1 text-3xl font-bold text-slate-900">{{ $stats['pending_registrations'] }}</p>
+                            <p class="mt-2 text-xs text-slate-500">Awaiting review</p>
                         </div>
-                        <div class="p-3 rounded-full bg-rose-100 text-rose-700">
+                        <div class="p-3 rounded-xl bg-amber-100 text-amber-600">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                     </div>
                 </a>
 
                 <!-- Upcoming Events -->
-                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow border border-gray-200 bg-white text-gray-900 hover:shadow-lg transition">
+                <a href="{{ route('events.index') }}" class="relative overflow-hidden rounded-2xl p-6 shadow-sm border border-slate-200 bg-white text-gray-900 hover:shadow-lg hover:border-slate-300 transition-all">
+                    <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-400 via-slate-500 to-slate-600"></div>
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm leading-5 text-gray-700">Upcoming Events</p>
-                            <p class="mt-1 text-3xl font-semibold text-gray-900">{{ $stats['upcoming_registered_events'] }}</p>
-                            <p class="mt-2 text-xs text-gray-500">I'm registered for</p>
+                            <p class="text-sm leading-5 text-slate-600 font-medium">Upcoming Events</p>
+                            <p class="mt-1 text-3xl font-bold text-slate-900">{{ $stats['upcoming_registered_events'] }}</p>
+                            <p class="mt-2 text-xs text-slate-500">I'm registered for</p>
                         </div>
-                        <div class="p-3 rounded-full bg-orange-100 text-orange-700">
+                        <div class="p-3 rounded-xl bg-slate-100 text-slate-600">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         </div>
                     </div>
@@ -150,78 +165,78 @@
 
             <!-- Snapshot Metrics -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                <div class="bg-white rounded-xl shadow p-5">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-emerald-50 text-emerald-600">
+                        <div class="p-3 rounded-xl bg-emerald-100 text-emerald-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm text-gray-600">Upcoming Events</p>
-                            <p class="text-xl font-semibold text-gray-900">{{ $quickStats['upcoming_events'] }}</p>
+                            <p class="text-sm text-slate-600 font-medium">Upcoming Events</p>
+                            <p class="text-xl font-bold text-slate-900">{{ $quickStats['upcoming_events'] }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-xl shadow p-5">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-blue-50 text-blue-600">
+                        <div class="p-3 rounded-xl bg-indigo-100 text-indigo-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm text-gray-600">Registrations Today</p>
-                            <p class="text-xl font-semibold text-gray-900">{{ $quickStats['registrations_today'] }}</p>
+                            <p class="text-sm text-slate-600 font-medium">Registrations Today</p>
+                            <p class="text-xl font-bold text-slate-900">{{ $quickStats['registrations_today'] }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-xl shadow p-5">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-yellow-50 text-yellow-600">
+                        <div class="p-3 rounded-xl bg-amber-100 text-amber-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm text-gray-600">Events This Month</p>
-                            <p class="text-xl font-semibold text-gray-900">{{ $quickStats['events_this_month'] }}</p>
+                            <p class="text-sm text-slate-600 font-medium">Events This Month</p>
+                            <p class="text-xl font-bold text-slate-900">{{ $quickStats['events_this_month'] }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-xl shadow p-5">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-violet-50 text-violet-600">
+                        <div class="p-3 rounded-xl bg-slate-100 text-slate-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm text-gray-600">My Registrations (Month)</p>
-                            <p class="text-xl font-semibold text-gray-900">{{ $quickStats['my_registrations_this_month'] }}</p>
+                            <p class="text-sm text-slate-600 font-medium">My Registrations (Month)</p>
+                            <p class="text-xl font-bold text-slate-900">{{ $quickStats['my_registrations_this_month'] }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Quick Actions -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+                <h3 class="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <a href="{{ route('events.index') }}" 
-                       class="flex items-center p-4 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition duration-300">
+                       class="flex items-center p-4 bg-emerald-50 rounded-xl border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-all duration-200">
                         <svg class="w-6 h-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
-                        <span class="text-emerald-800 font-medium">Browse Events</span>
+                        <span class="text-emerald-700 font-semibold">Browse Events</span>
                     </a>
                     
                     <a href="{{ route('profile.edit') }}" 
-                       class="flex items-center p-4 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition duration-300">
-                        <svg class="w-6 h-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center p-4 bg-indigo-50 rounded-xl border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-200">
+                        <svg class="w-6 h-6 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-7.414a2 2 0 112.828 2.828L12 20l-4 1 1-4 8.586-8.586z"/>
                         </svg>
-                        <span class="text-emerald-800 font-medium">Update Profile</span>
+                        <span class="text-indigo-700 font-semibold">Update Profile</span>
                     </a>
                     
                     <a href="{{ route('members.index') }}" 
-                       class="flex items-center p-4 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition duration-300">
-                        <svg class="w-6 h-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition-all duration-200">
+                        <svg class="w-6 h-6 text-slate-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
-                        <span class="text-emerald-800 font-medium">View Members</span>
+                        <span class="text-slate-700 font-semibold">View Members</span>
                     </a>
                 </div>
             </div>
@@ -229,10 +244,10 @@
             <!-- Main Content Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- My Upcoming Events -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">My Upcoming Events</h3>
-                        <a href="{{ route('events.index') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View all</a>
+                        <h3 class="text-lg font-bold text-slate-900">My Upcoming Events</h3>
+                        <a href="{{ route('events.index') }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">View all</a>
                     </div>
                     <div class="space-y-4">
                         @forelse($upcomingRegisteredEvents as $event)
@@ -274,10 +289,10 @@
                 </div>
 
                 <!-- Available Events to Join -->
-                <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Available Events</h3>
-                        <a href="{{ route('events.index') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View all</a>
+                        <h3 class="text-lg font-bold text-slate-900">Available Events</h3>
+                        <a href="{{ route('events.index') }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">View all</a>
                     </div>
                     <div class="space-y-4">
                         @forelse($availableEvents as $event)
@@ -299,8 +314,8 @@
                                     </p>
                                 </div>
                                 <div class="ml-4">
-                                    <a href="{{ route('events.show', $event) }}" 
-                                       class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <a href="{{ route('events.show', ['eventId' => $event->id]) }}" 
+                                       class="inline-flex items-center px-4 py-2 border border-transparent text-xs font-semibold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors">
                                         Join
                                     </a>
                                 </div>
@@ -319,26 +334,37 @@
             </div>
 
             <!-- My Recent Registrations -->
-            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <div class="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">My Recent Registrations</h3>
-                    <a href="{{ route('events.index') }}" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">View all events</a>
+                    <h3 class="text-lg font-bold text-slate-900">My Recent Registrations</h3>
+                    <a href="{{ route('events.index') }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">View all events</a>
                 </div>
                 <div class="space-y-4">
                     @forelse($stats['recent_registrations'] as $registration)
+                        @php
+                            $eventTitle = isset($registration->event) && is_object($registration->event)
+                                ? ($registration->event->title ?? 'Unknown event')
+                                : 'Unknown event';
+                            $createdAt = $registration->created_at ?? null;
+                            $status = strtolower($registration->status ?? 'pending');
+                        @endphp
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                             <div class="flex-1">
-                                <p class="font-medium text-gray-900">{{ $registration->event->title }}</p>
+                                <p class="font-medium text-gray-900">{{ $eventTitle }}</p>
                                 <p class="text-sm text-gray-600 mt-1">
-                                    Registered on {{ $registration->created_at->format('M j, Y g:i A') }}
+                                    @if($createdAt)
+                                        Registered on {{ $createdAt->format('M j, Y g:i A') }}
+                                    @else
+                                        Registration date unavailable
+                                    @endif
                                 </p>
                             </div>
                             <div class="ml-4">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
-                                    @if($registration->status === 'approved') bg-emerald-100 text-emerald-800
-                                    @elseif($registration->status === 'rejected') bg-red-100 text-red-800
+                                    @if($status === 'approved') bg-emerald-100 text-emerald-800
+                                    @elseif($status === 'rejected') bg-red-100 text-red-800
                                     @else bg-yellow-100 text-yellow-800 @endif">
-                                    {{ ucfirst($registration->status) }}
+                                    {{ ucfirst($status) }}
                                 </span>
                             </div>
                         </div>
@@ -356,45 +382,30 @@
                 </div>
             </div>
 
-            <!-- Participation Trend Chart -->
+            <!-- Simple Participation Trend Summary -->
             @php
-                $trendValues = array_values($analytics['trend'] ?? []);
+                $trend = $analytics['trend'] ?? [];
+                $trendValues = array_values($trend);
                 $hasTrendData = array_sum($trendValues) > 0;
             @endphp
             @if($hasTrendData)
-            <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">My Participation Trend</h3>
-                <canvas id="participationChart" height="80"></canvas>
-                <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-                <script>
-                    const participationCtx = document.getElementById('participationChart');
-                    if (participationCtx) {
-                        const labs = {!! json_encode(array_keys($analytics['trend'] ?? [])) !!};
-                        const data = {!! json_encode(array_values($analytics['trend'] ?? [])) !!};
-                        if (data.some(value => Number(value) > 0)) {
-                            new Chart(participationCtx, {
-                                type: 'line',
-                                data: {
-                                    labels: labs,
-                                    datasets: [{
-                                        label: 'My approved registrations',
-                                        data,
-                                        borderColor: '#1d4ed8',
-                                        backgroundColor: 'rgba(29, 78, 216, 0.1)',
-                                        fill: true,
-                                        tension: 0.4
-                                    }]
-                                },
-                                options: { 
-                                    scales: { y: { beginAtZero: true } }, 
-                                    plugins: { legend: { display: true } },
-                                    responsive: true,
-                                    maintainAspectRatio: false
-                                }
-                            });
-                        }
-                    }
-                </script>
+            <div class="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-lg font-bold text-slate-900 mb-4">My Participation Trend</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Summary of my approved registrations over recent periods.
+                </p>
+                <div class="space-y-2">
+                    @foreach($trend as $label => $value)
+                        @if($value > 0)
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-700">{{ $label }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                                {{ $value }} approved
+                            </span>
+                        </div>
+                        @endif
+                    @endforeach
+                </div>
             </div>
             @endif
         </div>

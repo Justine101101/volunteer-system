@@ -54,15 +54,15 @@
                             </div>
                         </div>
                         @auth
-                            @if(auth()->user()->isAdminOrSuperAdmin())
+                            @if(auth()->user()->isAdminOrSuperAdmin() && isset($event->id) && $event->id)
                                 <div class="flex space-x-2">
-                                    <a href="{{ route('events.edit', $event) }}" 
+                                    <a href="{{ route('events.edit', $event->id) }}" 
                                        class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition duration-300">
                                         Edit
                                     </a>
-                                    <form method="POST" action="{{ route('events.destroy', $event) }}" 
+                                    <form method="POST" action="{{ route('events.destroy', $event->id) }}" 
                                           class="inline" 
-                                          onsubmit="return confirm('Are you sure you want to delete this event?')">
+                                          onsubmit="return confirm('Are you sure you want to delete this event? This action cannot be undone.')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-300">
@@ -80,7 +80,8 @@
                     <div class="w-full h-96 bg-gray-100 overflow-hidden">
                         <img src="{{ $event->photo_url }}" 
                              alt="{{ $event->title }}" 
-                             class="w-full h-full object-cover">
+                             class="w-full h-full object-cover"
+                             onerror="this.style.display='none'; this.parentElement.style.display='none';">
                     </div>
                 @endif
 
@@ -121,7 +122,10 @@
                         <!-- Registration Status -->
                         @auth
                             @php
-                                $userRegistration = $event->registrations->where('user_id', auth()->id())->first();
+                                // Supabase uses UUIDs for user_id; the controller passes the resolved value
+                                $userRegistration = (isset($currentUserSupabaseId) && $currentUserSupabaseId && $event->registrations)
+                                    ? $event->registrations->firstWhere('user_id', $currentUserSupabaseId)
+                                    : null;
                             @endphp
                             
                             <div class="bg-gray-50 p-6 rounded-lg">
@@ -131,12 +135,12 @@
                                     <div class="text-center">
                                         <div class="mb-4">
                                             <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
-                                                @if($userRegistration->status === 'approved') bg-green-100 text-green-800
-                                                @elseif($userRegistration->status === 'rejected') bg-red-100 text-red-800
+                                                @if($userRegistration->registration_status === 'approved') bg-green-100 text-green-800
+                                                @elseif($userRegistration->registration_status === 'rejected') bg-red-100 text-red-800
                                                 @else bg-yellow-100 text-yellow-800 @endif">
-                                                @if($userRegistration->status === 'approved')
+                                                @if($userRegistration->registration_status === 'approved')
                                                     ✓ Approved
-                                                @elseif($userRegistration->status === 'rejected')
+                                                @elseif($userRegistration->registration_status === 'rejected')
                                                     ✗ Rejected
                                                 @else
                                                     ⏳ Pending Approval
@@ -144,7 +148,7 @@
                                             </span>
                                         </div>
                                         
-                                        <form method="POST" action="{{ route('events.leave', $event) }}" class="inline">
+                                        <form method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" 
@@ -157,7 +161,7 @@
                                 @else
                                     <div class="text-center">
                                         <p class="text-gray-600 mb-4">You haven't registered for this event yet.</p>
-                                        <form method="POST" action="{{ route('events.join', $event) }}" class="inline">
+                                        <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
                                             @csrf
                                             <button type="submit" 
                                                     class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
@@ -198,21 +202,21 @@
                                             </div>
                                             <div class="flex items-center space-x-2">
                                                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                                    @if($registration->status === 'approved') bg-green-100 text-green-800
-                                                    @elseif($registration->status === 'rejected') bg-red-100 text-red-800
+                                                    @if($registration->registration_status === 'approved') bg-green-100 text-green-800
+                                                    @elseif($registration->registration_status === 'rejected') bg-red-100 text-red-800
                                                     @else bg-yellow-100 text-yellow-800 @endif">
-                                                    {{ ucfirst($registration->status) }}
+                                                    {{ ucfirst($registration->registration_status) }}
                                                 </span>
                                                 
-                                                @if($registration->status === 'pending')
-                                                    <form method="POST" action="{{ route('registrations.approve', $registration) }}" class="inline">
+                                                @if($registration->registration_status === 'pending')
+                                                    <form method="POST" action="{{ route('supabase.registrations.approve', ['registrationId' => $registration->id]) }}" class="inline">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button type="submit" class="text-green-600 hover:text-green-800 text-sm">
                                                             Approve
                                                         </button>
                                                     </form>
-                                                    <form method="POST" action="{{ route('registrations.reject', $registration) }}" class="inline">
+                                                    <form method="POST" action="{{ route('supabase.registrations.reject', ['registrationId' => $registration->id]) }}" class="inline">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button type="submit" class="text-red-600 hover:text-red-800 text-sm">

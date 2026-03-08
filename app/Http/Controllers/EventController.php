@@ -33,21 +33,107 @@ class EventController extends Controller
             $events = is_array($result) ? $result : [];
             // Transform Supabase response to match expected format
             $events = array_map(function($event) {
+                $photoUrl = $event['photo_url'] ?? null;
+                
+                // Log original photo_url for debugging
+                Log::debug('Event photo URL processing', [
+                    'event_id' => $event['id'] ?? null,
+                    'event_title' => $event['title'] ?? null,
+                    'original_photo_url' => $photoUrl,
+                    'photo_url_type' => gettype($photoUrl),
+                    'photo_url_empty' => empty($photoUrl),
+                ]);
+                
+                // Ensure photo_url is a full URL if it exists
+                if ($photoUrl && !empty($photoUrl) && $photoUrl !== 'null' && $photoUrl !== '') {
+                    // If it's already a full URL, use it as is
+                    if (str_starts_with($photoUrl, 'http')) {
+                        // Already a full URL, use as is
+                    } elseif (str_starts_with($photoUrl, '/storage/')) {
+                        // Convert relative path to full URL
+                        $photoUrl = asset($photoUrl);
+                    } else {
+                        // If it doesn't start with /storage/, add it
+                        $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
+                    }
+                    
+                    Log::info('Event photo URL converted', [
+                        'event_id' => $event['id'] ?? null,
+                        'event_title' => $event['title'] ?? null,
+                        'final_photo_url' => $photoUrl,
+                    ]);
+                } else {
+                    $photoUrl = null;
+                    Log::warning('Event has no photo_url', [
+                        'event_id' => $event['id'] ?? null,
+                        'event_title' => $event['title'] ?? null,
+                    ]);
+                }
+                
                 return (object) [
                     'id' => $event['id'] ?? null,
                     'title' => $event['title'] ?? '',
                     'description' => $event['description'] ?? '',
                     'date' => isset($event['event_date']) ? \Carbon\Carbon::parse($event['event_date']) : null,
-                    'time' => $event['event_time'] ?? '',
+                    // For backward compatibility, keep a display string in ->time
+                    'start_time' => $event['event_time'] ?? '',
+                    'end_time' => $event['event_end_time'] ?? null,
+                    'time' => trim(($event['event_time'] ?? '') . (!empty($event['event_end_time']) ? (' - ' . $event['event_end_time']) : '')),
                     'location' => $event['location'] ?? '',
-                    'photo_url' => $event['photo_url'] ?? null,
+                    'photo_url' => $photoUrl,
                     'created_by' => $event['created_by'] ?? null,
                     'event_status' => $event['event_status'] ?? 'active',
                 ];
             }, $events);
+
+            // Sort events so the most recent/future events appear first for the user
+            usort($events, function ($a, $b) {
+                // Handle null dates safely
+                if ($a->date === null && $b->date === null) {
+                    return 0;
+                }
+                if ($a->date === null) {
+                    return 1;
+                }
+                if ($b->date === null) {
+                    return -1;
+                }
+                // Newer dates first
+                return $b->date->timestamp <=> $a->date->timestamp;
+            });
+        }
+
+        // Build a map of the current user's registrations by event ID so we can show "Pending" etc.
+        $userRegistrationsByEvent = [];
+        if (Auth::check() && isset(Auth::user()->email)) {
+            try {
+                $user = Auth::user();
+                $supabaseUser = $this->queryService->getUserByEmail($user->email);
+                $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+
+                if ($supabaseUserId) {
+                    // Use a lightweight, user-scoped query so we always see this volunteer's registrations
+                    $regs = $this->queryService->getEventRegistrationsForUser($supabaseUserId);
+                    if (is_array($regs) && !isset($regs['error'])) {
+                        foreach ($regs as $reg) {
+                            $eventId = $reg['event_id'] ?? null;
+                            if ($eventId) {
+                                $userRegistrationsByEvent[$eventId] = strtolower($reg['registration_status'] ?? 'pending');
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error building user event registration map', [
+                    'message' => $e->getMessage(),
+                ]);
+            }
         }
         
-        return view('events.index', compact('events'));
+        return view('events.index', [
+            'events' => $events,
+            'userRegistrationsByEvent' => $userRegistrationsByEvent,
+        ]);
     }
 
     /**
@@ -81,7 +167,9 @@ class EventController extends Controller
                     'title' => $event['title'] ?? '',
                     'description' => $event['description'] ?? '',
                     'date' => isset($event['event_date']) ? \Carbon\Carbon::parse($event['event_date']) : null,
-                    'time' => $event['event_time'] ?? '',
+                    'start_time' => $event['event_time'] ?? '',
+                    'end_time' => $event['event_end_time'] ?? null,
+                    'time' => trim(($event['event_time'] ?? '') . (!empty($event['event_end_time']) ? (' - ' . $event['event_end_time']) : '')),
                     'location' => $event['location'] ?? '',
                     'photo_url' => $event['photo_url'] ?? null,
                 ];
@@ -122,7 +210,8 @@ class EventController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'date' => 'required|date|after_or_equal:today',
-            'time' => 'required',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
             'location' => 'required|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ], [
@@ -136,6 +225,14 @@ class EventController extends Controller
             $filename = Str::slug($request->title) . '-' . time() . '.' . $photo->getClientOriginalExtension();
             $path = $photo->storeAs('events', $filename, 'public');
             $photoUrl = Storage::url($path);
+            
+            // Log the photo upload for debugging
+            Log::info('Event photo uploaded', [
+                'filename' => $filename,
+                'path' => $path,
+                'photo_url' => $photoUrl,
+                'file_exists' => Storage::disk('public')->exists($path),
+            ]);
         }
 
         // Write only to Supabase (Single Source of Truth)
@@ -143,7 +240,10 @@ class EventController extends Controller
             'title' => $request->title,
             'description' => $request->description,
             'event_date' => $request->date,
-            'event_time' => $request->time,
+            // Supabase schema stores TIME; save start time as event_time
+            'event_time' => $request->start_time,
+            // Store end time in a separate column (see database/supabase/ALTER_EVENTS_ADD_END_TIME.sql)
+            'event_end_time' => $request->end_time,
             'location' => $request->location,
             'photo_url' => $photoUrl,
             'created_by' => Auth::id(),
@@ -152,10 +252,31 @@ class EventController extends Controller
         ]);
 
         if (isset($result['error'])) {
-            Log::error('Failed to create event in Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            $errorMessage = $result['error'] ?? 'Unknown error';
+            $errorDetails = $result['details'] ?? null;
+            
+            Log::error('Failed to create event in Supabase', [
+                'error' => $errorMessage,
+                'status' => $result['status'] ?? null,
+                'details' => $errorDetails,
+                'request_data' => $request->all(),
+            ]);
+            
+            // Provide more helpful error message
+            $userMessage = 'Failed to create event. ';
+            if (str_contains($errorMessage, 'permission') || str_contains($errorMessage, 'policy')) {
+                $userMessage .= 'Database permission error. Please check Supabase configuration.';
+            } elseif (str_contains($errorMessage, 'column') || str_contains($errorMessage, 'field')) {
+                $userMessage .= 'Database schema error. Please check if all required columns exist.';
+            } elseif (str_contains($errorMessage, 'foreign key') || str_contains($errorMessage, 'constraint')) {
+                $userMessage .= 'Data validation error. Please check your input data.';
+            } else {
+                $userMessage .= 'Please try again or contact support.';
+            }
+            
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Failed to create event. Please try again.');
+                ->with('error', $userMessage);
         }
 
         return redirect()->route('events.index')->with('success', 'Event created successfully!');
@@ -164,117 +285,172 @@ class EventController extends Controller
     /**
      * Display the specified resource.
      * Primary Database: Supabase
-     * Note: Route model binding still uses MySQL Event model for compatibility
+     * @param string $eventId UUID of the event in Supabase
      */
-    public function show(Event $event)
+    public function show(string $eventId)
     {
-        // Find the Supabase event by matching fields
-        $supabaseEvent = $this->queryService->findEventByFields(
-            $event->title,
-            $event->date->format('Y-m-d'),
-            $event->location
-        );
-
-        if (!$supabaseEvent) {
-            // Fallback: try to get by ID if it's a UUID
-            if (is_string($event->id) && strlen($event->id) > 10) {
-                $supabaseEvent = $this->queryService->getEventById($event->id);
-            }
-        }
+        // Get event from Supabase by UUID
+        $supabaseEvent = $this->queryService->getEventById($eventId);
 
         if (!$supabaseEvent || isset($supabaseEvent['error'])) {
             abort(404, 'Event not found');
         }
 
         // Transform Supabase response to object for view compatibility
+        $photoUrl = $supabaseEvent['photo_url'] ?? null;
+        // Ensure photo_url is a full URL if it exists
+        if ($photoUrl && !empty($photoUrl)) {
+            // If it's already a full URL, use it as is
+            if (str_starts_with($photoUrl, 'http')) {
+                // Already a full URL, use as is
+            } elseif (str_starts_with($photoUrl, '/storage/')) {
+                // Convert relative path to full URL
+                $photoUrl = asset($photoUrl);
+            } else {
+                // If it doesn't start with /storage/, add it
+                $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
+            }
+        } else {
+            $photoUrl = null;
+        }
+        
+        // Debug logging
+        Log::debug('Event show photo URL', [
+            'event_id' => $supabaseEvent['id'] ?? null,
+            'original_url' => $supabaseEvent['photo_url'] ?? null,
+            'converted_url' => $photoUrl,
+        ]);
+        
+        $registrations = collect($supabaseEvent['registrations'] ?? [])->map(function ($reg) {
+            return (object) [
+                'id' => $reg['id'] ?? null,
+                'registration_status' => $reg['registration_status'] ?? ($reg['status'] ?? 'pending'),
+                'user' => isset($reg['user']) ? (object) $reg['user'] : null,
+                'created_at' => isset($reg['created_at']) ? \Carbon\Carbon::parse($reg['created_at']) : null,
+            ];
+        });
+
         $eventData = (object) [
             'id' => $supabaseEvent['id'] ?? null,
             'title' => $supabaseEvent['title'] ?? '',
             'description' => $supabaseEvent['description'] ?? '',
             'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
-            'time' => $supabaseEvent['event_time'] ?? '',
+            'start_time' => $supabaseEvent['event_time'] ?? '',
+            'end_time' => $supabaseEvent['event_end_time'] ?? null,
+            'time' => trim(($supabaseEvent['event_time'] ?? '') . (!empty($supabaseEvent['event_end_time']) ? (' - ' . $supabaseEvent['event_end_time']) : '')),
             'location' => $supabaseEvent['location'] ?? '',
-            'photo_url' => $supabaseEvent['photo_url'] ?? null,
+            'photo_url' => $photoUrl,
             'created_by' => $supabaseEvent['created_by'] ?? null,
             'event_status' => $supabaseEvent['event_status'] ?? 'active',
             'creator' => isset($supabaseEvent['creator']) ? (object) $supabaseEvent['creator'] : null,
-            'registrations' => isset($supabaseEvent['registrations']) ? collect($supabaseEvent['registrations']) : collect(),
+            'registrations' => $registrations,
         ];
 
-        return view('events.show', ['event' => $eventData]);
+        // Resolve current user's Supabase UUID for registration lookups
+        $currentUserSupabaseId = null;
+        if (auth()->check() && isset(auth()->user()->email)) {
+            $supabaseUser = $this->queryService->getUserByEmail(auth()->user()->email);
+            if ($supabaseUser && !isset($supabaseUser['error'])) {
+                $currentUserSupabaseId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+            }
+        }
+
+        return view('events.show', [
+            'event' => $eventData,
+            'currentUserSupabaseId' => $currentUserSupabaseId,
+        ]);
     }
 
     /**
      * Show the form for editing the specified resource.
+     * Primary Database: Supabase
+     * @param string $eventId UUID of the event in Supabase
      */
-    public function edit(Event $event)
+    public function edit(string $eventId)
     {
-        return view('events.edit', compact('event'));
+        // Get event from Supabase by UUID
+        $supabaseEvent = $this->queryService->getEventById($eventId);
+
+        if (!$supabaseEvent || isset($supabaseEvent['error'])) {
+            abort(404, 'Event not found');
+        }
+
+        // Transform Supabase response to object for view compatibility
+        $photoUrl = $supabaseEvent['photo_url'] ?? null;
+        // Ensure photo_url is a full URL if it exists
+        if ($photoUrl && !empty($photoUrl)) {
+            // If it's already a full URL, use it as is
+            if (str_starts_with($photoUrl, 'http')) {
+                // Already a full URL, use as is
+            } elseif (str_starts_with($photoUrl, '/storage/')) {
+                // Convert relative path to full URL
+                $photoUrl = asset($photoUrl);
+            } else {
+                // If it doesn't start with /storage/, add it
+                $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
+            }
+        } else {
+            $photoUrl = null;
+        }
+        
+        $eventData = (object) [
+            'id' => $supabaseEvent['id'] ?? null,
+            'title' => $supabaseEvent['title'] ?? '',
+            'description' => $supabaseEvent['description'] ?? '',
+            'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
+            'start_time' => $supabaseEvent['event_time'] ?? '',
+            'end_time' => $supabaseEvent['event_end_time'] ?? null,
+            'time' => trim(($supabaseEvent['event_time'] ?? '') . (!empty($supabaseEvent['event_end_time']) ? (' - ' . $supabaseEvent['event_end_time']) : '')),
+            'location' => $supabaseEvent['location'] ?? '',
+            'photo_url' => $photoUrl,
+            'created_by' => $supabaseEvent['created_by'] ?? null,
+            'event_status' => $supabaseEvent['event_status'] ?? 'active',
+            'max_participants' => $supabaseEvent['max_participants'] ?? null,
+        ];
+
+        // Pass both the hydrated event object and the raw Supabase UUID explicitly
+        return view('events.edit', [
+            'event' => $eventData,
+            'eventId' => $eventId,
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      * Single Source of Truth: Supabase only
-     * 
-     * Note: This method still accepts Event model for route binding,
-     * but we need to find the corresponding Supabase event by matching fields
+     * @param string $eventId UUID of the event in Supabase
      */
-    public function update(Request $request, Event $event)
+    public function update(Request $request, string $eventId)
     {
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'date' => 'required|date|after_or_equal:today',
-            'time' => 'required',
+            'start_time' => 'required',
+            'end_time' => 'required|after:start_time',
             'location' => 'required|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ], [
             'date.after_or_equal' => 'The event date must be today or a future date.',
         ]);
 
-        // Get the Supabase event ID by matching the local event
-        // Since IDs don't match, we'll find by title+date+location
-        $supabaseEvent = $this->queryService->getEventById($event->id);
-        
-        // If not found by ID, try to find by matching fields
-        if (isset($supabaseEvent['error']) || !$supabaseEvent) {
-            $events = $this->queryService->getEvents(1, 100, [
-                'date_from' => $event->date->format('Y-m-d'),
-                'date_to' => $event->date->format('Y-m-d'),
-            ]);
-            
-            $supabaseEvent = null;
-            if (is_array($events) && !isset($events['error'])) {
-                foreach ($events as $evt) {
-                    if (isset($evt['title']) && $evt['title'] === $event->title &&
-                        isset($evt['location']) && $evt['location'] === $event->location) {
-                        $supabaseEvent = $evt;
-                        break;
-                    }
-                }
-            }
-        }
+        // Get the current event from Supabase to get the photo_url
+        $supabaseEvent = $this->queryService->getEventById($eventId);
 
         if (!$supabaseEvent || isset($supabaseEvent['error'])) {
-            Log::error('Could not find Supabase event to update for local event ID: ' . $event->id);
+            Log::error('Could not find Supabase event to update: ' . $eventId);
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Event not found in database. Please refresh and try again.');
         }
 
-        $supabaseEventId = is_array($supabaseEvent) ? ($supabaseEvent['id'] ?? null) : null;
-        if (!$supabaseEventId) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Could not identify event. Please refresh and try again.');
-        }
-
-        $photoUrl = $event->photo_url;
+        // Get current photo_url from Supabase event
+        $photoUrl = is_array($supabaseEvent) ? ($supabaseEvent['photo_url'] ?? null) : null;
         
         if ($request->hasFile('photo')) {
             // Delete old photo if exists
-            if ($event->photo_url) {
-                $oldPath = str_replace('/storage/', '', $event->photo_url);
+            if ($photoUrl) {
+                $oldPath = str_replace('/storage/', '', $photoUrl);
                 Storage::disk('public')->delete($oldPath);
             }
             
@@ -286,11 +462,14 @@ class EventController extends Controller
         }
 
         // Update only in Supabase (Single Source of Truth)
-        $result = $this->queryService->updateEvent($supabaseEventId, [
+        $result = $this->queryService->updateEvent($eventId, [
             'title' => $request->title,
             'description' => $request->description,
             'event_date' => $request->date,
-            'event_time' => $request->time,
+            // Supabase schema stores TIME; save start time as event_time
+            'event_time' => $request->start_time,
+            // Store end time in a separate column (see database/supabase/ALTER_EVENTS_ADD_END_TIME.sql)
+            'event_end_time' => $request->end_time,
             'location' => $request->location,
             'photo_url' => $photoUrl,
         ]);
@@ -308,51 +487,27 @@ class EventController extends Controller
     /**
      * Remove the specified resource from storage.
      * Single Source of Truth: Supabase only
+     * @param string $eventId UUID of the event in Supabase
      */
-    public function destroy(Event $event)
+    public function destroy(string $eventId)
     {
-        // Get the Supabase event ID by matching the local event
-        $supabaseEvent = $this->queryService->getEventById($event->id);
-        
-        // If not found by ID, try to find by matching fields
-        if (isset($supabaseEvent['error']) || !$supabaseEvent) {
-            $events = $this->queryService->getEvents(1, 100, [
-                'date_from' => $event->date->format('Y-m-d'),
-                'date_to' => $event->date->format('Y-m-d'),
-            ]);
-            
-            $supabaseEvent = null;
-            if (is_array($events) && !isset($events['error'])) {
-                foreach ($events as $evt) {
-                    if (isset($evt['title']) && $evt['title'] === $event->title &&
-                        isset($evt['location']) && $evt['location'] === $event->location) {
-                        $supabaseEvent = $evt;
-                        break;
-                    }
-                }
-            }
-        }
-
-        $supabaseEventId = null;
-        if ($supabaseEvent && !isset($supabaseEvent['error'])) {
-            $supabaseEventId = is_array($supabaseEvent) ? ($supabaseEvent['id'] ?? null) : null;
-        }
+        // Get the event from Supabase to get photo_url for deletion
+        $supabaseEvent = $this->queryService->getEventById($eventId);
         
         // Delete photo if exists
-        if ($event->photo_url) {
-            $oldPath = str_replace('/storage/', '', $event->photo_url);
-            Storage::disk('public')->delete($oldPath);
+        if ($supabaseEvent && !isset($supabaseEvent['error']) && isset($supabaseEvent['photo_url'])) {
+            $photoUrl = $supabaseEvent['photo_url'];
+            if ($photoUrl) {
+                $oldPath = str_replace('/storage/', '', $photoUrl);
+                Storage::disk('public')->delete($oldPath);
+            }
         }
         
         // Delete from Supabase (Single Source of Truth)
-        if ($supabaseEventId) {
-            $result = $this->queryService->deleteEvent($supabaseEventId);
-            if (isset($result['error'])) {
-                Log::error('Failed to delete event from Supabase: ' . ($result['error'] ?? 'Unknown error'));
-                return redirect()->back()->with('error', 'Failed to delete event. Please try again.');
-            }
-        } else {
-            Log::warning('Could not find Supabase event to delete for local event ID: ' . $event->id);
+        $result = $this->queryService->deleteEvent($eventId);
+        if (isset($result['error'])) {
+            Log::error('Failed to delete event from Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            return redirect()->back()->with('error', 'Failed to delete event. Please try again.');
         }
         
         return redirect()->route('events.index')->with('success', 'Event deleted successfully!');

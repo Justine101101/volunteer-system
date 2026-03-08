@@ -6,45 +6,44 @@
     </x-slot>
 
     <!-- Hero Section -->
-    <div class="py-8" style="background: linear-gradient(to bottom right, #1a5f3f, #2d7a5a);">
+    <div class="py-8 bg-gradient-to-r from-emerald-500 via-emerald-600 to-indigo-600">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <div class="w-20 h-20 bg-yellow-300 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <svg class="w-10 h-10" style="color: #1a5f3f;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                 </div>
                 <h1 class="text-3xl font-bold text-white mb-2">Add New Member</h1>
-                <p class="text-lg" style="color: #90EE90;">Create a new member profile for the organization</p>
+                <p class="text-lg text-emerald-50">Create a new member profile for the organization</p>
             </div>
         </div>
     </div>
 
-    <div class="py-12 bg-white">
+    <div class="py-12 bg-slate-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-4">
                 <a href="{{ route('members.index') }}" 
-                   class="inline-flex items-center text-sm font-medium transition-colors duration-300"
-                   style="color: #1a5f3f; hover:color: #2d7a5a;">
+                   class="inline-flex items-center text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
                     Back to Members
                 </a>
             </div>
-            <div class="bg-white rounded-lg shadow-lg p-8 border-2" style="border-color: #1a5f3f;">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                 <form method="POST" action="{{ route('members.store') }}" enctype="multipart/form-data">
                     @csrf
                     
                     <div class="space-y-6">
                         <!-- Member Name -->
                         <div>
-                            <label for="name" class="block text-sm font-medium mb-2" style="color: #1a5f3f;">Member Name</label>
+                            <label for="name" class="block text-sm font-medium text-slate-700 mb-2">Member Name</label>
                             <input type="text" 
                                    id="name" 
                                    name="name" 
                                    value="{{ old('name') }}"
-                                   class="w-full px-4 py-3 border-2 rounded-lg transition-all duration-300 @error('name') border-red-500 @else border-gray-300 focus:border-[#1a5f3f] @enderror"
+                                   class="w-full px-4 py-3 border border-slate-300 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 @error('name') border-red-500 @enderror"
                                    placeholder="e.g., Ln Eugene P. Balway"
                                    required>
                             @error('name')

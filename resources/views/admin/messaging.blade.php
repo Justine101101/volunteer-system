@@ -13,20 +13,20 @@
         </div>
     </x-slot>
 
-    <div class="py-6 bg-gray-50">
+    <div class="py-6 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             @if(session('success'))
-                <div class="mb-4 bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-lg relative" role="alert">
+                <div class="mb-4 bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-xl relative" role="alert">
                     <span class="block sm:inline">{{ session('success') }}</span>
                 </div>
             @endif
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden" style="height: calc(100vh - 200px);">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" style="height: calc(100vh - 200px);">
                 <div class="flex h-full">
                     <!-- Inbox Sidebar -->
-                    <div class="w-1/3 border-r border-gray-200 flex flex-col">
-                        <div class="p-4 border-b border-gray-200 bg-gray-50">
-                            <h3 class="text-lg font-semibold text-gray-900">Inbox</h3>
-                            <p class="text-sm text-gray-600 mt-1">{{ $conversations->count() }} conversations</p>
+                    <div class="w-1/3 border-r border-slate-200 flex flex-col">
+                        <div class="p-4 border-b border-slate-200 bg-slate-50">
+                            <h3 class="text-lg font-bold text-slate-900">Inbox</h3>
+                            <p class="text-sm text-slate-600 mt-1">{{ $conversations->count() }} conversations</p>
                         </div>
                         <div class="flex-1 overflow-y-auto">
                             @forelse($conversations as $conversation)
@@ -79,20 +79,20 @@
                     <div class="flex-1 flex flex-col">
                         @if(isset($otherUser) && isset($messages))
                             <!-- Chat Header -->
-                            <div class="p-4 border-b border-gray-200 bg-gray-50">
+                            <div class="p-4 border-b border-slate-200 bg-slate-50">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
                                         {{ strtoupper(substr($otherUser->name ?? 'U', 0, 1)) }}
                                     </div>
                                     <div>
-                                        <h3 class="text-lg font-semibold text-gray-900">{{ $otherUser->name }}</h3>
-                                        <p class="text-sm text-gray-600">{{ $otherUser->email }}</p>
+                                        <h3 class="text-lg font-bold text-slate-900">{{ $otherUser->name }}</h3>
+                                        <p class="text-sm text-slate-600">{{ $otherUser->email }}</p>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Messages Area -->
-                            <div class="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4" id="messagesContainer">
+                            <div class="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-4" id="messagesContainer">
                                 @foreach($messages as $message)
                                     <div class="flex {{ $message->sender_id === auth()->id() ? 'justify-end' : 'justify-start' }}">
                                         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg {{ $message->sender_id === auth()->id() ? 'bg-emerald-600 text-white' : 'bg-white text-gray-900 shadow' }}">

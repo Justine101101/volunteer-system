@@ -40,6 +40,7 @@ CREATE TABLE events (
     event_date DATE NOT NULL,
     event_time TIME NOT NULL,
     location VARCHAR(255) NOT NULL,
+    photo_url VARCHAR(500),
     max_participants INTEGER,
     event_status VARCHAR(50) DEFAULT 'active' CHECK (event_status IN ('active', 'inactive', 'cancelled')),
     created_by UUID REFERENCES users(id) ON DELETE CASCADE,

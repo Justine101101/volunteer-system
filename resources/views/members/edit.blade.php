@@ -11,9 +11,9 @@
         </div>
     </x-slot>
 
-    <div class="py-12 bg-gray-50">
+    <div class="py-12 bg-slate-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                 <form method="POST" action="{{ route('members.update', $member) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
@@ -42,7 +42,7 @@
                                    id="name" 
                                    name="name" 
                                    value="{{ old('name', $member->name) }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('name') border-red-500 @enderror"
+                                   class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 @error('name') border-red-500 @enderror"
                                    placeholder="e.g., Ln Eugene P. Balway"
                                    required>
                             @error('name')

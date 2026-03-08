@@ -10,7 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -37,9 +37,11 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'role' => ['required', 'string', Rule::in(['volunteer'])],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        // Default role for all new registrations
+        $defaultRole = 'volunteer';
 
         // Single Source of Truth: Write to Supabase first
         // Note: We still need to create a local user for Laravel authentication
@@ -47,7 +49,7 @@ class RegisteredUserController extends Controller
         $supabaseResult = $this->queryService->upsertUser([
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role ?? 'volunteer',
+            'role' => $defaultRole,
             'notification_pref' => true,
             'dark_mode' => false,
             'password' => Hash::make($request->password), // Store hashed password in Supabase
@@ -63,7 +65,7 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
+            'role' => $defaultRole,
             'password' => Hash::make($request->password),
         ]);
 

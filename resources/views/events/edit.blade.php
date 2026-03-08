@@ -1,20 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-lions-green leading-tight">
+            <h2 class="font-semibold text-xl text-emerald-600 leading-tight">
                 {{ __('Edit Event') }}
             </h2>
             <a href="{{ route('events.index') }}" 
-               class="text-lions-green hover:text-lions-green-light">
+               class="text-emerald-600 hover:text-emerald-600-light">
                 ← Back to Events
             </a>
         </div>
     </x-slot>
 
-    <div class="py-12 bg-gray-50">
+    <div class="py-12 bg-slate-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <form method="POST" action="{{ route('events.update', $event) }}" enctype="multipart/form-data">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                {{-- Use the explicit Supabase UUID passed from the controller to avoid missing-parameter errors --}}
+                <form method="POST" action="{{ route('events.update', ['eventId' => $eventId ?? $event->id]) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     
@@ -26,7 +27,7 @@
                                    id="title" 
                                    name="title" 
                                    value="{{ old('title', $event->title) }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('title') border-red-500 @enderror"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('title') border-red-500 @enderror"
                                    placeholder="Enter event title"
                                    required>
                             @error('title')
@@ -40,7 +41,7 @@
                             <textarea id="description" 
                                       name="description" 
                                       rows="4"
-                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('description') border-red-500 @enderror"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('description') border-red-500 @enderror"
                                       placeholder="Describe the event details, what volunteers will be doing, etc."
                                       required>{{ old('description', $event->description) }}</textarea>
                             @error('description')
@@ -49,14 +50,22 @@
                         </div>
 
                         <!-- Date and Time -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        @php
+                            $rawTime = $event->time ?? '';
+                            $parsedStart = $event->start_time ?? null;
+                            $parsedEnd = $event->end_time ?? null;
+                            if (is_string($rawTime) && str_contains($rawTime, ' - ')) {
+                                [$parsedStart, $parsedEnd] = explode(' - ', $rawTime, 2);
+                            }
+                        @endphp
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label for="date" class="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
                                 <input type="date" 
                                        id="date" 
                                        name="date" 
-                                       value="{{ old('date', $event->date->format('Y-m-d')) }}"
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('date') border-red-500 @enderror"
+                                       value="{{ old('date', optional($event->date)->format('Y-m-d')) }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('date') border-red-500 @enderror"
                                        required>
                                 @error('date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -64,14 +73,27 @@
                             </div>
 
                             <div>
-                                <label for="time" class="block text-sm font-medium text-gray-700 mb-2">Event Time</label>
+                                <label for="start_time" class="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
                                 <input type="time" 
-                                       id="time" 
-                                       name="time" 
-                                       value="{{ old('time', $event->time) }}"
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('time') border-red-500 @enderror"
+                                       id="start_time" 
+                                       name="start_time" 
+                                       value="{{ old('start_time', $parsedStart) }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('start_time') border-red-500 @enderror"
                                        required>
-                                @error('time')
+                                @error('start_time')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="end_time" class="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                                <input type="time" 
+                                       id="end_time" 
+                                       name="end_time" 
+                                       value="{{ old('end_time', $parsedEnd) }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('end_time') border-red-500 @enderror"
+                                       required>
+                                @error('end_time')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -84,7 +106,7 @@
                                    id="location" 
                                    name="location" 
                                    value="{{ old('location', $event->location) }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('location') border-red-500 @enderror"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('location') border-red-500 @enderror"
                                    placeholder="Enter event location"
                                    required>
                             @error('location')
@@ -104,7 +126,7 @@
                                     <div class="flex items-center gap-4">
                                         <img src="{{ $event->photo_url }}" 
                                              alt="{{ $event->title }}" 
-                                             class="w-full max-w-md h-64 object-cover rounded-lg border-4 border-lions-green shadow-lg">
+                                             class="w-full max-w-md h-64 object-cover rounded-lg border-4 border-emerald-600 shadow-lg">
                                     </div>
                                     <p class="text-xs text-gray-500 mt-2">Upload a new photo below to replace it</p>
                                 </div>
@@ -119,8 +141,8 @@
                                               file:mr-4 file:py-2 file:px-4
                                               file:rounded-lg file:border-0
                                               file:text-sm file:font-semibold
-                                              file:bg-lions-green-lighter file:text-lions-green
-                                              hover:file:bg-lions-green-light
+                                              file:bg-emerald-600-lighter file:text-emerald-600
+                                              hover:file:bg-emerald-600-light
                                               @error('photo') border-red-500 @enderror"
                                        onchange="previewImage(event)">
                                 @error('photo')
@@ -132,18 +154,18 @@
                             <!-- Image Preview -->
                             <div id="imagePreview" class="mt-4 hidden">
                                 <p class="text-sm text-gray-600 mb-2">New photo preview:</p>
-                                <img id="preview" src="" alt="Preview" class="w-full max-w-md h-64 object-cover rounded-lg border-4 border-lions-green shadow-lg">
+                                <img id="preview" src="" alt="Preview" class="w-full max-w-md h-64 object-cover rounded-lg border-4 border-emerald-600 shadow-lg">
                             </div>
                         </div>
 
                         <!-- Submit Buttons -->
-                        <div class="flex justify-end space-x-4 pt-6 border-t border-lions-green">
+                        <div class="flex justify-end space-x-4 pt-6 border-t border-emerald-600">
                             <a href="{{ route('events.index') }}" 
-                               class="px-6 py-3 border border-lions-green text-lions-green rounded-lg hover:bg-lions-green-lighter transition duration-300">
+                               class="px-6 py-3 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-600-lighter transition duration-300">
                                 Cancel
                             </a>
                             <button type="submit" 
-                                    class="px-6 py-3 bg-lions-green text-white rounded-lg hover:bg-lions-green-light transition duration-300 font-semibold">
+                                    class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-600-light transition duration-300 font-semibold">
                                 Update Event
                             </button>
                         </div>

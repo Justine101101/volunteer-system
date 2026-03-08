@@ -18,25 +18,18 @@
         <a href="#main" class="sr-only focus:not-sr-only focus-ring px-3 py-2 bg-white text-gray-800">Skip to content</a>
         <div class="min-h-screen bg-white" role="document">
             @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
-                <!-- Admin top purple title strip -->
-                <div class="w-full bg-purple-900 text-white">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-3">
-                        <img src="{{ asset('images/partners/logo.png') }}" alt="Logo" class="w-6 h-6 rounded-full object-cover"/>
-                        <span class="font-semibold">Volunteer Management System</span>
-                    </div>
-                </div>
-                <div class="min-h-screen flex">
+                <div class="min-h-screen flex bg-slate-50">
                     @include('layouts.sidebar')
                     <div class="flex-1 min-w-0">
                         @isset($header)
-                            <header class="bg-white shadow">
+                            <header class="bg-white border-b border-slate-200 shadow-sm">
                                 <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                                     {{ $header }}
                                 </div>
                             </header>
                         @endisset
 
-                        <main id="main" role="main">
+                        <main id="main" role="main" class="bg-slate-50">
                             {{ $slot }}
                         </main>
                         @include('layouts.footer')
@@ -80,8 +73,11 @@
             @endif
             <!-- Toasts -->
             @if (session('status') || session('success') || session('error'))
-                <div x-data="{ show: true }" x-show="show" x-transition.opacity class="fixed top-4 right-4 z-50 max-w-sm">
-                    <div class="rounded-md shadow-lg px-4 py-3 text-sm text-white"
+                <div x-data="{ show: true }"
+                     x-show="show"
+                     x-transition.opacity
+                     class="fixed inset-x-0 top-20 z-50 flex justify-center pointer-events-none">
+                    <div class="pointer-events-auto rounded-md shadow-xl px-5 py-4 text-sm text-white max-w-md w-full mx-4"
                          @class([
                             'bg-green-600' => session('success') || session('status'),
                             'bg-red-600' => session('error'),

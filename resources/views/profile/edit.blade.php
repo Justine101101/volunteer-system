@@ -1,26 +1,16 @@
 <x-app-layout>
-    <div class="min-h-screen bg-gray-100">
-        <!-- Profile Header -->
-        <div class="bg-purple-900 text-white py-4">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <h1 class="text-xl font-semibold">Profile</h1>
-            </div>
-        </div>
-
+    <div class="min-h-screen bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <!-- User Overview Card -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
                 <div class="flex items-center gap-6">
                     <!-- Avatar -->
                     @if($user->photo_url)
                         <img src="{{ asset($user->photo_url) }}" 
                              alt="{{ $user->name }}" 
-                             class="w-24 h-24 rounded-full object-cover shadow-lg border-4 border-purple-200">
+                             class="w-24 h-24 rounded-full object-cover shadow-lg border-4 border-emerald-200">
                     @else
-                        <div class="w-24 h-24 bg-purple-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                        <div class="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                             {{ strtoupper(substr($user->name, 0, 2)) }}
                         </div>
                     @endif
@@ -34,7 +24,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Profile & Contact Information Card -->
-                <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

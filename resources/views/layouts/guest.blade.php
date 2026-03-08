@@ -28,8 +28,11 @@
             </div>
             <!-- Toasts -->
             @if (session('status') || session('success') || session('error'))
-                <div x-data="{ show: true }" x-show="show" x-transition.opacity class="fixed top-4 right-4 z-50 max-w-sm">
-                    <div class="rounded-md shadow-lg px-4 py-3 text-sm text-white"
+                <div x-data="{ show: true }"
+                     x-show="show"
+                     x-transition.opacity
+                     class="fixed inset-x-0 top-20 z-50 flex justify-center pointer-events-none">
+                    <div class="pointer-events-auto rounded-md shadow-xl px-5 py-4 text-sm text-white max-w-md w-full mx-4"
                          @class([
                             'bg-green-600' => session('success') || session('status'),
                             'bg-red-600' => session('error'),

@@ -1,19 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-lions-purple leading-tight">
+            <h2 class="font-semibold text-xl text-indigo-600 leading-tight">
                 {{ __('Create New Event') }}
             </h2>
             <a href="{{ route('events.index') }}" 
-               class="text-lions-purple hover:text-gray-900">
+               class="text-indigo-600 hover:text-gray-900">
                 ← Back to Events
             </a>
         </div>
     </x-slot>
 
-    <div class="py-12 bg-gray-50">
+    <div class="py-12 bg-slate-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-lg p-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                 <form method="POST" action="{{ route('events.store') }}" enctype="multipart/form-data">
                     @csrf
                     
@@ -25,7 +25,7 @@
                                    id="title" 
                                    name="title" 
                                    value="{{ old('title') }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('title') border-red-500 @enderror"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('title') border-red-500 @enderror"
                                    placeholder="Enter event title"
                                    required>
                             @error('title')
@@ -39,7 +39,7 @@
                             <textarea id="description" 
                                       name="description" 
                                       rows="4"
-                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('description') border-red-500 @enderror"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('description') border-red-500 @enderror"
                                       placeholder="Describe the event details, what volunteers will be doing, etc."
                                       required>{{ old('description') }}</textarea>
                             @error('description')
@@ -48,14 +48,14 @@
                         </div>
 
                         <!-- Date and Time -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label for="date" class="block text-sm font-medium text-gray-700 mb-2">Event Date</label>
                                 <input type="date" 
                                        id="date" 
                                        name="date" 
                                        value="{{ old('date') }}"
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('date') border-red-500 @enderror"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('date') border-red-500 @enderror"
                                        required>
                                 @error('date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -63,14 +63,27 @@
                             </div>
 
                             <div>
-                                <label for="time" class="block text-sm font-medium text-gray-700 mb-2">Event Time</label>
+                                <label for="start_time" class="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
                                 <input type="time" 
-                                       id="time" 
-                                       name="time" 
-                                       value="{{ old('time') }}"
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('time') border-red-500 @enderror"
+                                       id="start_time" 
+                                       name="start_time" 
+                                       value="{{ old('start_time') }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('start_time') border-red-500 @enderror"
                                        required>
-                                @error('time')
+                                @error('start_time')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="end_time" class="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                                <input type="time" 
+                                       id="end_time" 
+                                       name="end_time" 
+                                       value="{{ old('end_time') }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('end_time') border-red-500 @enderror"
+                                       required>
+                                @error('end_time')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -83,7 +96,7 @@
                                    id="location" 
                                    name="location" 
                                    value="{{ old('location') }}"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lions-green focus:border-transparent @error('location') border-red-500 @enderror"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('location') border-red-500 @enderror"
                                    placeholder="Enter event location"
                                    required>
                             @error('location')
@@ -103,31 +116,34 @@
                                               file:mr-4 file:py-2 file:px-4
                                               file:rounded-lg file:border-0
                                               file:text-sm file:font-semibold
-                                              file:bg-lions-green-lighter file:text-lions-green
-                                              hover:file:bg-lions-green-light
+                                              file:bg-emerald-600-lighter file:text-emerald-600
+                                              hover:file:bg-emerald-600-light
                                               @error('photo') border-red-500 @enderror"
                                        onchange="handleImageSelect(event)">
                                 @error('photo')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
+                            <div id="fileNameDisplay" class="mt-2 text-sm text-emerald-600 font-medium hidden">
+                                <span>Selected: </span><span id="fileName"></span>
+                            </div>
                             <p class="mt-2 text-sm text-gray-500">Upload an event photo (JPG, PNG, GIF - Max 2MB). You can crop the image after selecting.</p>
                             
                             <!-- Image Preview -->
                             <div id="imagePreview" class="mt-4 hidden">
                                 <p class="text-sm text-gray-600 mb-2">Preview:</p>
-                                <img id="preview" src="" alt="Preview" class="w-full max-w-md h-64 object-cover rounded-lg border-4 border-lions-purple shadow-lg">
+                                <img id="preview" src="" alt="Preview" class="w-full max-w-md h-64 object-cover rounded-lg border-4 border-indigo-600 shadow-lg">
                             </div>
                         </div>
 
                         <!-- Submit Buttons -->
                         <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                             <a href="{{ route('events.index') }}" 
-                               class="px-6 py-3 border border-lions-purple text-lions-purple rounded-lg hover:bg-gray-50 transition duration-300">
+                               class="px-6 py-3 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-gray-50 transition duration-300">
                                 Cancel
                             </a>
                             <button type="submit" 
-                                    class="px-6 py-3 bg-lions-green text-white rounded-lg hover:bg-lions-green-light transition duration-300 font-semibold">
+                                    class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-600-light transition duration-300 font-semibold">
                                 Create Event
                             </button>
                         </div>
@@ -159,7 +175,7 @@
                     <button type="button" onclick="closeCropModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
                         Cancel
                     </button>
-                    <button type="button" onclick="cropImage()" class="px-4 py-2 bg-lions-green text-white rounded-lg hover:bg-lions-green-light">
+                    <button type="button" onclick="cropImage()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-600-light">
                         Crop & Apply
                     </button>
                 </div>
@@ -179,12 +195,15 @@
             const file = input.files[0];
             
             if (!file) {
+                updateFileNameDisplay(null);
                 return;
             }
 
             // Validate file type
             if (!file.type.match('image.*')) {
                 alert('Please select an image file');
+                input.value = '';
+                updateFileNameDisplay(null);
                 return;
             }
 
@@ -192,10 +211,12 @@
             if (file.size > 2 * 1024 * 1024) {
                 alert('File size must be less than 2MB');
                 input.value = '';
+                updateFileNameDisplay(null);
                 return;
             }
 
             originalFileInput = input;
+            updateFileNameDisplay(file.name);
             
             // Read the file and show crop modal
             const reader = new FileReader();
@@ -230,6 +251,18 @@
             reader.readAsDataURL(file);
         }
 
+        function updateFileNameDisplay(fileName) {
+            const display = document.getElementById('fileNameDisplay');
+            const nameSpan = document.getElementById('fileName');
+            
+            if (fileName) {
+                nameSpan.textContent = fileName;
+                display.classList.remove('hidden');
+            } else {
+                display.classList.add('hidden');
+            }
+        }
+
         function closeCropModal() {
             document.getElementById('cropModal').classList.add('hidden');
             document.getElementById('cropModal').classList.remove('flex');
@@ -239,9 +272,14 @@
                 cropper = null;
             }
             
-            // Reset file input
+            // Reset file input and preview if user cancels
             if (originalFileInput) {
-                originalFileInput.value = '';
+                // Only reset if no file is actually selected (user cancelled)
+                if (!originalFileInput.files || originalFileInput.files.length === 0) {
+                    originalFileInput.value = '';
+                    updateFileNameDisplay(null);
+                    document.getElementById('imagePreview').classList.add('hidden');
+                }
             }
         }
 
@@ -277,6 +315,9 @@
 
                 // Set the file input files to the cropped file
                 originalFileInput.files = dataTransfer.files;
+
+                // Update file name display
+                updateFileNameDisplay(originalFileInput.files[0].name);
 
                 // Update preview
                 const preview = document.getElementById('preview');

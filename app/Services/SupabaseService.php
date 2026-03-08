@@ -39,6 +39,19 @@ class SupabaseService
     }
 
     /**
+     * Start a privileged (service-role) query against a table.
+     * Use this for admin/analytics queries that must bypass RLS.
+     */
+    public function fromPrivileged(string $table): self
+    {
+        $this->table = $table;
+        $this->queryParams = [];
+        $this->selectColumns = null;
+        $this->useServiceRole = true;
+        return $this;
+    }
+
+    /**
      * Select columns
      */
     public function select(string $columns = '*'): self
@@ -234,7 +247,36 @@ class SupabaseService
             'Prefer' => 'return=representation, resolution=merge-duplicates',
         ])->post($url, $data);
 
-        return $response->json();
+        // Check for HTTP errors
+        if (!$response->successful()) {
+            $errorBody = $response->json();
+            $errorMessage = $errorBody['message'] ?? $errorBody['error_description'] ?? $errorBody['hint'] ?? 'HTTP ' . $response->status();
+            
+            // Log detailed error for debugging
+            \Illuminate\Support\Facades\Log::error('Supabase insertPrivileged error', [
+                'status' => $response->status(),
+                'url' => $url,
+                'table' => $this->table,
+                'error_body' => $errorBody,
+                'data' => $data,
+            ]);
+            
+            return [
+                'error' => $errorMessage,
+                'status' => $response->status(),
+                'details' => $errorBody,
+            ];
+        }
+
+        $jsonResponse = $response->json();
+        
+        // Log successful insert for debugging
+        \Illuminate\Support\Facades\Log::debug('Supabase insertPrivileged success', [
+            'table' => $this->table,
+            'response_count' => is_array($jsonResponse) ? count($jsonResponse) : 0,
+        ]);
+        
+        return $jsonResponse;
     }
 
     /**
@@ -250,6 +292,23 @@ class SupabaseService
             'Content-Type' => 'application/json',
             'Prefer' => 'return=representation',
         ])->patch("{$this->url}/rest/v1/{$this->table}?{$query}", $data);
+
+        // Check for HTTP errors
+        if (!$response->successful()) {
+            $errorBody = $response->json();
+            \Illuminate\Support\Facades\Log::error('Supabase updatePrivileged error', [
+                'status' => $response->status(),
+                'error' => $errorBody,
+                'table' => $this->table,
+                'conditions' => $conditions,
+                'data' => $data,
+            ]);
+            return [
+                'error' => $errorBody['message'] ?? $errorBody['error_description'] ?? 'HTTP ' . $response->status(),
+                'status' => $response->status(),
+                'details' => $errorBody,
+            ];
+        }
 
         return $response->json();
     }

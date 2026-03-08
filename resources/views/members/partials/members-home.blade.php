@@ -1,14 +1,14 @@
 <!-- Members Home Content (shared between Members page + dashboards) -->
 <!-- Hero Section -->
-<div class="py-12" style="background: linear-gradient(to bottom right, #1a5f3f, #2d7a5a);">
+<div class="py-12 bg-gradient-to-r from-emerald-500 via-emerald-600 to-indigo-600">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
             <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Meet Our Members</h1>
-            <p class="text-lg" style="color: #90EE90;">The dedicated volunteers who make our community stronger</p>
+            <p class="text-lg text-emerald-50">The dedicated volunteers who make our community stronger</p>
         </div>
         @if(auth()->user() && auth()->user()->isSuperAdmin())
             <div class="mt-6 text-center">
-                <a href="{{ route('members.create') }}" class="inline-flex items-center px-6 py-3 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-offset-2 transition ease-in-out duration-150 shadow-lg" style="background: linear-gradient(to right, #1a5f3f, #2d7a5a);">
+                <a href="{{ route('members.create') }}" class="inline-flex items-center px-6 py-3 border border-white/30 rounded-xl font-semibold text-sm text-white uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition ease-in-out duration-150 shadow-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -28,7 +28,7 @@
 @endif
 
 <!-- Members Grid -->
-<div class="py-16 bg-white">
+<div class="py-16 bg-slate-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @php
             // Ensure we always have a Collection for stats, even if $members is an array
@@ -40,9 +40,9 @@
                     // Alternate between dark green and dark purple for top section (row-based pattern)
                     $rowNumber = floor($index / 3);
                     $isGreen = ($rowNumber % 2 == 0);
-                    $topColor = $isGreen ? '#1a5f3f' : '#4a1a5f';
+                    $topColor = $isGreen ? '#10b981' : '#6366f1';
                 @endphp
-                <div class="member-card bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer">
+                <div class="member-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer hover:shadow-lg transition-all">
                     <!-- Card Layout: Photo on left, info on right -->
                     <div class="flex">
                         <!-- Member Photo - Left Side with Yellow Background -->
@@ -69,9 +69,9 @@
                                 </h3>
                             </div>
 
-                            <!-- Bottom Section - Role in dark green -->
-                            <div class="member-section px-4 py-3 flex-1 min-h-[50px] flex items-center transition-all duration-300" style="background-color: #1a5f3f;">
-                                <p class="member-role text-sm font-medium leading-tight transition-transform duration-300" style="color: #90EE90;">
+                            <!-- Bottom Section - Role in emerald -->
+                            <div class="member-section px-4 py-3 flex-1 min-h-[50px] flex items-center transition-all duration-300 bg-emerald-600">
+                                <p class="member-role text-sm font-medium leading-tight transition-transform duration-300 text-emerald-50">
                                     {{ $member->role }}
                                 </p>
                             </div>

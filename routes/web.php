@@ -24,8 +24,8 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/events', [EventController::class, 'index'])->name('events.index');
 Route::get('/events/calendar', [EventController::class, 'calendar'])->name('events.calendar');
-// Constrain to numeric to avoid clashing with '/events/create'
-Route::get('/events/{event}', [EventController::class, 'show'])->whereNumber('event')->name('events.show');
+// Accept UUIDs for Supabase events (must come before /events/create to avoid conflicts)
+Route::get('/events/{eventId}', [EventController::class, 'show'])->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')->name('events.show');
 Route::get('/members', [MemberController::class, 'index'])->name('members.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
@@ -76,9 +76,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
     
-    // Event registration routes
-    Route::post('/events/{event}/join', [EventRegistrationController::class, 'join'])->name('events.join');
-    Route::delete('/events/{event}/leave', [EventRegistrationController::class, 'leave'])->name('events.leave');
+    // Event registration routes (Supabase UUID-based)
+    Route::post('/events/{eventId}/join', [EventRegistrationController::class, 'join'])
+        ->name('events.join')
+        ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+    Route::delete('/events/{eventId}/leave', [EventRegistrationController::class, 'leave'])
+        ->name('events.leave')
+        ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
     
     // Volunteer Dashboard
     Route::get('/volunteer/dashboard', [VolunteerDashboardController::class, 'index'])->name('volunteer.dashboard');
@@ -107,20 +111,35 @@ Route::middleware('auth')->group(function () {
         // Event management (Admin and Superadmin)
         Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
         Route::post('/events', [EventController::class, 'store'])->name('events.store');
-        Route::get('/events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
-        Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
-        Route::delete('/events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+        // Use UUID string instead of route model binding for Supabase events
+        // UUID pattern: 8-4-4-4-12 hex characters with hyphens
+        Route::get('/events/{eventId}/edit', [EventController::class, 'edit'])->name('events.edit')->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        Route::put('/events/{eventId}', [EventController::class, 'update'])->name('events.update')->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        Route::delete('/events/{eventId}', [EventController::class, 'destroy'])->name('events.destroy')->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
         
         // Attendance (Admin and Superadmin)
         Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance');
         
         // Event registration management (Admin and Superadmin)
+        // Legacy MySQL-backed approvals
         Route::patch('/registrations/{registration}/approve', [EventRegistrationController::class, 'approve'])->name('registrations.approve');
         Route::patch('/registrations/{registration}/reject', [EventRegistrationController::class, 'reject'])->name('registrations.reject');
+
+        // Supabase-backed approvals for registrations loaded from Supabase (per-event admin view)
+        Route::patch('/supabase/registrations/{registrationId}/approve', [EventRegistrationController::class, 'approveSupabase'])
+            ->name('supabase.registrations.approve');
+        Route::patch('/supabase/registrations/{registrationId}/reject', [EventRegistrationController::class, 'rejectSupabase'])
+            ->name('supabase.registrations.reject');
 
         // Bulk registration actions (Admin and Superadmin)
         Route::post('/registrations/bulk-approve', [EventRegistrationController::class, 'bulkApprove'])->name('registrations.bulk-approve');
         Route::post('/registrations/bulk-reject', [EventRegistrationController::class, 'bulkReject'])->name('registrations.bulk-reject');
+
+        // Supabase bulk registration actions (UUIDs)
+        Route::post('/supabase/registrations/bulk-approve', [EventRegistrationController::class, 'bulkApproveSupabase'])
+            ->name('supabase.registrations.bulk-approve');
+        Route::post('/supabase/registrations/bulk-reject', [EventRegistrationController::class, 'bulkRejectSupabase'])
+            ->name('supabase.registrations.bulk-reject');
     });
 
     // Superadmin only routes

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Event;
 use App\Models\EventRegistration;
 use Illuminate\Support\Facades\Auth;
 use App\Services\DatabaseQueryService;
@@ -16,17 +15,54 @@ class EventRegistrationController extends Controller
         $this->middleware('auth');
     }
 
-    public function join(Event $event)
+    public function join(string $eventId)
     {
-        // Check if already registered in Supabase
-        $existingRegistration = $this->queryService->getEventRegistration(Auth::id(), $event->id);
+        $user = Auth::user();
+
+        // Resolve Supabase user ID from local user (by email), creating if needed
+        $supabaseUser = $user && $user->email
+            ? $this->queryService->getUserByEmail($user->email)
+            : null;
+
+        if (!$supabaseUser || isset($supabaseUser['error'])) {
+            // Try to upsert the user into Supabase
+            $upsertResult = $this->queryService->upsertUser([
+                'name' => $user->name ?? null,
+                'email' => $user->email ?? null,
+                'role' => $user->role ?? 'volunteer',
+                'email_verified_at' => $user->email_verified_at ?? null,
+            ]);
+
+            if (isset($upsertResult['error'])) {
+                Log::error('Failed to sync user to Supabase for event registration', [
+                    'error' => $upsertResult['error'] ?? null,
+                    'user_id' => $user->id ?? null,
+                ]);
+                return redirect()->back()->with('error', 'Could not sync your account for event registration. Please try again later.');
+            }
+
+            $supabaseUser = is_array($upsertResult) && isset($upsertResult[0]) ? $upsertResult[0] : $upsertResult;
+        }
+
+        $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+
+        if (!$supabaseUserId) {
+            Log::error('Supabase user ID missing when trying to register for event', [
+                'user_id' => $user->id ?? null,
+                'email' => $user->email ?? null,
+            ]);
+            return redirect()->back()->with('error', 'Unable to identify your account in the event database.');
+        }
+
+        // Check if already registered in Supabase for this user + event
+        $existingRegistration = $this->queryService->getEventRegistration($supabaseUserId, $eventId);
 
         if ($existingRegistration && !isset($existingRegistration['error'])) {
             return redirect()->back()->with('error', 'You have already registered for this event.');
         }
 
-        // Single Source of Truth: Write only to Supabase
-        $result = $this->queryService->registerForEvent(Auth::id(), $event->id, [
+        // Single Source of Truth: Write only to Supabase (UUIDs)
+        $result = $this->queryService->registerForEvent($supabaseUserId, $eventId, [
             'registration_status' => 'pending',
         ]);
 
@@ -38,18 +74,32 @@ class EventRegistrationController extends Controller
         return redirect()->back()->with('success', 'Successfully registered for the event!');
     }
 
-    public function leave(Event $event)
+    public function leave(string $eventId)
     {
-        // Get registration from Supabase
-        $registration = $this->queryService->getEventRegistration(Auth::id(), $event->id);
+        $user = Auth::user();
+
+        // Resolve Supabase user ID from local user (by email)
+        $supabaseUser = $user && $user->email
+            ? $this->queryService->getUserByEmail($user->email)
+            : null;
+
+        $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+
+        if (!$supabaseUserId) {
+            return redirect()->back()->with('error', 'Unable to identify your registration.');
+        }
+
+        // Get registration from Supabase for this user + event
+        $registration = $this->queryService->getEventRegistration($supabaseUserId, $eventId);
 
         if (!$registration || isset($registration['error'])) {
-            return redirect()->back()->with('error', 'Registration not found.');
+            // If there's nothing to cancel, treat it as already left to avoid scaring the user
+            return redirect()->back()->with('success', 'You are not registered for this event.');
         }
 
         $registrationId = is_array($registration) ? ($registration['id'] ?? null) : null;
         if (!$registrationId) {
-            return redirect()->back()->with('error', 'Could not identify registration.');
+            return redirect()->back()->with('success', 'You are not registered for this event.');
         }
 
         // Single Source of Truth: Delete only from Supabase
@@ -128,6 +178,118 @@ class EventRegistrationController extends Controller
         }
 
         return redirect()->back()->with('success', 'Registration rejected.');
+    }
+
+    /**
+     * Approve a Supabase-backed registration by its UUID.
+     */
+    public function approveSupabase(string $registrationId)
+    {
+        if (!Auth::user() || !Auth::user()->isAdminOrSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $result = $this->queryService->updateRegistrationStatus($registrationId, 'approved');
+
+        if (isset($result['error'])) {
+            Log::error('Failed to approve Supabase registration', [
+                'registration_id' => $registrationId,
+                'error' => $result['error'] ?? null,
+            ]);
+            return redirect()->back()->with('error', 'Failed to approve registration. Please try again.');
+        }
+
+        return redirect()->back()->with('success', 'Registration approved successfully!');
+    }
+
+    /**
+     * Reject a Supabase-backed registration by its UUID.
+     */
+    public function rejectSupabase(string $registrationId)
+    {
+        if (!Auth::user() || !Auth::user()->isAdminOrSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $result = $this->queryService->updateRegistrationStatus($registrationId, 'rejected');
+
+        if (isset($result['error'])) {
+            Log::error('Failed to reject Supabase registration', [
+                'registration_id' => $registrationId,
+                'error' => $result['error'] ?? null,
+            ]);
+            return redirect()->back()->with('error', 'Failed to reject registration. Please try again.');
+        }
+
+        return redirect()->back()->with('success', 'Registration rejected.');
+    }
+
+    /**
+     * Bulk approve Supabase-backed registrations (UUIDs).
+     */
+    public function bulkApproveSupabase(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isAdminOrSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'No registrations selected.');
+        }
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($ids as $id) {
+            $result = $this->queryService->updateRegistrationStatus((string) $id, 'approved');
+            if (!isset($result['error'])) {
+                $successCount++;
+            } else {
+                $failCount++;
+            }
+        }
+
+        $message = "{$successCount} registration(s) approved.";
+        if ($failCount > 0) {
+            $message .= " {$failCount} failed.";
+        }
+
+        return redirect()->back()->with($successCount > 0 ? 'success' : 'error', $message);
+    }
+
+    /**
+     * Bulk reject Supabase-backed registrations (UUIDs).
+     */
+    public function bulkRejectSupabase(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isAdminOrSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $ids = (array) $request->input('ids', []);
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'No registrations selected.');
+        }
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($ids as $id) {
+            $result = $this->queryService->updateRegistrationStatus((string) $id, 'rejected');
+            if (!isset($result['error'])) {
+                $successCount++;
+            } else {
+                $failCount++;
+            }
+        }
+
+        $message = "{$successCount} registration(s) rejected.";
+        if ($failCount > 0) {
+            $message .= " {$failCount} failed.";
+        }
+
+        return redirect()->back()->with($successCount > 0 ? 'success' : 'error', $message);
     }
 
     public function bulkApprove(Request $request)

@@ -5,20 +5,20 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 bg-white">
+    <div class="py-8 bg-slate-50">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white shadow-sm sm:rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900">System Activity</h3>
-                        <p class="mt-1 text-sm text-gray-500">
+                        <h3 class="text-lg font-bold text-slate-900">System Activity</h3>
+                        <p class="mt-1 text-sm text-slate-600">
                             Security and accountability trail for critical actions.
                         </p>
                     </div>
                 </div>
 
                 <!-- Filters -->
-                <div class="px-6 py-4 border-b border-gray-200">
+                <div class="px-6 py-4 border-b border-slate-200">
                     <form method="GET" class="flex flex-wrap gap-4 items-end">
                         <div>
                             <label for="action" class="block text-sm font-medium text-gray-700">Action</label>
@@ -47,20 +47,20 @@
 
                 <!-- Logs table -->
                 <div class="px-6 py-4 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource ID</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Timestamp</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">User</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Action</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Resource</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Resource ID</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Details</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody class="bg-white divide-y divide-slate-200">
                             @forelse($logs as $log)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-3 py-2 whitespace-nowrap text-gray-700">
                                         {{ $log->created_at?->format('Y-m-d H:i:s') ?? '—' }}
                                     </td>

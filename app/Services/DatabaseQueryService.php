@@ -22,8 +22,10 @@ class DatabaseQueryService
     public function getEvents(int $page = 1, int $limit = 10, array $filters = [])
     {
         try {
+        // NOTE: Supabase has multiple relationships between events <-> event_registrations in this schema.
+        // We must specify the relationship name to avoid PGRST201 "more than one relationship was found".
         $query = $this->supabase->from('events')
-            ->select('*, creator:users(name, email), registrations:event_registrations(count)')
+            ->select('*, creator:users(name, email), registrations:event_registrations!event_registrations_event_id_fkey(count)')
             ->order('event_date', 'asc');
 
             // Apply filters
@@ -51,17 +53,59 @@ class DatabaseQueryService
     }
 
     /**
+     * Get all events with pagination using service role (bypass RLS).
+     * Use for admin dashboards/analytics.
+     */
+    public function getEventsPrivileged(int $page = 1, int $limit = 10, array $filters = [])
+    {
+        try {
+            $query = $this->supabase->fromPrivileged('events')
+                ->select('*, creator:users(name, email), registrations:event_registrations!event_registrations_event_id_fkey(count)')
+                ->order('event_date', 'asc');
+
+            // Apply filters
+            if (isset($filters['status'])) {
+                $query = $query->eq('event_status', $filters['status']);
+            }
+
+            if (isset($filters['date_from'])) {
+                $query = $query->gte('event_date', $filters['date_from']);
+            }
+
+            if (isset($filters['date_to'])) {
+                $query = $query->lte('event_date', $filters['date_to']);
+            }
+
+            // Apply pagination
+            $offset = ($page - 1) * $limit;
+            $query = $query->range($offset, $offset + $limit - 1);
+
+            return $query->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching events (privileged): ' . $e->getMessage());
+            return ['error' => 'Failed to fetch events'];
+        }
+    }
+
+    /**
      * Get event by ID with full details
      * Accepts UUID string (Supabase) or can find by title+date+location for compatibility
      */
     public function getEventById(string $eventId)
     {
         try {
-            return $this->supabase->from('events')
-                ->select('*, creator:users(name, email), registrations:event_registrations(*, user:users(name, email))')
+            $result = $this->supabase->from('events')
+                ->select('*, creator:users(name, email), registrations:event_registrations!event_registrations_event_id_fkey(*, user:users(name, email))')
                 ->eq('id', $eventId)
                 ->single()
                 ->execute();
+
+            // Normalize possible [0 => record] shape into a single record
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Error fetching event: ' . $e->getMessage());
             return ['error' => 'Event not found'];
@@ -98,26 +142,256 @@ class DatabaseQueryService
     public function createEvent(array $eventData)
     {
         try {
-            $eventData['created_at'] = now()->toISOString();
-            $eventData['updated_at'] = now()->toISOString();
+            // Skip if Supabase is not configured
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return ['error' => 'Supabase not configured'];
+            }
 
-            // Privileged upsert by title+event_date+event_time+location as a simple uniqueness proxy
+            // Handle created_by: Supabase expects UUID, but we have MySQL integer ID
+            // Try to find the Supabase user UUID, or set to null if not found
+            if (isset($eventData['created_by']) && is_numeric($eventData['created_by'])) {
+                $mysqlUser = \App\Models\User::find($eventData['created_by']);
+                if ($mysqlUser && $mysqlUser->email) {
+                    $supabaseUser = $this->getUserByEmail($mysqlUser->email);
+                    $eventData['created_by'] = $supabaseUser['id'] ?? null;
+                } else {
+                    $eventData['created_by'] = null;
+                }
+            }
+
+            // Format date to Y-m-d (Supabase DATE type)
+            if (isset($eventData['event_date'])) {
+                if ($eventData['event_date'] instanceof \DateTime || $eventData['event_date'] instanceof \Carbon\Carbon) {
+                    $eventData['event_date'] = $eventData['event_date']->format('Y-m-d');
+                } elseif (is_string($eventData['event_date'])) {
+                    // Try to parse and format
+                    try {
+                        $eventData['event_date'] = \Carbon\Carbon::parse($eventData['event_date'])->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        Log::warning('Could not parse event_date: ' . $eventData['event_date']);
+                    }
+                }
+            }
+
+            // Format time to H:i:s (Supabase TIME type)
+            if (isset($eventData['event_time'])) {
+                if (is_string($eventData['event_time'])) {
+                    // Convert "04:00 PM" to "16:00:00" format
+                    try {
+                        $time = \Carbon\Carbon::createFromFormat('g:i A', $eventData['event_time']);
+                        $eventData['event_time'] = $time->format('H:i:s');
+                    } catch (\Exception $e) {
+                        // Try other formats
+                        try {
+                            $time = \Carbon\Carbon::createFromFormat('H:i', $eventData['event_time']);
+                            $eventData['event_time'] = $time->format('H:i:s');
+                        } catch (\Exception $e2) {
+                            // If already in H:i:s format, keep it
+                            if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $eventData['event_time'])) {
+                                Log::warning('Could not parse event_time: ' . $eventData['event_time']);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Format end time to H:i:s (Supabase TIME type) when present
+            if (isset($eventData['event_end_time'])) {
+                if (is_string($eventData['event_end_time'])) {
+                    try {
+                        $time = \Carbon\Carbon::createFromFormat('H:i', $eventData['event_end_time']);
+                        $eventData['event_end_time'] = $time->format('H:i:s');
+                    } catch (\Exception $e) {
+                        // If already in H:i:s format, keep it; otherwise warn
+                        if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $eventData['event_end_time'])) {
+                            Log::warning('Could not parse event_end_time: ' . $eventData['event_end_time']);
+                        }
+                    }
+                }
+            }
+
+            // Build clean data array with only valid columns
+            // Core required fields (must exist in schema)
+            $cleanData = [
+                'title' => $eventData['title'] ?? null,
+                'description' => $eventData['description'] ?? null,
+                'event_date' => $eventData['event_date'] ?? null,
+                'event_time' => $eventData['event_time'] ?? null,
+                'location' => $eventData['location'] ?? null,
+                'event_status' => $eventData['event_status'] ?? 'active',
+            ];
+
+            // Optional: end time (requires column in Supabase schema)
+            if (isset($eventData['event_end_time']) && $eventData['event_end_time'] !== null && $eventData['event_end_time'] !== '') {
+                $cleanData['event_end_time'] = $eventData['event_end_time'];
+            }
+            
+            // Optional fields - only add if they have values
+            // Note: photo_url might not exist in schema yet, so we'll try without it first if it fails
+            if (isset($eventData['max_participants']) && $eventData['max_participants'] !== null && $eventData['max_participants'] !== '') {
+                $cleanData['max_participants'] = (int) $eventData['max_participants'];
+            }
+            
+            if (isset($eventData['created_by']) && $eventData['created_by'] !== null && $eventData['created_by'] !== '') {
+                $cleanData['created_by'] = $eventData['created_by'];
+            }
+
+            // Add timestamps (Supabase will use defaults if not provided, but we set them explicitly)
+            $cleanData['created_at'] = now()->toISOString();
+            $cleanData['updated_at'] = now()->toISOString();
+            
+            // Validate required fields
+            $requiredFields = ['title', 'description', 'event_date', 'event_time', 'location'];
+            foreach ($requiredFields as $field) {
+                if (!isset($cleanData[$field]) || $cleanData[$field] === null || $cleanData[$field] === '') {
+                    Log::error('Missing required field when creating event', [
+                        'field' => $field,
+                        'event_data' => $cleanData,
+                    ]);
+                    return ['error' => "Missing required field: {$field}"];
+                }
+            }
+            
+            // Always include photo_url if provided (column should exist now)
+            if (isset($eventData['photo_url']) && !empty($eventData['photo_url']) && $eventData['photo_url'] !== 'null') {
+                $cleanData['photo_url'] = $eventData['photo_url'];
+                Log::debug('Including photo_url in event creation', [
+                    'photo_url' => $eventData['photo_url'],
+                ]);
+            } else {
+                Log::debug('No photo_url provided for event creation', [
+                    'photo_url_value' => $eventData['photo_url'] ?? 'not set',
+                ]);
+            }
+
+            // Log the data being sent for debugging
+            Log::debug('Creating event in Supabase', [
+                'event_data' => $cleanData,
+            ]);
+
+            // Privileged insert
             $result = $this->supabase->from('events')
-                ->insertPrivileged([$eventData])
+                ->insertPrivileged([$cleanData])
             ;
 
+            // Check for errors in response
             if (isset($result['error'])) {
-                return $result;
+                $errorMessage = $result['error'] ?? 'Unknown error';
+                $errorDetails = $result;
+                
+                // If error mentions event_end_time column, retry without it (still allow event creation)
+                if ((str_contains(strtolower($errorMessage), 'event_end_time') ||
+                     str_contains(strtolower($errorMessage), 'column')) &&
+                    isset($cleanData['event_end_time'])) {
+                    Log::warning('event_end_time column may not exist, retrying without it', [
+                        'error' => $errorMessage,
+                    ]);
+
+                    unset($cleanData['event_end_time']);
+                    $result = $this->supabase->from('events')
+                        ->insertPrivileged([$cleanData]);
+
+                    if (isset($result['error'])) {
+                        $errorMessage = $result['error'] ?? 'Unknown error';
+                        Log::error('Supabase error creating event (after end_time retry)', [
+                            'error' => $errorMessage,
+                            'status' => $result['status'] ?? null,
+                            'details' => $result,
+                            'event_data' => $cleanData,
+                        ]);
+                        return ['error' => $errorMessage];
+                    }
+                }
+
+                // If error mentions photo_url column, retry without it
+                if ((str_contains(strtolower($errorMessage), 'photo_url') || 
+                     str_contains(strtolower($errorMessage), 'column')) && 
+                    isset($cleanData['photo_url'])) {
+                    Log::warning('photo_url column may not exist, retrying without it', [
+                        'error' => $errorMessage,
+                    ]);
+                    
+                    // Remove photo_url and retry
+                    unset($cleanData['photo_url']);
+                    $result = $this->supabase->from('events')
+                        ->insertPrivileged([$cleanData])
+                    ;
+                    
+                    // Check again after retry
+                    if (isset($result['error'])) {
+                        $errorMessage = $result['error'] ?? 'Unknown error';
+                        Log::error('Supabase error creating event (after retry)', [
+                            'error' => $errorMessage,
+                            'status' => $result['status'] ?? null,
+                            'details' => $result,
+                            'event_data' => $cleanData,
+                        ]);
+                        return ['error' => $errorMessage];
+                    }
+                } else {
+                    Log::error('Supabase error creating event', [
+                        'error' => $errorMessage,
+                        'status' => $result['status'] ?? null,
+                        'details' => $errorDetails,
+                        'event_data' => $cleanData,
+                    ]);
+                    return ['error' => $errorMessage];
+                }
+            }
+
+            // Check if result is empty or invalid
+            if (empty($result)) {
+                Log::error('Empty response from Supabase when creating event', [
+                    'response' => $result,
+                    'event_data' => $cleanData,
+                ]);
+                return ['error' => 'Empty response from database'];
+            }
+
+            // Handle response - Supabase returns array of created records
+            if (!is_array($result)) {
+                Log::error('Invalid response type from Supabase when creating event', [
+                    'response' => $result,
+                    'response_type' => gettype($result),
+                    'event_data' => $cleanData,
+                ]);
+                return ['error' => 'Invalid response format from database'];
+            }
+
+            // Check if result array has errors
+            if (isset($result[0]) && isset($result[0]['error'])) {
+                $errorMessage = $result[0]['error'] ?? 'Unknown error';
+                Log::error('Supabase error in result array', [
+                    'error' => $errorMessage,
+                    'result' => $result,
+                ]);
+                return ['error' => $errorMessage];
             }
 
             // Return the created event (Supabase returns array of created records)
             $created = is_array($result) && count($result) > 0 ? $result[0] : $result;
 
+            if (!isset($created['id'])) {
+                Log::error('Created event missing ID', [
+                    'created' => $created,
+                    'result' => $result,
+                ]);
+                return ['error' => 'Event created but missing ID'];
+            }
+
+            // Log the created event to verify photo_url was saved
+            Log::info('Event created successfully in Supabase', [
+                'event_id' => $created['id'] ?? null,
+                'title' => $created['title'] ?? null,
+                'photo_url' => $created['photo_url'] ?? null,
+                'photo_url_in_clean_data' => $cleanData['photo_url'] ?? null,
+            ]);
+
             // Audit log
             $this->audit(
                 action: 'event.created',
                 resourceType: 'Event',
-                resourceId: $created['id'] ?? null,
+                resourceId: $created['id'],
                 payload: [
                     'new' => $created,
                 ],
@@ -125,8 +399,12 @@ class DatabaseQueryService
 
             return $created;
         } catch (\Exception $e) {
-            Log::error('Error creating event: ' . $e->getMessage());
-            return ['error' => 'Failed to create event'];
+            Log::error('Exception creating event: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'event_data' => $eventData ?? [],
+            ]);
+            return ['error' => 'Failed to create event: ' . $e->getMessage()];
         }
     }
 
@@ -142,6 +420,22 @@ class DatabaseQueryService
         }
 
         try {
+            // Normalize any TIME-ish inputs
+            if (isset($eventData['event_time']) && is_string($eventData['event_time'])) {
+                try {
+                    $eventData['event_time'] = \Carbon\Carbon::createFromFormat('H:i', $eventData['event_time'])->format('H:i:s');
+                } catch (\Throwable $e) {
+                    // leave as-is if already H:i:s
+                }
+            }
+            if (isset($eventData['event_end_time']) && is_string($eventData['event_end_time'])) {
+                try {
+                    $eventData['event_end_time'] = \Carbon\Carbon::createFromFormat('H:i', $eventData['event_end_time'])->format('H:i:s');
+                } catch (\Throwable $e) {
+                    // leave as-is if already H:i:s
+                }
+            }
+
             $eventData['updated_at'] = now()->toISOString();
 
             // Update by ID using the correct API format
@@ -150,8 +444,29 @@ class DatabaseQueryService
                 ->updatePrivileged($eventData, ['id' => 'eq.' . $eventId]);
 
             if (isset($result['error'])) {
-                Log::error('Error updating event in Supabase: ' . ($result['error'] ?? 'Unknown error'));
-                return $result;
+                // If end-time column doesn't exist yet, retry update without it
+                $err = strtolower((string) ($result['error'] ?? ''));
+                if (isset($eventData['event_end_time']) && (str_contains($err, 'event_end_time') || str_contains($err, 'column'))) {
+                    $retryData = $eventData;
+                    unset($retryData['event_end_time']);
+
+                    $retry = $this->supabase->from('events')
+                        ->updatePrivileged($retryData, ['id' => 'eq.' . $eventId]);
+
+                    if (!isset($retry['error'])) {
+                        $updated = is_array($retry) && count($retry) > 0 ? $retry[0] : $retry;
+                        return $updated;
+                    }
+                }
+
+                Log::error('Error updating event in Supabase', [
+                    'error' => $result['error'] ?? 'Unknown error',
+                    'status' => $result['status'] ?? null,
+                    'details' => $result['details'] ?? null,
+                    'event_id' => $eventId,
+                    'event_data' => $eventData,
+                ]);
+                return ['error' => 'Failed to update event: ' . ($result['error'] ?? 'Unknown error')];
             }
 
             // Return the updated event (Supabase returns array of updated records)
@@ -247,11 +562,19 @@ class DatabaseQueryService
     public function getUserById(string $userId)
     {
         try {
-            return $this->supabase->from('users')
+            // Use privileged access so admin/backend calls bypass RLS
+            $result = $this->supabase->fromPrivileged('users')
                 ->select('*')
                 ->eq('id', $userId)
                 ->single()
                 ->execute();
+
+            // Normalize possible [0 => record] shape into a single record
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Error fetching user: ' . $e->getMessage());
             return ['error' => 'User not found'];
@@ -264,11 +587,20 @@ class DatabaseQueryService
     public function getUserByEmail(string $email)
     {
         try {
-            return $this->supabase->from('users')
+            // Use privileged access so server-side lookups aren't blocked by RLS
+            $result = $this->supabase->fromPrivileged('users')
                 ->select('*')
                 ->eq('email', $email)
                 ->single()
                 ->execute();
+
+            // Our SupabaseService::single() is implemented as limit=1, which may still return an array.
+            // Normalize to a single record.
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::debug('User not found by email: ' . $e->getMessage());
             return null;
@@ -297,6 +629,15 @@ class DatabaseQueryService
 
             $result = $this->supabase->from('users')->insertPrivileged($payload, 'email');
 
+            // Sometimes PostgREST can return an empty array even with return=representation
+            // (e.g., depending on conflict handling). If so, re-fetch by email.
+            if (is_array($result) && empty($result) && !empty($user['email'])) {
+                $refetched = $this->getUserByEmail($user['email']);
+                if (is_array($refetched) && !isset($refetched['error'])) {
+                    return [$refetched];
+                }
+            }
+
             if (!isset($result['error'])) {
                 $userRecord = is_array($result) && isset($result[0]) ? $result[0] : ($result ?: $payload[0]);
 
@@ -323,8 +664,11 @@ class DatabaseQueryService
     public function getEventRegistrations(int $page = 1, int $limit = 10, array $filters = [])
     {
         try {
-            $query = $this->supabase->from('event_registrations')
-                ->select('*, user:users(name, email), event:events(title, event_date)')
+            // Use privileged access so admin views can see all registrations regardless of RLS
+            $query = $this->supabase->fromPrivileged('event_registrations')
+                // NOTE: There are multiple relationships between event_registrations <-> users/events.
+                // Specify relationships explicitly to avoid PGRST201 ambiguity.
+                ->select('*, user:users!event_registrations_user_id_fkey(name, email), event:events!event_registrations_event_id_fkey(title, event_date)')
                 ->order('created_at', 'desc');
 
             // Apply filters
@@ -344,10 +688,40 @@ class DatabaseQueryService
             $offset = ($page - 1) * $limit;
             $query = $query->range($offset, $offset + $limit - 1);
 
-            return $query->execute();
+            $result = $query->execute();
+
+            // Guard against PostgREST error payloads like PGRST201 which come back
+            // as a single associative array instead of a list of rows.
+            if (is_array($result) && isset($result['code']) && isset($result['message']) && !isset($result[0])) {
+                Log::error('Supabase getEventRegistrations error payload', $result);
+                return ['error' => $result['message'] ?? 'Supabase error', 'code' => $result['code'] ?? null];
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Error fetching registrations: ' . $e->getMessage());
             return ['error' => 'Failed to fetch registrations'];
+        }
+    }
+
+    /**
+     * Lightweight helper: get all registrations for a single user (by Supabase UUID).
+     * Used for the public events list to decide Join/Pending/Approved per event.
+     */
+    public function getEventRegistrationsForUser(string $userId)
+    {
+        try {
+            return $this->supabase->fromPrivileged('event_registrations')
+                ->select('user_id,event_id,registration_status,created_at')
+                ->eq('user_id', $userId)
+                ->order('created_at', 'desc')
+                ->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching registrations for user', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return ['error' => 'Failed to fetch user registrations'];
         }
     }
 
@@ -696,7 +1070,7 @@ class DatabaseQueryService
                 ->execute();
 
             $stats['recent_registrations'] = $this->supabase->from('event_registrations')
-                ->select('*, user:users(name), event:events(title)')
+                ->select('*, user:users!event_registrations_user_id_fkey(name), event:events!event_registrations_event_id_fkey(title)')
                 ->order('created_at', 'desc')
                 ->limit(10)
                 ->execute();
