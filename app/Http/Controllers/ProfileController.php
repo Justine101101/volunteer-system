@@ -18,8 +18,21 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+
+        // Default: no participation stats
+        $participationStats = null;
+
+        // For volunteers, reuse the volunteer dashboard analytics
+        if (method_exists($user, 'isVolunteer') && $user->isVolunteer()) {
+            /** @var \App\Http\Controllers\VolunteerDashboardController $volController */
+            $volController = app(VolunteerDashboardController::class);
+            $participationStats = $volController->buildStatsForUser($user);
+        }
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'participationStats' => $participationStats,
         ]);
     }
 

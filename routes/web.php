@@ -38,16 +38,17 @@ Route::post('/supabase/upload', [SupabaseController::class, 'uploadFile'])->name
 // Dashboard route (redirects based on user role)
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    
-    
+
     if ($user->isSuperAdmin() || $user->isAdmin()) {
+        // Admins → admin dashboard
         return redirect()->route('admin.dashboard');
     } elseif ($user->isVolunteer()) {
-        return redirect()->route('volunteer.dashboard');
+        // Volunteers → events list
+        return redirect()->route('events.index');
     }
-    
-    // Fallback for other roles or default dashboard
-    return view('dashboard');
+
+    // Fallback for other roles: send to home
+    return redirect()->route('home');
 })->middleware(['auth'])->name('dashboard');
 
 // Authentication routes

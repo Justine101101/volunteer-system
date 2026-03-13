@@ -14,8 +14,10 @@ class EventController extends Controller
 {
     public function __construct(private DatabaseQueryService $queryService)
     {
-        $this->middleware('auth')->except(['index', 'show']);
-        $this->middleware('role:admin')->except(['index', 'show']);
+        // Allow public/volunteer access to the event list, detail page, and calendar.
+        // Restrict creation and management actions to authenticated admins.
+        $this->middleware('auth')->except(['index', 'show', 'calendar']);
+        $this->middleware('role:admin')->except(['index', 'show', 'calendar']);
     }
 
     /**

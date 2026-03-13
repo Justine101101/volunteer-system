@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\DatabaseQueryService;
+use App\Mail\OtpVerificationMail;
+use App\Models\OtpCode;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
@@ -43,38 +47,53 @@ class RegisteredUserController extends Controller
         // Default role for all new registrations
         $defaultRole = 'volunteer';
 
-        // Single Source of Truth: Write to Supabase first
-        // Note: We still need to create a local user for Laravel authentication
-        // This is a hybrid approach - auth in MySQL, data in Supabase
-        $supabaseResult = $this->queryService->upsertUser([
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $defaultRole,
-            'notification_pref' => true,
-            'dark_mode' => false,
-            'password' => Hash::make($request->password), // Store hashed password in Supabase
-        ]);
-
-        if (isset($supabaseResult['error'])) {
-            Log::error('Failed to create user in Supabase: ' . ($supabaseResult['error'] ?? 'Unknown error'));
-            // Continue with local user creation for auth, but log the error
-        }
-
-        // Still create local user for Laravel authentication
-        // TODO: Consider migrating to Supabase Auth in the future
+        // Create local user but leave email as NOT verified yet
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'role' => $defaultRole,
             'password' => Hash::make($request->password),
+            'email_verified_at' => null,
         ]);
 
+        // Mirror user to Supabase (Single Source of Truth for user data)
+        $supabaseResult = $this->queryService->upsertUser([
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $defaultRole,
+            'notification_pref' => true,
+            'dark_mode' => false,
+            'password' => Hash::make($request->password),
+            'email_verified_at' => null,
+        ]);
+
+        if (isset($supabaseResult['error'])) {
+            Log::error('Failed to create user in Supabase (OTP registration): ' . ($supabaseResult['error'] ?? 'Unknown error'));
+        }
+
+        // Generate secure 6-digit OTP
+        $otpPlain = (string) random_int(100000, 999999);
+        $otpHashed = Hash::make($otpPlain);
+        $expiresAt = Carbon::now()->addMinutes(5);
+
+        // Invalidate previous OTPs for this user
+        OtpCode::where('user_id', $user->id)->delete();
+
+        // Store hashed OTP with expiration
+        OtpCode::create([
+            'user_id' => $user->id,
+            'otp_code' => $otpHashed,
+            'expires_at' => $expiresAt,
+        ]);
+
+        // Send OTP email
+        Mail::to($user->email)->send(new OtpVerificationMail($otpPlain));
+
+        // Fire Registered event (for any listeners) but DO NOT log in yet
         event(new Registered($user));
 
-        Auth::login($user);
-
-        // Redirect admins/superadmins to admin dashboard
-        $redirectRoute = $user->isAdminOrSuperAdmin() ? 'admin.dashboard' : 'dashboard';
-        return redirect(route($redirectRoute, absolute: false));
+        return redirect()
+            ->route('otp.verify.form', ['email' => $user->email])
+            ->with('status', 'We have emailed you a 6-digit verification code.');
     }
 }

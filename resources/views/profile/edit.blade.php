@@ -22,9 +22,9 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Profile & Contact Information Card -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +52,67 @@
                     
                     @include('profile.partials.update-password-form')
                 </div>
+
+                @if(isset($participationStats) && $participationStats)
+                <!-- Volunteer Participation / Statistics Card -->
+                @php
+                    $ps = $participationStats;
+                    $stats = $ps['stats'] ?? [];
+                    $analytics = $ps['analytics'] ?? [];
+                    $quick = $ps['quickStats'] ?? [];
+                @endphp
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            My Participation
+                        </h3>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">
+                        A clean overview of your volunteer engagement and event activity.
+                    </p>
+
+                    <!-- Key metrics -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-3">
+                            <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Approved Events</p>
+                            <p class="mt-1 text-2xl font-bold text-emerald-900">
+                                {{ $stats['approved_registrations'] ?? 0 }}
+                            </p>
+                            <p class="mt-1 text-xs text-emerald-800/80">Confirmed registrations</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                            <p class="text-xs font-medium text-slate-700 uppercase tracking-wide">Participation Rate</p>
+                            <p class="mt-1 text-2xl font-bold text-slate-900">
+                                {{ $analytics['participation_rate'] ?? 0 }}%
+                            </p>
+                            <p class="mt-1 text-xs text-slate-600">Of available events</p>
+                        </div>
+                    </div>
+
+                    <!-- Secondary stats -->
+                    <dl class="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                        <div class="flex flex-col rounded-lg bg-slate-50 px-3 py-2">
+                            <dt class="text-xs text-gray-500 uppercase tracking-wide">Total Registrations</dt>
+                            <dd class="mt-1 text-base font-semibold">{{ $stats['total_registrations'] ?? 0 }}</dd>
+                        </div>
+                        <div class="flex flex-col rounded-lg bg-slate-50 px-3 py-2">
+                            <dt class="text-xs text-gray-500 uppercase tracking-wide">Pending Decisions</dt>
+                            <dd class="mt-1 text-base font-semibold">{{ $stats['pending_registrations'] ?? 0 }}</dd>
+                        </div>
+                        <div class="flex flex-col rounded-lg bg-slate-50 px-3 py-2">
+                            <dt class="text-xs text-gray-500 uppercase tracking-wide">Events This Month</dt>
+                            <dd class="mt-1 text-base font-semibold">{{ $quick['events_this_month'] ?? 0 }}</dd>
+                        </div>
+                        <div class="flex flex-col rounded-lg bg-slate-50 px-3 py-2">
+                            <dt class="text-xs text-gray-500 uppercase tracking-wide">My Registrations (Month)</dt>
+                            <dd class="mt-1 text-base font-semibold">{{ $quick['my_registrations_this_month'] ?? 0 }}</dd>
+                        </div>
+                    </dl>
+                </div>
+                @endif
             </div>
 
             <!-- Delete User Form (if exists) -->

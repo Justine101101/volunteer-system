@@ -15,9 +15,12 @@ class VolunteerDashboardController extends Controller
         $this->middleware('auth');
     }
 
-    public function index()
+    /**
+     * Build participation statistics for a given volunteer user.
+     * This can be reused on the volunteer dashboard or profile page.
+     */
+    public function buildStatsForUser($user): array
     {
-        $user = auth()->user();
         // Resolve Supabase user ID from local user (by email)
         $supabaseUserId = null;
         if ($user && $user->email) {
@@ -200,13 +203,21 @@ class VolunteerDashboardController extends Controller
             'participation_rate' => $participationRate,
         ];
 
-        return view('volunteer.dashboard', [
+        return [
             'stats' => $stats,
             'analytics' => $analytics,
             'quickStats' => $quickStats,
             'upcomingRegisteredEvents' => $upcomingRegisteredEvents,
             'availableEvents' => $availableEvents,
-        ]);
+        ];
+    }
+
+    public function index()
+    {
+        $user = auth()->user();
+        $data = $this->buildStatsForUser($user);
+
+        return view('volunteer.dashboard', $data);
     }
 }
 

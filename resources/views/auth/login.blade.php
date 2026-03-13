@@ -64,8 +64,13 @@
         </div>
     </form>
             </div>
-            <p class="text-center text-sm text-gray-600 mt-4">Don't have an account? 
+            <p class="text-center text-sm text-gray-600 mt-4">
+                Don't have an account?
                 <a href="{{ route('register') }}" class="text-emerald-700 font-medium hover:underline">Register</a>
+            </p>
+            <p class="text-center text-sm text-gray-600 mt-2">
+                or
+                <a href="{{ route('home') }}" class="text-purple-700 font-medium hover:underline">Back to Home</a>
             </p>
         </div>
     </div>

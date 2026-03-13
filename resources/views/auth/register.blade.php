@@ -68,7 +68,16 @@
         </div>
     </form>
             </div>
-            <p class="text-center text-sm text-gray-600 mt-4">By continuing, you agree to our <a href="#" class="text-emerald-700 hover:underline">Terms</a> and <a href="#" class="text-emerald-700 hover:underline">Privacy Policy</a>.</p>
+            <p class="text-center text-sm text-gray-600 mt-4">
+                By continuing, you agree to our
+                <a href="#" class="text-emerald-700 hover:underline">Terms</a>
+                and
+                <a href="#" class="text-emerald-700 hover:underline">Privacy Policy</a>.
+            </p>
+            <p class="text-center text-sm text-gray-600 mt-2">
+                or
+                <a href="{{ route('home') }}" class="text-purple-700 font-medium hover:underline">Back to Home</a>
+            </p>
         </div>
     </div>
     </div>

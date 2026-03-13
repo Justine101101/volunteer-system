@@ -50,13 +50,14 @@
                 </div>
             @endif
 
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             @forelse($events as $event)
                 @php /** @var \stdClass|\App\Models\Event $event */ @endphp
                 @php $isEven = ($loop->iteration % 2) === 0; @endphp
-                <div class="event-card bg-white rounded-2xl shadow-sm border border-slate-200 mb-8 overflow-hidden cursor-pointer hover:shadow-lg transition-all">
+                <div class="event-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer hover:shadow-lg transition-all">
                     <div class="md:flex">
                         <!-- Event Image/Icon -->
-                        <div class="event-image-container md:w-1/3 flex items-center justify-center p-8 border-b-2 md:border-b-0 md:border-r-2 border-slate-200 relative overflow-hidden transition-all duration-300"
+                        <div class="event-image-container md:w-1/3 h-36 flex items-center justify-center p-4 border-b-2 md:border-b-0 md:border-r-2 border-slate-200 relative overflow-hidden transition-all duration-300"
                              style="background: linear-gradient(135deg, {{ $isEven ? '#10b981' : '#6366f1' }}, {{ $isEven ? '#059669' : '#4f46e5' }});">
                             @if($event->photo_url)
                                 <img src="{{ $event->photo_url }}" 
@@ -92,7 +93,7 @@
                         </div>
 
                         <!-- Event Details -->
-                        <div class="md:w-2/3 p-6">
+                        <div class="md:w-2/3 p-4">
                             <div class="flex justify-between items-start mb-4">
                                 <h3 class="event-title text-2xl font-bold transition-colors duration-300"
                                     style="color: {{ $isEven ? '#1a5f3f' : '#4a1a5f' }};">
