@@ -41,62 +41,30 @@ class AttendanceController extends Controller
         }
 
         // Build human-friendly objects for the Blade view.
-        // Always hydrate user/event via separate privileged lookups so we reliably get names/titles.
-        $userCache = [];
-        $eventCache = [];
-
-        $items = collect(is_array($raw) && !isset($raw['error']) ? $raw : [])->map(function ($reg) use (&$userCache, &$eventCache) {
-            static $debugCount = 0;
-
+        // Use the embedded `user` and `event` data that already comes from Supabase
+        // to avoid doing hundreds of extra HTTP requests (which were causing timeouts).
+        $items = collect(is_array($raw) && !isset($raw['error']) ? $raw : [])->map(function ($reg) {
             $registrationId = $reg['id'] ?? null;
             $status = $reg['registration_status'] ?? ($reg['status'] ?? 'pending');
             $createdAt = isset($reg['created_at']) ? \Carbon\Carbon::parse($reg['created_at']) : null;
 
+            // Prefer embedded user if present; fall back to minimal object
+            $embeddedUser = $reg['user'] ?? null;
             $user = null;
+            if (is_array($embeddedUser)) {
+                $user = (object) [
+                    'name' => $embeddedUser['name'] ?? 'Unknown',
+                    'email' => $embeddedUser['email'] ?? null,
+                ];
+            }
+
+            // Prefer embedded event if present; fall back to minimal object
+            $embeddedEvent = $reg['event'] ?? null;
             $event = null;
-
-            // Hydrate user via Supabase users table (privileged) when we have user_id
-            if (!empty($reg['user_id'])) {
-                $userId = $reg['user_id'];
-                if (!array_key_exists($userId, $userCache)) {
-                    $rawUser = app(\App\Services\DatabaseQueryService::class)->getUserById($userId);
-                    $userCache[$userId] = is_array($rawUser) && !isset($rawUser['error']) ? $rawUser : null;
-                }
-
-                if ($userCache[$userId]) {
-                    $user = (object) [
-                        'name' => $userCache[$userId]['name'] ?? 'Unknown',
-                        'email' => $userCache[$userId]['email'] ?? null,
-                    ];
-                }
-            }
-
-            // Hydrate event via Supabase events table when we have event_id
-            if (!empty($reg['event_id'])) {
-                $eventId = $reg['event_id'];
-                if (!array_key_exists($eventId, $eventCache)) {
-                    $rawEvent = app(\App\Services\DatabaseQueryService::class)->getEventById($eventId);
-                    $eventCache[$eventId] = is_array($rawEvent) && !isset($rawEvent['error']) ? $rawEvent : null;
-                }
-
-                if ($eventCache[$eventId]) {
-                    $event = (object) [
-                        'title' => $eventCache[$eventId]['title'] ?? '',
-                    ];
-                }
-            }
-
-            // Log first few hydrated rows so we can see why "Unknown" might appear
-            if ($debugCount < 5) {
-                Log::debug('AttendanceController hydrated registration', [
-                    'registration_id' => $registrationId,
-                    'status' => $status,
-                    'user_id' => $reg['user_id'] ?? null,
-                    'event_id' => $reg['event_id'] ?? null,
-                    'raw_user_cache' => isset($userId) ? ($userCache[$userId] ?? null) : null,
-                    'raw_event_cache' => isset($eventId) ? ($eventCache[$eventId] ?? null) : null,
-                ]);
-                $debugCount++;
+            if (is_array($embeddedEvent)) {
+                $event = (object) [
+                    'title' => $embeddedEvent['title'] ?? '',
+                ];
             }
 
             return (object) [

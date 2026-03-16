@@ -106,29 +106,30 @@ class SyncToSupabase extends Command
         $this->info("Found {$users->count()} users to sync");
 
         foreach ($users as $user) {
+            // Normalize user data for Supabase users table (not events)
             $userData = [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role ?? 'volunteer',
+                'phone' => $user->phone ?? null,
+                'google_id' => $user->google_id ?? null,
+                'photo_url' => $user->photo_url ?? null,
                 'notification_pref' => $user->notification_pref ?? true,
                 'dark_mode' => $user->dark_mode ?? false,
                 'email_verified_at' => $user->email_verified_at?->toISOString(),
-                'created_at' => $user->created_at->toISOString(),
-                'updated_at' => $user->updated_at->toISOString(),
             ];
 
-            try {
-                $this->queryService->createEvent($userData);
-                $this->line("  - Synced user: {$user->name}");
-            } catch (\Exception $e) {
-                if ($force) {
-                    $this->queryService->updateEvent($user->id, $userData);
-                    $this->line("  - Updated user: {$user->name}");
-                } else {
-                    $this->warn("  - Skipped user: {$user->name} (already exists)");
-                }
+            // Always upsert into Supabase users table using email as conflict target
+            // This keeps Supabase as the source of truth for user records.
+            $result = $this->queryService->upsertUser($userData);
+
+            if (isset($result['error'])) {
+                $this->warn("  - Failed to sync user: {$user->name} ({$result['error']})");
+                continue;
             }
+
+            $this->line("  - Synced user: {$user->name}");
         }
     }
 

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\DatabaseQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -39,7 +41,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, DatabaseQueryService $queryService): RedirectResponse
     {
         $user = $request->user();
         $user->fill($request->validated());
@@ -63,7 +65,32 @@ class ProfileController extends Controller
             $user->photo_url = Storage::url($path);
         }
 
+        // Save to Laravel DB first
         $user->save();
+
+        // Sync to Supabase (Single Source of Truth)
+        try {
+            $updateData = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? null,
+                'google_id' => $user->google_id ?? null,
+                'role' => $user->role ?? 'volunteer',
+                'notification_pref' => $user->notification_pref ?? true,
+                'dark_mode' => $user->dark_mode ?? false,
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+            ];
+
+            $result = $queryService->upsertUser($updateData);
+
+            if (isset($result['error'])) {
+                Log::warning('Failed to sync profile to Supabase: ' . ($result['error'] ?? 'Unknown error'));
+                // Don't fail the request, just log the warning
+            }
+        } catch (\Exception $e) {
+            Log::warning('Error syncing profile to Supabase: ' . $e->getMessage());
+            // Don't fail the request, just log the warning
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

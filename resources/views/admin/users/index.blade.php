@@ -13,7 +13,7 @@
         </div>
     </x-slot>
 
-    <div class="py-12 bg-slate-50">
+    <div class="py-12 bg-slate-50" x-data="usersModal()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             @if(session('success'))
                 <div class="mb-4 bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-lg relative" role="alert">
@@ -87,6 +87,7 @@
                             <option value="">All Roles</option>
                             <option value="superadmin" {{ request('role') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                             <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                            <option value="president" {{ request('role') == 'president' ? 'selected' : '' }}>President</option>
                             <option value="volunteer" {{ request('role') == 'volunteer' ? 'selected' : '' }}>Volunteer</option>
                         </select>
                     </div>
@@ -109,6 +110,7 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">User</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Phone</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Role</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Created</th>
                                 <th class="px-6 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Actions</th>
@@ -133,9 +135,24 @@
                                         <div class="text-sm text-slate-900">{{ $user->email }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-slate-900">
+                                            @if($user->phone)
+                                                <div class="flex items-center gap-2">
+                                                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                    </svg>
+                                                    <span>{{ $user->phone }}</span>
+                                                </div>
+                                            @else
+                                                <span class="text-slate-400 italic">Not provided</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @if($user->role === 'superadmin') bg-indigo-100 text-indigo-800
                                             @elseif($user->role === 'admin') bg-indigo-100 text-indigo-800
+                                            @elseif($user->role === 'president') bg-purple-100 text-purple-800
                                             @else bg-emerald-100 text-emerald-800
                                             @endif">
                                             {{ ucfirst($user->role) }}
@@ -146,6 +163,24 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                class="inline-flex items-center rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
+                                                @click="open({
+                                                    id: {{ $user->id }},
+                                                    name: @js($user->name),
+                                                    email: @js($user->email),
+                                                    phone: @js($user->phone ?? ''),
+                                                    role: @js(ucfirst($user->role)),
+                                                    created_at: @js($user->created_at->format('M j, Y g:i A')),
+                                                    last_login: @js(optional($user->last_login_at)->format('M j, Y g:i A') ?? 'Not available'),
+                                                    notification_pref: {{ $user->notification_pref ? 'true' : 'false' }},
+                                                    dark_mode: {{ $user->dark_mode ? 'true' : 'false' }},
+                                                })"
+                                            >
+                                                View Profile
+                                            </button>
+
                                             <a href="{{ route('admin.users.edit', $user) }}" class="text-emerald-600 hover:text-emerald-700 transition-colors" title="Edit User">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #059669;">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -167,7 +202,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500" style="color: #6b7280;">
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500" style="color: #6b7280;">
                                         No users found.
                                     </td>
                                 </tr>
@@ -184,6 +219,117 @@
                 @endif
             </div>
         </div>
+
+        <!-- User Profile Modal -->
+        <div
+            x-show="openModal"
+            x-cloak
+            x-transition.opacity
+            class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            @click.self="close()"
+        >
+            <div
+                x-show="openModal"
+                x-transition.scale
+                class="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <!-- Header -->
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wide text-slate-400">User Profile</p>
+                        <h3 class="text-sm font-semibold text-slate-900" x-text="user?.name ?? 'User details'"></h3>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        @click="close()"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="flex-1 overflow-y-auto">
+                    <template x-if="user">
+                        <div class="px-6 py-5 space-y-4 text-sm text-slate-700">
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-lg">
+                                    <span x-text="(user.name || 'U').charAt(0).toUpperCase()"></span>
+                                </div>
+                                <div>
+                                    <p class="text-base font-semibold text-slate-900" x-text="user.name"></p>
+                                    <p class="text-xs text-slate-500" x-text="user.email"></p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Role</p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-900" x-text="user.role"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Phone Number</p>
+                                    <p class="mt-1 text-sm text-slate-700" x-text="user.phone || 'Not provided'"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Member Since</p>
+                                    <p class="mt-1 text-sm text-slate-700" x-text="user.created_at"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Last Login</p>
+                                    <p class="mt-1 text-sm text-slate-700" x-text="user.last_login"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Preferences</p>
+                                    <p class="mt-1 text-sm text-slate-700">
+                                        <span x-text="user.notification_pref ? 'Email notifications: On' : 'Email notifications: Off'"></span><br>
+                                        <span x-text="user.dark_mode ? 'Dark mode: Enabled' : 'Dark mode: Disabled'"></span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <button
+                        type="button"
+                        class="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-800"
+                        @click="close()"
+                    >
+                        Close
+                    </button>
+                    <template x-if="user">
+                        <a
+                            :href="`{{ url('/admin/users') }}/${user.id}/edit`"
+                            class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+                        >
+                            Edit User
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function usersModal() {
+            return {
+                openModal: false,
+                user: null,
+                open(payload) {
+                    this.user = payload;
+                    this.openModal = true;
+                },
+                close() {
+                    this.openModal = false;
+                    this.user = null;
+                }
+            }
+        }
+    </script>
 </x-app-layout>
 

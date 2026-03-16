@@ -10,6 +10,7 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
+        'supabase_event_id',
         'title',
         'description',
         'date',

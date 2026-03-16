@@ -32,7 +32,12 @@ class RoleMiddleware
                     break;
                 }
             } elseif ($required === 'admin') {
-                if (in_array($userRole, ['admin', 'superadmin'], true)) {
+                if (in_array($userRole, ['admin', 'superadmin', 'president'], true)) {
+                    $allow = true;
+                    break;
+                }
+            } elseif ($required === 'president') {
+                if (in_array($userRole, ['president', 'superadmin'], true)) {
                     $allow = true;
                     break;
                 }

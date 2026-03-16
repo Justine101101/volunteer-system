@@ -20,12 +20,14 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role',
         'notification_pref',
         'dark_mode',
         'email_verified_at',
         'photo_url',
+        'google_id',
     ];
 
     /**
@@ -106,7 +108,7 @@ class User extends Authenticatable
      */
     public function isAdminOrSuperAdmin()
     {
-        return $this->role === 'admin' || $this->role === 'superadmin';
+        return $this->role === 'admin' || $this->role === 'superadmin' || $this->role === 'president';
     }
 
     /**
@@ -124,5 +126,13 @@ class User extends Authenticatable
     public function isVolunteer()
     {
         return $this->role === 'volunteer';
+    }
+
+    /**
+     * Check if user is president.
+     */
+    public function isPresident()
+    {
+        return $this->role === 'president';
     }
 }

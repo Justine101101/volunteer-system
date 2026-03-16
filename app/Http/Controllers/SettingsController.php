@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\VolunteerDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Services\DatabaseQueryService;
 
 class SettingsController extends Controller
@@ -17,7 +20,22 @@ class SettingsController extends Controller
 
     public function index()
     {
-        return view('settings');
+        $user = Auth::user();
+        
+        // Default: no participation stats
+        $participationStats = null;
+
+        // For volunteers, reuse the volunteer dashboard analytics
+        if (method_exists($user, 'isVolunteer') && $user->isVolunteer()) {
+            /** @var \App\Http\Controllers\VolunteerDashboardController $volController */
+            $volController = app(VolunteerDashboardController::class);
+            $participationStats = $volController->buildStatsForUser($user);
+        }
+
+        return view('settings', [
+            'user' => $user,
+            'participationStats' => $participationStats,
+        ]);
     }
 
     public function update(Request $request, DatabaseQueryService $queryService)
@@ -27,20 +45,67 @@ class SettingsController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:30',
             'current_password' => 'nullable|current_password',
             'password' => 'nullable|min:8|confirmed',
             'notification_pref' => 'boolean',
             'dark_mode' => 'boolean',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Single Source of Truth: Update Supabase first
+        // Handle photo upload (Only for Volunteers)
+        if ($request->hasFile('photo') && $user->isVolunteer()) {
+            // Delete old photo if exists
+            if ($user->photo_url) {
+                $oldPath = str_replace('/storage/', '', $user->photo_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+            
+            // Upload new photo
+            $photo = $request->file('photo');
+            $filename = Str::slug($user->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+            $path = $photo->storeAs('profiles', $filename, 'public');
+            $user->photo_url = Storage::url($path);
+        }
+        
+        // Always remove photo_url for admins and super admins (force default avatar)
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
+            if ($user->photo_url) {
+                $oldPath = str_replace('/storage/', '', $user->photo_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+            $user->photo_url = null;
+        }
+
+        // Update user fields
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->phone = $request->phone ?? null;
+        $user->notification_pref = $request->has('notification_pref');
+        $user->dark_mode = $request->has('dark_mode');
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        // Save to Laravel DB first
+        $user->save();
+
+        // Single Source of Truth: Update Supabase
         $updateData = [
-            'name' => $request->name,
-            'email' => $request->email,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone ?? null,
+            'google_id' => $user->google_id ?? null,
             'role' => $user->role ?? 'volunteer',
-            'notification_pref' => $request->has('notification_pref'),
-            'dark_mode' => $request->has('dark_mode'),
+            'notification_pref' => $user->notification_pref ?? true,
+            'dark_mode' => $user->dark_mode ?? false,
             'email_verified_at' => $user->email_verified_at?->toISOString(),
+            'photo_url' => ($user->isAdmin() || $user->isSuperAdmin()) ? null : ($user->photo_url ?? null),
         ];
 
         if ($request->filled('password')) {
@@ -50,24 +115,9 @@ class SettingsController extends Controller
         $result = $queryService->upsertUser($updateData);
 
         if (isset($result['error'])) {
-            Log::error('Failed to update user in Supabase: ' . ($result['error'] ?? 'Unknown error'));
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Failed to update settings. Please try again.');
+            Log::warning('Failed to sync settings to Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            // Don't fail the request, just log the warning
         }
-
-        // Sync to local user for Laravel authentication
-        // TODO: Consider migrating to Supabase Auth in the future
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->notification_pref = $request->has('notification_pref');
-        $user->dark_mode = $request->has('dark_mode');
-
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->save();
 
         return redirect()->route('settings')->with('success', 'Settings updated successfully!');
     }

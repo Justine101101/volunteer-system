@@ -1,4 +1,4 @@
-<aside class="hidden md:flex md:flex-col w-64 min-h-screen bg-slate-900 text-white shadow-xl">
+<aside class="hidden md:flex md:flex-col fixed left-0 top-0 h-screen w-64 bg-slate-900 dark:bg-slate-900 text-white shadow-xl z-50">
     <!-- Logo Section -->
     <div class="px-4 pt-4 pb-3 border-b border-slate-800">
         <div class="flex items-center gap-3">

@@ -620,6 +620,9 @@ class DatabaseQueryService
                 // Supabase users.password is NOT NULL in schema; store placeholder
                 'password' => $user['password'] ?? '',
                 'role' => $user['role'] ?? 'volunteer',
+                'phone' => $user['phone'] ?? null,
+                'google_id' => $user['google_id'] ?? null,
+                'photo_url' => $user['photo_url'] ?? null,
                 'notification_pref' => $user['notification_pref'] ?? true,
                 'dark_mode' => $user['dark_mode'] ?? false,
                 'email_verified_at' => $user['email_verified_at'] ?? null,
@@ -772,28 +775,12 @@ class DatabaseQueryService
     public function getEventRegistration(string $userId, string $eventId)
     {
         try {
-            // Use privileged access so backend checks are not blocked by RLS
-            $result = $this->supabase->fromPrivileged('event_registrations')
+            return $this->supabase->from('event_registrations')
                 ->select('*')
                 ->eq('user_id', $userId)
                 ->eq('event_id', $eventId)
                 ->single()
                 ->execute();
-
-            // Normalize possible [0 => record] shape into a single record
-            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
-                return $result[0];
-            }
-
-            // If Supabase returned an error payload (e.g. PGRST201), surface it cleanly
-            if (is_array($result) && isset($result['code']) && isset($result['message']) && !isset($result[0])) {
-                return [
-                    'error' => $result['message'] ?? 'Supabase error',
-                    'code' => $result['code'] ?? null,
-                ];
-            }
-
-            return $result;
         } catch (\Exception $e) {
             Log::debug('Event registration not found: ' . $e->getMessage());
             return null;
@@ -1176,6 +1163,49 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error fetching analytics: ' . $e->getMessage());
             return ['error' => 'Failed to fetch analytics'];
+        }
+    }
+
+    /**
+     * Fetch all events from Supabase (privileged, for reverse sync into SQLite).
+     */
+    public function getAllEventsForSync(): array
+    {
+        try {
+            // Use the same anon-accessible query as the main app so we definitely
+            // see the same events that appear in your UI.
+            $results = $this->supabase->from('events')
+                ->select('*')
+                ->order('event_date', 'asc')
+                ->execute();
+
+            // Log count for easier debugging if needed
+            if (is_array($results)) {
+                Log::info('getAllEventsForSync fetched events', ['count' => count($results)]);
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            Log::error('Error fetching all events for sync: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch events for sync'];
+        }
+    }
+
+    /**
+     * Fetch all event registrations with related user + event for reverse sync.
+     * We use user.email and event (title+event_date+location) to map back to local rows.
+     */
+    public function getAllEventRegistrationsForSync(): array
+    {
+        try {
+            // Fetch raw registrations; we will resolve related user + event in PHP
+            return $this->supabase->fromPrivileged('event_registrations')
+                ->select('*')
+                ->order('created_at', 'asc')
+                ->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching registrations for sync: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch registrations for sync'];
         }
     }
 

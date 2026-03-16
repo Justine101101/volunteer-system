@@ -1,5 +1,8 @@
 import './bootstrap';
 
+// Dark mode - must be imported early to prevent flash
+import './dark-mode';
+
 import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;

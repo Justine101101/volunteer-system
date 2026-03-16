@@ -41,7 +41,7 @@ class UserController extends Controller
 
         $stats = [
             'total_users' => User::count(),
-            'total_admins' => User::whereIn('role', ['superadmin', 'admin'])->count(),
+            'total_admins' => User::whereIn('role', ['superadmin', 'admin', 'president'])->count(),
             'total_volunteers' => User::where('role', 'volunteer')->count(),
         ];
 
@@ -65,7 +65,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'volunteer'])],
+            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'president', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);
@@ -100,7 +100,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'volunteer'])],
+            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'president', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);

@@ -15,6 +15,12 @@ class HomeController extends Controller
             ->orderBy('date', 'asc')
             ->take(5)
             ->get();
-        return view('home', compact('members', 'events'));
+        
+        // Get officers for About section
+        $officers = Member::whereIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])
+            ->orderBy('order')
+            ->get();
+        
+        return view('home', compact('members', 'events', 'officers'));
     }
 }

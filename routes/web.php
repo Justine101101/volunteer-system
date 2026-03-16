@@ -39,8 +39,8 @@ Route::post('/supabase/upload', [SupabaseController::class, 'uploadFile'])->name
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
-    if ($user->isSuperAdmin() || $user->isAdmin()) {
-        // Admins → admin dashboard
+    if ($user->isSuperAdmin() || $user->isAdmin() || $user->isPresident()) {
+        // Admins/President → admin dashboard
         return redirect()->route('admin.dashboard');
     } elseif ($user->isVolunteer()) {
         // Volunteers → events list
