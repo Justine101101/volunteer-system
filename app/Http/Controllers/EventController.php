@@ -20,6 +20,41 @@ class EventController extends Controller
         $this->middleware('role:admin')->except(['index', 'show', 'calendar']);
     }
 
+    private function formatSupabaseTime(?string $time): ?string
+    {
+        if (!$time) {
+            return null;
+        }
+
+        $time = trim($time);
+        if ($time === '') {
+            return null;
+        }
+
+        foreach (['H:i:s', 'H:i'] as $fmt) {
+            try {
+                return \Carbon\Carbon::createFromFormat($fmt, $time)->format('g:i A');
+            } catch (\Throwable $e) {
+                // try next format
+            }
+        }
+
+        // If Supabase ever returns something unexpected, fall back to the raw value.
+        return $time;
+    }
+
+    private function formatTimeRange(?string $start, ?string $end): string
+    {
+        $startFormatted = $this->formatSupabaseTime($start);
+        $endFormatted = $this->formatSupabaseTime($end);
+
+        if ($startFormatted && $endFormatted) {
+            return "{$startFormatted} – {$endFormatted}";
+        }
+
+        return $startFormatted ?? ($endFormatted ?? '');
+    }
+
     /**
      * Display a listing of the resource.
      * Primary Database: Supabase
@@ -80,7 +115,8 @@ class EventController extends Controller
                     // For backward compatibility, keep a display string in ->time
                     'start_time' => $event['event_time'] ?? '',
                     'end_time' => $event['event_end_time'] ?? null,
-                    'time' => trim(($event['event_time'] ?? '') . (!empty($event['event_end_time']) ? (' - ' . $event['event_end_time']) : '')),
+                    // Display: 12-hour time with AM/PM (no Supabase changes needed)
+                    'time' => $this->formatTimeRange($event['event_time'] ?? null, $event['event_end_time'] ?? null),
                     'location' => $event['location'] ?? '',
                     'photo_url' => $photoUrl,
                     'created_by' => $event['created_by'] ?? null,
@@ -171,14 +207,15 @@ class EventController extends Controller
                     'date' => isset($event['event_date']) ? \Carbon\Carbon::parse($event['event_date']) : null,
                     'start_time' => $event['event_time'] ?? '',
                     'end_time' => $event['event_end_time'] ?? null,
-                    'time' => trim(($event['event_time'] ?? '') . (!empty($event['event_end_time']) ? (' - ' . $event['event_end_time']) : '')),
+                    'time' => $this->formatTimeRange($event['event_time'] ?? null, $event['event_end_time'] ?? null),
                     'location' => $event['location'] ?? '',
                     'photo_url' => $event['photo_url'] ?? null,
                 ];
             })->filter(function($event) {
                 return $event->date !== null;
             })->sortBy(function($event) {
-                return $event->date->format('Y-m-d') . ' ' . ($event->time ?? '00:00:00');
+                // Sort by raw start_time to keep correct ordering (time display is 12-hour).
+                return $event->date->format('Y-m-d') . ' ' . ($event->start_time ?? '00:00:00');
             })->groupBy(function($event) {
                 return $event->date->format('Y-m-d');
             });
@@ -339,7 +376,7 @@ class EventController extends Controller
             'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
             'start_time' => $supabaseEvent['event_time'] ?? '',
             'end_time' => $supabaseEvent['event_end_time'] ?? null,
-            'time' => trim(($supabaseEvent['event_time'] ?? '') . (!empty($supabaseEvent['event_end_time']) ? (' - ' . $supabaseEvent['event_end_time']) : '')),
+            'time' => $this->formatTimeRange($supabaseEvent['event_time'] ?? null, $supabaseEvent['event_end_time'] ?? null),
             'location' => $supabaseEvent['location'] ?? '',
             'photo_url' => $photoUrl,
             'created_by' => $supabaseEvent['created_by'] ?? null,
