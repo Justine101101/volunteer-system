@@ -17,9 +17,9 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-white dark:bg-slate-900 transition-colors duration-200">
+    <body class="font-sans antialiased bg-light-gray dark:bg-slate-900 transition-colors duration-200">
         <a href="#main" class="sr-only focus:not-sr-only focus-ring px-3 py-2 bg-white dark:bg-slate-800 text-gray-800 dark:text-white">Skip to content</a>
-        <div class="min-h-screen bg-white dark:bg-slate-900" role="document">
+        <div class="min-h-screen bg-light-gray dark:bg-slate-900" role="document">
             @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
                 <div class="bg-slate-50 dark:bg-slate-900">
                     @include('layouts.sidebar')
@@ -33,7 +33,7 @@
                             </header>
                         @endisset
 
-                        <main id="main" role="main" class="flex-1 bg-slate-50 dark:bg-slate-900 overflow-y-auto flex flex-col">
+                        <main id="main" role="main" class="flex-1 bg-light-gray dark:bg-slate-900 overflow-y-auto flex flex-col">
                             <div class="flex-1">
                                 {{ $slot }}
                             </div>
@@ -54,7 +54,7 @@
                             </header>
                         @endisset
 
-                        <main id="main" role="main" class="flex-1 bg-white dark:bg-slate-900 overflow-y-auto flex flex-col">
+                        <main id="main" role="main" class="flex-1 bg-light-gray dark:bg-slate-900 overflow-y-auto flex flex-col">
                             <div class="flex-1">
                                 {{ $slot }}
                             </div>
@@ -75,7 +75,7 @@
                 @endisset
 
                 <!-- Page Content -->
-                <main id="main" role="main" class="bg-white dark:bg-slate-900">
+                <main id="main" role="main" class="bg-light-gray dark:bg-slate-900">
                     {{ $slot }}
                 </main>
                 @include('layouts.footer')

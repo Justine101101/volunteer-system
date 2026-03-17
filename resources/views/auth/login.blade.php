@@ -92,16 +92,21 @@
             </button>
         </div>
     </form>
+            <!-- Footer Links -->
+            <div class="text-center mt-8">
+                <p class="text-gray-600">
+                    Don't have an account?
+                    <a href="{{ route('register') }}" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200">Register</a>
+                </p>
+                <p class="text-gray-600 mt-4">
+                    <a href="{{ route('home') }}" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200 inline-flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7 7 7 7m0 14l-9-9-9 9"></path>
+                        </svg>
+                        Back to Home
+                    </a>
+                </p>
             </div>
-            <p class="text-center text-sm text-gray-600 mt-4">
-                Don't have an account?
-                <a href="{{ route('register') }}" class="text-emerald-700 font-medium hover:underline">Register</a>
-            </p>
-            <p class="text-center text-sm text-gray-600 mt-2">
-                or
-                <a href="{{ route('home') }}" class="text-purple-700 font-medium hover:underline">Back to Home</a>
-            </p>
-        </div>
     </div>
     </div>
 </x-guest-layout>

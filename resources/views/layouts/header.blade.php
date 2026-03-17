@@ -1,25 +1,25 @@
-<header class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-50 shadow-sm transition-all duration-300">
+<header class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50 shadow-soft transition-all duration-300">
     <!-- Top Bar with Navigation -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="py-3 {{ request()->routeIs('dashboard') ? 'flex flex-col items-start gap-3' : 'flex justify-between items-center' }}">
-            <!-- Top Left: Small Logo + Text -->
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-green-800 dark:bg-green-900 rounded flex items-center justify-center">
-                    <img src="{{ asset('images/partners/logo.png') }}" alt="Lions Club Logo" class="w-6 h-6 object-contain">
+        <div class="py-4 {{ request()->routeIs('dashboard') ? 'flex flex-col items-start gap-3' : 'flex justify-between items-center' }}">
+            <!-- Top Left: Modern Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-lions-green rounded-2xl flex items-center justify-center shadow-soft">
+                    <img src="{{ asset('images/partners/logo.png') }}" alt="Lions Club Logo" class="w-7 h-7 object-contain">
                 </div>
-                <span class="text-sm text-gray-600 dark:text-gray-300 font-medium">Lions Club</span>
+                <span class="text-slate-dark font-semibold text-lg">Cordillera Adivay Lions Club</span>
             </div>
             
             <!-- Desktop Navigation (centered) -->
-            <nav class="{{ request()->routeIs('dashboard') ? 'flex-1 flex items-center justify-center gap-6' : 'hidden md:flex flex-1 items-center justify-center gap-6' }}">
-                <a href="{{ route('home') }}" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium {{ request()->routeIs('home') ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white pb-1' : '' }} transition">Home</a>
-                <a href="{{ route('about') }}" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium {{ request()->routeIs('about') ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white pb-1' : '' }} transition">About</a>
-                <a href="{{ route('events.index') }}" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium {{ request()->routeIs('events.index') ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white pb-1' : '' }} transition">Events</a>
-                <a href="{{ route('events.calendar') }}" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium {{ request()->routeIs('events.calendar') ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white pb-1' : '' }} transition">Calendar</a>
+            <nav class="{{ request()->routeIs('dashboard') ? 'flex-1 flex items-center justify-center gap-8' : 'hidden md:flex flex-1 items-center justify-center gap-8' }}">
+                <a href="{{ route('home') }}" class="text-gray-600 hover:text-lions-green font-medium {{ request()->routeIs('home') ? 'text-lions-green font-semibold' : '' }} transition-colors duration-200">Home</a>
+                <a href="{{ route('about') }}" class="text-gray-600 hover:text-lions-green font-medium {{ request()->routeIs('about') ? 'text-lions-green font-semibold' : '' }} transition-colors duration-200">About</a>
+                <a href="{{ route('events.index') }}" class="text-gray-600 hover:text-lions-green font-medium {{ request()->routeIs('events.index') ? 'text-lions-green font-semibold' : '' }} transition-colors duration-200">Events</a>
+                <a href="{{ route('events.calendar') }}" class="text-gray-600 hover:text-lions-green font-medium {{ request()->routeIs('events.calendar') ? 'text-lions-green font-semibold' : '' }} transition-colors duration-200">Calendar</a>
                 @auth
-                    <a href="{{ route('members.index') }}" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium {{ request()->routeIs('members.*') ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white pb-1' : '' }} transition">Members</a>
+                    <a href="{{ route('members.index') }}" class="text-gray-600 hover:text-lions-green font-medium {{ request()->routeIs('members.*') ? 'text-lions-green font-semibold' : '' }} transition-colors duration-200">Members</a>
                 @endauth
-                <a href="{{ route('contact') }}" class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium {{ request()->routeIs('contact') ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white pb-1' : '' }} transition">Contact</a>
+                <a href="{{ route('contact') }}" class="text-gray-600 hover:text-lions-green font-medium {{ request()->routeIs('contact') ? 'text-lions-green font-semibold' : '' }} transition-colors duration-200">Contact</a>
             </nav>
 
             <!-- Authenticated user dropdown on the right -->
@@ -27,7 +27,7 @@
                 <div class="ml-auto">
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:text-gray-900 dark:hover:text-white focus:outline-none transition">
+                            <button class="inline-flex items-center px-4 py-2 rounded-2xl text-sm leading-4 font-medium text-gray-600 hover:text-lions-green hover:bg-lions-green/5 focus:outline-none transition-all duration-200">
                                 {{ Auth::user()->name }}
                                 <svg class="ml-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -66,11 +66,9 @@
             <!-- Right-side Auth (visible on all sizes for guests) -->
             @guest
                 <div class="{{ request()->routeIs('dashboard') ? 'w-full flex justify-end' : 'ml-auto flex items-center' }}">
-                    <a href="{{ route('register') }}" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 font-medium transition">Join</a>
+                    <a href="{{ route('register') }}" class="px-6 py-3 bg-lions-green text-white font-medium rounded-2xl hover:bg-lions-green/90 hover:scale-105 shadow-soft hover:shadow-soft-lg transition-all duration-300">Join</a>
                 </div>
             @endguest
         </div>
     </div>
-
-    
 </header>

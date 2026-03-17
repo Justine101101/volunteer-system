@@ -6,17 +6,17 @@
     </x-slot>
 
     <!-- Hero Section -->
-    <div class="py-8 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700">
+    <div class="py-20 bg-light-gray">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Join Our Events</h1>
-                <p class="text-lg text-emerald-50">Make a difference in your community by participating in our volunteer events</p>
+                <h1 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">Upcoming Events</h1>
+                <p class="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">Discover opportunities to make a difference in your community through our volunteer events</p>
             </div>
             @auth
                 @if(auth()->user()->isAdminOrSuperAdmin())
-                    <div class="mt-6 flex justify-center">
+                    <div class="mt-8 flex justify-center">
                         <a href="{{ route('events.create') }}"
-                           class="inline-flex items-center px-8 py-3 rounded-full text-sm font-semibold tracking-wide uppercase shadow-xl bg-emerald-400 text-white hover:bg-emerald-300 focus:outline-none focus:ring-4 focus:ring-emerald-200 transition transform hover:-translate-y-0.5 hover:scale-[1.02]">
+                           class="inline-flex items-center px-8 py-4 rounded-2xl text-sm font-semibold tracking-wide uppercase shadow-soft bg-lions-green text-white hover:bg-lions-green/90 focus:outline-none focus:ring-2 focus:ring-lions-green/20 transition transform hover:scale-105">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                             </svg>
@@ -29,11 +29,11 @@
     </div>
 
     <!-- Events Section -->
-    <div class="py-8 bg-slate-50" x-data="eventsModal()">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="eventsModal()">
             @if(session('success'))
-                <div class="mb-6 flex items-start gap-3 rounded-xl border border-emerald-500 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
-                    <svg class="mt-0.5 h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="mb-6 flex items-start gap-3 rounded-2xl border border-lions-green bg-lions-green/10 px-4 py-3 text-sm font-semibold text-lions-green shadow-soft">
+                    <svg class="mt-0.5 h-5 w-5 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                     <span>{{ session('success') }}</span>
@@ -41,7 +41,7 @@
             @endif
 
             @if(session('error'))
-                <div class="mb-6 flex items-start gap-3 rounded-xl border border-red-500 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 shadow-sm">
+                <div class="mb-6 flex items-start gap-3 rounded-2xl border border-red-500 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 shadow-soft">
                     <svg class="mt-0.5 h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 5a7 7 0 110 14 7 7 0 010-14z" />
                     </svg>
@@ -104,16 +104,16 @@
                     $statusLabel = $derived;
                     $statusClasses = match ($statusLabel) {
                         'Ongoing' => 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-                        'Ended' => 'bg-slate-50 text-slate-700 border border-slate-200',
-                        'Completed' => 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                        'Ended' => 'bg-gray-50 text-gray-700 border border-gray-200',
+                        'Completed' => 'bg-lions-green/10 text-lions-green border border-lions-green',
                         default => 'bg-amber-50 text-amber-700 border border-amber-200', // Upcoming
                     };
                 @endphp
-                <div class="event-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer hover:shadow-lg transition-all">
+                <div class="event-card bg-white rounded-3xl shadow-soft-lg border border-gray-200 overflow-hidden cursor-pointer hover:shadow-soft-xl transition-all duration-300">
                     <div class="md:flex">
                         <!-- Event Image/Icon -->
-                        <div class="event-image-container md:w-1/3 h-36 flex items-center justify-center p-4 border-b-2 md:border-b-0 md:border-r-2 border-slate-200 relative overflow-hidden transition-all duration-300"
-                             style="background: linear-gradient(135deg, {{ $isEven ? '#10b981' : '#6366f1' }}, {{ $isEven ? '#059669' : '#4f46e5' }});">
+                        <div class="event-image-container md:w-1/3 h-36 flex items-center justify-center p-4 border-b-2 md:border-b-0 md:border-r-2 border-gray-200 relative overflow-hidden transition-all duration-300"
+                             style="background: linear-gradient(135deg, {{ $isEven ? '#f8faf9' : '#f3f4f6' }}, {{ $isEven ? '#e0e7ff' : '#ddd6fe' }});">
                             <span class="absolute top-3 left-3 inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold {{ $statusClasses }} bg-white/90 backdrop-blur">
                                 {{ $statusLabel }}
                             </span>
@@ -185,18 +185,18 @@
                             </p>
 
                             <div class="flex flex-wrap gap-4 mb-6">
-                                <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-emerald-50">
-                                    <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/10">
+                                    <svg class="w-5 h-5 mr-2 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    <span class="text-slate-700 font-medium">{{ e($event->location ?: 'Location TBA') }}</span>
+                                    <span class="text-gray-700 font-medium">{{ e($event->location ?: 'Location TBA') }}</span>
                                 </div>
                                 <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-indigo-50">
                                     <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span class="text-slate-700 font-medium">{{ e($event->time ?: 'Time TBA') }}</span>
+                                    <span class="text-gray-700 font-medium">{{ e($event->time ?: 'Time TBA') }}</span>
                                 </div>
                                 @php
                                     // Only attempt to read creator when this is an Eloquent Event model
@@ -205,8 +205,8 @@
                                         : null;
                                 @endphp
                                 @if($creatorName)
-                                    <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300" style="background-color: rgba(26, 95, 63, 0.1);">
-                                        <svg class="w-5 h-5 mr-2" style="color: #1a5f3f;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/5">
+                                        <svg class="w-5 h-5 mr-2" style="color: #008751;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                         </svg>
                                         <span class="text-gray-700 font-medium">
@@ -225,7 +225,7 @@
 
                                         // Decide badge style based on status
                                         if ($regStatus === 'approved') {
-                                            $statusStyle = 'background: linear-gradient(to right, #1a5f3f, #2d7a5a); color: white;';
+                                            $statusStyle = 'background: linear-gradient(to right, #008751, #10b981); color: white;';
                                         } elseif ($regStatus === 'rejected') {
                                             $statusStyle = 'background-color: #fee2e2; color: #991b1b;';
                                         } else {
@@ -261,8 +261,8 @@
                                         <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
                                             @csrf
                                             <button type="submit" 
-                                                    class="px-6 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                                    style="background: linear-gradient(to right, #1a5f3f, #2d7a5a);">
+                                                    class="px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
+                                                    style="background: linear-gradient(to right, #008751, #10b981);">
                                                 Join Event
                                             </button>
                                         </form>
@@ -272,8 +272,8 @@
                                 <div class="text-center">
                                     <p class="text-gray-600 mb-4">Please log in to join this event</p>
                                     <a href="{{ route('login') }}" 
-                                       class="inline-block px-6 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                                       style="background: linear-gradient(to right, #1a5f3f, #2d7a5a);">
+                                       class="inline-block px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
+                                       style="background: linear-gradient(to right, #008751, #10b981);">
                                         Login to Join
                                     </a>
                                 </div>
@@ -318,8 +318,8 @@
                     @auth
                         @if(auth()->user()->isSuperAdmin())
                             <a href="{{ route('events.create') }}" 
-                               class="inline-block px-6 py-2 rounded-lg text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-                               style="background: linear-gradient(to right, #1a5f3f, #2d7a5a);">
+                               class="inline-block px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
+                               style="background: linear-gradient(to right, #008751, #10b981);">
                                 Create First Event
                             </a>
                         @endif
@@ -484,7 +484,7 @@
         }
         .event-card:hover {
             transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
         }
         .event-card:hover .event-image-container {
             transform: scale(1.05);
