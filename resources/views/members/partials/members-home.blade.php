@@ -6,7 +6,7 @@
             <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Meet Our Members</h1>
             <p class="text-lg text-emerald-50">The dedicated volunteers who make our community stronger</p>
         </div>
-        @if(auth()->user() && auth()->user()->isSuperAdmin())
+        @if(auth()->user() && auth()->user()->isAdmin())
             <div class="mt-6 text-center">
                 <a href="{{ route('members.create') }}" class="inline-flex items-center px-6 py-3 border border-white/30 rounded-xl font-semibold text-sm text-white uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition ease-in-out duration-150 shadow-lg bg-white/10 hover:bg-white/20 backdrop-blur-sm">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +78,7 @@
                         </div>
                     </div>
 
-                    @if(auth()->user() && auth()->user()->isSuperAdmin())
+                    @if(auth()->user() && auth()->user()->isAdmin())
                         <div class="bg-gray-50 px-4 py-3 flex items-center justify-center gap-3 border-t border-gray-200">
                             <a href="{{ route('members.edit', $member) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wider hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

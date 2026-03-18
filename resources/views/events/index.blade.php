@@ -158,7 +158,7 @@
                                     {{ e($event->title ?: 'Untitled event') }}
                                 </h3>
                                 @auth
-                                    {{-- Show edit/delete for admin/superadmin if event has an ID (Supabase UUID) --}}
+                                    {{-- Show edit/delete for admins if event has an ID (Supabase UUID) --}}
                                     @if(auth()->user()->isAdminOrSuperAdmin() && isset($event->id) && $event->id)
                                         <div class="flex space-x-2">
                                             <a href="{{ route('events.edit', ['eventId' => $event->id]) }}" 
@@ -181,7 +181,7 @@
                             </div>
 
                             <p class="text-gray-700 mb-4 leading-relaxed">
-                                {{ $event->description ? strip_tags($event->description) : 'Details will be announced soon.' }}
+                                {{ \Illuminate\Support\Str::limit($event->description ? strip_tags($event->description) : 'Details will be announced soon.', 180) }}
                             </p>
 
                             <div class="flex flex-wrap gap-4 mb-6">
@@ -247,12 +247,19 @@
                                                     @endif
                                                 </span>
                                             </div>
-                                            <form method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
+                                            <form id="leave-event-{{ $event->id }}" method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" 
                                                         class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-300"
-                                                        onclick="return confirm('Are you sure you want to leave this event?')">
+                                                        @click.prevent="$dispatch('confirm-dialog', {
+                                                            title: 'Leave this event?',
+                                                            message: 'You will be removed from the participant list. You can join again later.',
+                                                            confirmLabel: 'Leave Event',
+                                                            cancelLabel: 'Cancel',
+                                                            tone: 'danger',
+                                                            formId: 'leave-event-{{ $event->id }}'
+                                                        })">
                                                     Leave Event
                                                 </button>
                                             </form>
@@ -316,7 +323,7 @@
                     <h3 class="text-xl font-semibold text-gray-900 mb-2">No Events Available</h3>
                     <p class="text-gray-600 mb-6">There are no upcoming events at the moment. Check back later!</p>
                     @auth
-                        @if(auth()->user()->isSuperAdmin())
+                        @if(auth()->user()->isAdmin())
                             <a href="{{ route('events.create') }}" 
                                class="inline-block px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
                                style="background: linear-gradient(to right, #008751, #10b981);">

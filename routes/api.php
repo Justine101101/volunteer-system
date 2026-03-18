@@ -53,7 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Admin only routes
-Route::middleware(['auth:sanctum', 'role:superadmin'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     // Additional admin-specific API routes can be added here
     Route::get('/admin/analytics', [SupabaseController::class, 'getAnalytics']);
 });

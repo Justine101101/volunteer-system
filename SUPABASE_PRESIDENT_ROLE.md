@@ -87,7 +87,7 @@ If your Supabase `role` column is an ENUM type (unlikely but possible), you'll n
 
 ## Role Hierarchy
 
-- **Super Admin** - Highest level access
+- **Admin** - Highest level access
 - **Admin** - Full admin access
 - **President** - Admin-level access (treated like admin)
 - **Volunteer** - Standard user access

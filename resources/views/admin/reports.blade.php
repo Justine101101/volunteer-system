@@ -72,5 +72,3 @@
         }
     </script>
 </x-app-layout>
-
-

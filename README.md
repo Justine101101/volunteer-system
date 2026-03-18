@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Cordillera Adivay Lions Club Volunteer Portal
 
 A comprehensive volunteer management system built with Laravel 11, featuring role-based access control, event management, and community engagement tools.
@@ -12,7 +11,7 @@ A comprehensive volunteer management system built with Laravel 11, featuring rol
 - **Contact Page**: Contact form with Google Maps integration
 
 ### 👥 **User Roles**
-- **Superadmin**: Full access to manage events, approve registrations, and update content
+- **Admin**: Full access to manage events, approve registrations, and update content
 - **Volunteer**: Can view events, register for activities, and manage profile
 
 ### 🎯 **Core Functionality**
@@ -85,7 +84,7 @@ A comprehensive volunteer management system built with Laravel 11, featuring rol
 
 After running the seeders, you'll have these default accounts:
 
-### Superadmin
+### Admin
 - **Email**: admin@cordilleraadivaylions.org
 - **Password**: password
 
@@ -96,8 +95,8 @@ After running the seeders, you'll have these default accounts:
 
 ## Usage
 
-### For Superadmins
-1. **Login** with superadmin credentials
+### For Admins
+1. **Login** with admin credentials
 2. **Create Events**: Navigate to Events → Create Event
 3. **Manage Registrations**: View event details to approve/reject volunteer registrations
 4. **Update Content**: Modify About page content and member information
@@ -136,12 +135,12 @@ After running the seeders, you'll have these default accounts:
 
 ### Event Management
 - Create events with title, description, date, time, and location
-- Edit and delete events (superadmin only)
+- Edit and delete events (admin only)
 - View event details with registration status
 - Approve/reject volunteer registrations
 
 ### User Management
-- Role-based access control (superadmin/volunteer)
+- Role-based access control (admin/volunteer)
 - Profile management with settings
 - Dark mode preference storage
 - Notification preferences
@@ -201,6 +200,3 @@ For support and questions, please contact the development team or create an issu
 ---
 
 **Cordillera Adivay Lions Club** - Making a Difference Together
-=======
-# volunteer-system
->>>>>>> 132a952fa27ea03a47e282ea15813ad1f645f1c4

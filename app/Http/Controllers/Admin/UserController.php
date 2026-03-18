@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\DatabaseQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function __construct()
+    public function __construct(private DatabaseQueryService $queryService)
     {
         $this->middleware('auth');
         $this->middleware('role:admin');
@@ -41,7 +42,7 @@ class UserController extends Controller
 
         $stats = [
             'total_users' => User::count(),
-            'total_admins' => User::whereIn('role', ['superadmin', 'admin', 'president'])->count(),
+            'total_admins' => User::whereIn('role', ['admin', 'president'])->count(),
             'total_volunteers' => User::where('role', 'volunteer')->count(),
         ];
 
@@ -57,6 +58,47 @@ class UserController extends Controller
     }
 
     /**
+     * Display the specified user (profile/details page).
+     */
+    public function show(User $user)
+    {
+        // Try to resolve this user in Supabase by email to show event participation
+        $participation = [];
+        if ($user->email) {
+            $supabaseUser = $this->queryService->getUserByEmail($user->email);
+            $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+
+            if ($supabaseUserId) {
+                $regs = $this->queryService->getEventRegistrationsForUser($supabaseUserId);
+
+                if (is_array($regs) && !isset($regs['error'])) {
+                    foreach ($regs as $reg) {
+                        $eventId = $reg['event_id'] ?? null;
+                        if (!$eventId) {
+                            continue;
+                        }
+
+                        // Fetch event details for display (small list per user, acceptable to fetch individually)
+                        $event = $this->queryService->getEventById($eventId);
+                        $participation[] = [
+                            'event_id' => $eventId,
+                            'title' => is_array($event) ? ($event['title'] ?? 'Untitled event') : 'Untitled event',
+                            'event_date' => is_array($event) && isset($event['event_date']) ? $event['event_date'] : null,
+                            'registration_status' => strtolower($reg['registration_status'] ?? 'pending'),
+                            'created_at' => $reg['created_at'] ?? null,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return view('admin.users.show', [
+            'user' => $user,
+            'participation' => $participation,
+        ]);
+    }
+
+    /**
      * Store a newly created user.
      */
     public function store(Request $request)
@@ -65,7 +107,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'president', 'volunteer'])],
+            'role' => ['required', 'string', Rule::in(['admin', 'president', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);
@@ -100,7 +142,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', Rule::in(['superadmin', 'admin', 'president', 'volunteer'])],
+            'role' => ['required', 'string', Rule::in(['admin', 'president', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);

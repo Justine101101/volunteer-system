@@ -68,8 +68,8 @@ class SettingsController extends Controller
             $user->photo_url = Storage::url($path);
         }
         
-        // Always remove photo_url for admins and super admins (force default avatar)
-        if ($user->isAdmin() || $user->isSuperAdmin()) {
+        // Always remove photo_url for admins (force default avatar)
+        if ($user->isAdmin()) {
             if ($user->photo_url) {
                 $oldPath = str_replace('/storage/', '', $user->photo_url);
                 Storage::disk('public')->delete($oldPath);
@@ -105,7 +105,7 @@ class SettingsController extends Controller
             'notification_pref' => $user->notification_pref ?? true,
             'dark_mode' => $user->dark_mode ?? false,
             'email_verified_at' => $user->email_verified_at?->toISOString(),
-            'photo_url' => ($user->isAdmin() || $user->isSuperAdmin()) ? null : ($user->photo_url ?? null),
+            'photo_url' => $user->isAdmin() ? null : ($user->photo_url ?? null),
         ];
 
         if ($request->filled('password')) {

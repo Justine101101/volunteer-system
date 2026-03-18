@@ -52,6 +52,12 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    // Prevent "419 Page Expired" if someone visits /logout directly (GET).
+    // Logout is intentionally POST-only.
+    Route::get('logout', function () {
+        return redirect('/');
+    });
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

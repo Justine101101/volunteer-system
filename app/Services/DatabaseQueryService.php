@@ -775,12 +775,21 @@ class DatabaseQueryService
     public function getEventRegistration(string $userId, string $eventId)
     {
         try {
-            return $this->supabase->from('event_registrations')
+            // Use privileged access so server-side lookups aren't blocked by RLS.
+            // This must match the behavior used on the events list (getEventRegistrationsForUser).
+            $result = $this->supabase->fromPrivileged('event_registrations')
                 ->select('*')
                 ->eq('user_id', $userId)
                 ->eq('event_id', $eventId)
                 ->single()
                 ->execute();
+
+            // Normalize possible [0 => record] shape into a single record
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::debug('Event registration not found: ' . $e->getMessage());
             return null;

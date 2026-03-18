@@ -14,13 +14,26 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create / update superadmin
+        // Create / update admin
         User::updateOrCreate(
             ['email' => 'admin@cordilleraadivaylions.org'],
             [
-                'name' => 'Super Admin',
+                'name' => 'Admin',
                 'password' => Hash::make('password'),
-                'role' => 'superadmin',
+                'role' => 'admin',
+                'notification_pref' => true,
+                'dark_mode' => false,
+            ]
+        );
+
+        // Create / update default admin (requested)
+        User::updateOrCreate(
+            ['email' => 'beltranjerek@gmail.com'],
+            [
+                'name' => 'Jerek Beltran',
+                // Keep existing password if user already exists; otherwise set a default.
+                'password' => User::where('email', 'beltranjerek@gmail.com')->value('password') ?? Hash::make('password'),
+                'role' => 'admin',
                 'notification_pref' => true,
                 'dark_mode' => false,
             ]

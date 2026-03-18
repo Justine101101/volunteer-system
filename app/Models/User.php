@@ -89,10 +89,12 @@ class User extends Authenticatable
 
     /**
      * Check if user is superadmin.
+     *
+     * @deprecated Super Admin role has been removed. Treat as Admin for backwards compatibility.
      */
     public function isSuperAdmin()
     {
-        return $this->role === 'superadmin';
+        return $this->isAdmin();
     }
 
     /**
@@ -108,7 +110,8 @@ class User extends Authenticatable
      */
     public function isAdminOrSuperAdmin()
     {
-        return $this->role === 'admin' || $this->role === 'superadmin' || $this->role === 'president';
+        // Superadmin removed; admins and presidents share elevated access.
+        return $this->role === 'admin' || $this->role === 'president';
     }
 
     /**

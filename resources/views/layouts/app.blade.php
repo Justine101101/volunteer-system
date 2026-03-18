@@ -20,7 +20,7 @@
     <body class="font-sans antialiased bg-light-gray dark:bg-slate-900 transition-colors duration-200">
         <a href="#main" class="sr-only focus:not-sr-only focus-ring px-3 py-2 bg-white dark:bg-slate-800 text-gray-800 dark:text-white">Skip to content</a>
         <div class="min-h-screen bg-light-gray dark:bg-slate-900" role="document">
-            @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
+            @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
                 <div class="bg-slate-50 dark:bg-slate-900">
                     @include('layouts.sidebar')
                     <!-- Main content area with left margin for fixed sidebar -->
@@ -117,6 +117,98 @@
                     </div>
                 </div>
             @endif
+
+            <!-- Global Confirmation Modal (replaces browser confirm()) -->
+            <div
+                x-data="{
+                    open: false,
+                    title: '',
+                    message: '',
+                    confirmLabel: 'Confirm',
+                    cancelLabel: 'Cancel',
+                    tone: 'danger',
+                    formId: null,
+                    show(detail) {
+                        this.title = detail?.title ?? 'Confirm action';
+                        this.message = detail?.message ?? 'Are you sure you want to continue?';
+                        this.confirmLabel = detail?.confirmLabel ?? 'Confirm';
+                        this.cancelLabel = detail?.cancelLabel ?? 'Cancel';
+                        this.tone = detail?.tone ?? 'danger';
+                        this.formId = detail?.formId ?? null;
+                        this.open = true;
+                        this.$nextTick(() => this.$refs.confirmBtn?.focus());
+                    },
+                    close() {
+                        this.open = false;
+                        this.formId = null;
+                    },
+                    confirm() {
+                        if (this.formId) {
+                            const form = document.getElementById(this.formId);
+                            if (form) form.submit();
+                        }
+                        this.close();
+                    }
+                }"
+                x-on:confirm-dialog.window="show($event.detail)"
+                x-cloak
+            >
+                <div
+                    x-show="open"
+                    x-transition.opacity
+                    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+                    role="dialog"
+                    aria-modal="true"
+                    @keydown.escape.window="if(open) close()"
+                    @click.self="close()"
+                >
+                    <div
+                        x-show="open"
+                        x-transition.scale
+                        class="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+                    >
+                        <div class="px-6 py-5">
+                            <div class="flex items-start gap-4">
+                                <div class="mt-0.5 shrink-0">
+                                    <div
+                                        class="h-10 w-10 rounded-xl flex items-center justify-center"
+                                        :class="tone === 'danger'
+                                            ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-300'
+                                            : 'bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200'"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M12 5a7 7 0 110 14 7 7 0 010-14z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100" x-text="title"></h3>
+                                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-300" x-text="message"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                class="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                @click="close()"
+                                x-text="cancelLabel"
+                            ></button>
+                            <button
+                                type="button"
+                                x-ref="confirmBtn"
+                                class="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                                :class="tone === 'danger'
+                                    ? 'bg-rose-600 hover:bg-rose-700 focus:ring-rose-500 focus:ring-offset-white dark:focus:ring-offset-slate-900'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500 focus:ring-offset-white dark:focus:ring-offset-slate-900'"
+                                @click="confirm()"
+                                x-text="confirmLabel"
+                            ></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>

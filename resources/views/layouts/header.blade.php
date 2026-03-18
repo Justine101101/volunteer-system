@@ -38,7 +38,7 @@
                             @php
                                 $onHeroPage = request()->routeIs('home');
                             @endphp
-                            @if(auth()->user()->isSuperAdmin())
+                            @if(auth()->user()->isAdmin())
                                 <x-dropdown-link :href="$onHeroPage ? route('admin.dashboard') : route('home')">
                                     {{ __($onHeroPage ? 'Dashboard' : 'Home') }}
                                 </x-dropdown-link>
@@ -54,9 +54,10 @@
                             <x-dropdown-link :href="route('settings')">{{ __('Settings') }}</x-dropdown-link>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
+                                <button type="submit"
+                                        class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">
                                     {{ __('Log Out') }}
-                                </x-dropdown-link>
+                                </button>
                             </form>
                         </x-slot>
                     </x-dropdown>

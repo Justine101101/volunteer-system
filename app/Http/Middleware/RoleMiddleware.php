@@ -26,18 +26,18 @@ class RoleMiddleware
 
         foreach ($requiredRoles as $required) {
             $required = trim($required);
-            if ($required === 'superadmin') {
-                if ($userRole === 'superadmin') {
-                    $allow = true;
-                    break;
-                }
-            } elseif ($required === 'admin') {
-                if (in_array($userRole, ['admin', 'superadmin', 'president'], true)) {
+            // Super Admin role removed; treat any legacy `superadmin` as `admin`.
+            if ($userRole === 'superadmin') {
+                $userRole = 'admin';
+            }
+
+            if ($required === 'admin') {
+                if (in_array($userRole, ['admin', 'president'], true)) {
                     $allow = true;
                     break;
                 }
             } elseif ($required === 'president') {
-                if (in_array($userRole, ['president', 'superadmin'], true)) {
+                if ($userRole === 'president') {
                     $allow = true;
                     break;
                 }

@@ -24,7 +24,7 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'volunteer' CHECK (role IN ('superadmin', 'admin', 'volunteer')),
+    role VARCHAR(50) DEFAULT 'volunteer' CHECK (role IN ('admin', 'volunteer')),
     notification_pref BOOLEAN DEFAULT true,
     dark_mode BOOLEAN DEFAULT false,
     email_verified_at TIMESTAMP WITH TIME ZONE,
@@ -169,9 +169,9 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
 -- Users can view their own data and admins can view all
--- Note: 'admin' and 'superadmin' are treated as equivalent
+-- Note: 'admin' is the highest level access
 CREATE POLICY "Users can view own data" ON users
-    FOR SELECT USING (auth.uid() = id OR auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR SELECT USING (auth.uid() = id OR auth.jwt() ->> 'role' = 'admin');
 
 CREATE POLICY "Users can update own data" ON users
     FOR UPDATE USING (auth.uid() = id);
@@ -181,11 +181,11 @@ CREATE POLICY "Events are viewable by all" ON events
     FOR SELECT USING (true);
 
 CREATE POLICY "Only admins can modify events" ON events
-    FOR ALL USING (auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Event registrations
 CREATE POLICY "Users can view own registrations" ON event_registrations
-    FOR SELECT USING (auth.uid() = user_id OR auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR SELECT USING (auth.uid() = user_id OR auth.jwt() ->> 'role' = 'admin');
 
 CREATE POLICY "Users can create own registrations" ON event_registrations
     FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -194,28 +194,28 @@ CREATE POLICY "Users can update own registrations" ON event_registrations
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Admins can manage all registrations" ON event_registrations
-    FOR ALL USING (auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Contacts are public for creation, admin for viewing
 CREATE POLICY "Anyone can create contacts" ON contacts
     FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Only admins can view contacts" ON contacts
-    FOR SELECT USING (auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Members
 CREATE POLICY "Members are viewable by all authenticated users" ON members
     FOR SELECT USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Only admins can modify members" ON members
-    FOR ALL USING (auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Settings
 CREATE POLICY "Settings are viewable by all authenticated users" ON settings
     FOR SELECT USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Only admins can modify settings" ON settings
-    FOR ALL USING (auth.jwt() ->> 'role' = 'superadmin' OR auth.jwt() ->> 'role' = 'admin');
+    FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 
 -- Messages
 CREATE POLICY "Users can view own messages" ON messages

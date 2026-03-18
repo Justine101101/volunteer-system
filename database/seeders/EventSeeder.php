@@ -15,11 +15,11 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get admin or superadmin user (they are treated as equivalent)
-        $superadmin = User::whereIn('role', ['superadmin', 'admin'])->first();
+        // Get admin user
+        $admin = User::where('role', 'admin')->first();
         
-        if (!$superadmin) {
-            $superadmin = User::first();
+        if (!$admin) {
+            $admin = User::first();
         }
 
         $events = [
@@ -29,7 +29,7 @@ class EventSeeder extends Seeder
                 'date' => Carbon::now()->addDays(7),
                 'time' => '08:00',
                 'location' => 'Baguio City Health Center',
-                'created_by' => $superadmin->id,
+                'created_by' => $admin->id,
             ],
             [
                 'title' => 'Environmental Cleanup Drive',
@@ -37,7 +37,7 @@ class EventSeeder extends Seeder
                 'date' => Carbon::now()->addDays(14),
                 'time' => '07:00',
                 'location' => 'Burnham Park, Baguio City',
-                'created_by' => $superadmin->id,
+                'created_by' => $admin->id,
             ],
             [
                 'title' => 'Senior Citizens Feeding Program',
@@ -45,7 +45,7 @@ class EventSeeder extends Seeder
                 'date' => Carbon::now()->addDays(21),
                 'time' => '10:00',
                 'location' => 'Senior Citizens Center, La Trinidad',
-                'created_by' => $superadmin->id,
+                'created_by' => $admin->id,
             ],
             [
                 'title' => 'Children\'s Reading Program',
@@ -53,7 +53,7 @@ class EventSeeder extends Seeder
                 'date' => Carbon::now()->addDays(28),
                 'time' => '14:00',
                 'location' => 'Baguio City Library',
-                'created_by' => $superadmin->id,
+                'created_by' => $admin->id,
             ],
             [
                 'title' => 'Disaster Preparedness Workshop',
@@ -61,7 +61,7 @@ class EventSeeder extends Seeder
                 'date' => Carbon::now()->addDays(35),
                 'time' => '09:00',
                 'location' => 'Cordillera Regional Office',
-                'created_by' => $superadmin->id,
+                'created_by' => $admin->id,
             ],
             [
                 'title' => 'Mountain Trail Maintenance',
@@ -69,7 +69,7 @@ class EventSeeder extends Seeder
                 'date' => Carbon::now()->addDays(42),
                 'time' => '06:00',
                 'location' => 'Mount Pulag Trail Head',
-                'created_by' => $superadmin->id,
+                'created_by' => $admin->id,
             ],
         ];
 

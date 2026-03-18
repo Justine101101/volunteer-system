@@ -10,8 +10,7 @@ class AuditLogController extends Controller
 {
     public function __construct()
     {
-        // Restrict to superadmins by default; adjust middleware as needed
-        $this->middleware(['auth', 'role:superadmin']);
+        $this->middleware(['auth', 'role:admin']);
     }
 
     /**

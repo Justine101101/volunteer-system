@@ -148,12 +148,19 @@
                                             </span>
                                         </div>
                                         
-                                        <form method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
+                                        <form id="leave-event-{{ $event->id }}" method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" 
                                                     class="text-red-600 hover:text-red-800 font-medium"
-                                                    onclick="return confirm('Are you sure you want to leave this event?')">
+                                                    @click.prevent="$dispatch('confirm-dialog', {
+                                                        title: 'Leave this event?',
+                                                        message: 'You will be removed from the participant list. You can join again later.',
+                                                        confirmLabel: 'Leave Event',
+                                                        cancelLabel: 'Cancel',
+                                                        tone: 'danger',
+                                                        formId: 'leave-event-{{ $event->id }}'
+                                                    })">
                                                 Leave Event
                                             </button>
                                         </form>
@@ -183,7 +190,7 @@
                         @endauth
                     </div>
 
-                    <!-- Registered Volunteers (for superadmin) -->
+                    <!-- Registered Volunteers (for admins) -->
                     @auth
                         @if(auth()->user()->isAdminOrSuperAdmin() && $event->registrations->count() > 0)
                             <div class="bg-gray-50 p-6 rounded-lg">

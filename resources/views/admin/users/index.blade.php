@@ -85,7 +85,6 @@
                     <div class="w-full md:w-48">
                         <select name="role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
                             <option value="">All Roles</option>
-                            <option value="superadmin" {{ request('role') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                             <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                             <option value="president" {{ request('role') == 'president' ? 'selected' : '' }}>President</option>
                             <option value="volunteer" {{ request('role') == 'volunteer' ? 'selected' : '' }}>Volunteer</option>
@@ -127,12 +126,16 @@
                                                 </div>
                                             </div>
                                             <div class="ml-4">
-                                                <div class="text-sm font-medium text-slate-900">{{ $user->name }}</div>
+                                                <a href="{{ route('admin.users.show', $user) }}" class="text-sm font-medium text-slate-900 hover:text-emerald-700 transition-colors">
+                                                    {{ $user->name }}
+                                                </a>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-slate-900">{{ $user->email }}</div>
+                                        <a href="{{ route('admin.users.show', $user) }}" class="text-sm text-slate-900 hover:text-emerald-700 transition-colors">
+                                            {{ $user->email }}
+                                        </a>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-slate-900">
@@ -150,12 +153,11 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                            @if($user->role === 'superadmin') bg-indigo-100 text-indigo-800
-                                            @elseif($user->role === 'admin') bg-indigo-100 text-indigo-800
+                                            @if($user->role === 'admin') bg-indigo-100 text-indigo-800
                                             @elseif($user->role === 'president') bg-purple-100 text-purple-800
                                             @else bg-emerald-100 text-emerald-800
                                             @endif">
-                                            {{ ucfirst($user->role) }}
+                                            {{ $user->role === 'superadmin' ? 'Admin' : ucfirst($user->role) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
@@ -163,23 +165,12 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <button
-                                                type="button"
+                                            <a
+                                                href="{{ route('admin.users.show', $user) }}"
                                                 class="inline-flex items-center rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
-                                                @click="open({
-                                                    id: {{ $user->id }},
-                                                    name: @js($user->name),
-                                                    email: @js($user->email),
-                                                    phone: @js($user->phone ?? ''),
-                                                    role: @js(ucfirst($user->role)),
-                                                    created_at: @js($user->created_at->format('M j, Y g:i A')),
-                                                    last_login: @js(optional($user->last_login_at)->format('M j, Y g:i A') ?? 'Not available'),
-                                                    notification_pref: {{ $user->notification_pref ? 'true' : 'false' }},
-                                                    dark_mode: {{ $user->dark_mode ? 'true' : 'false' }},
-                                                })"
                                             >
                                                 View Profile
-                                            </button>
+                                            </a>
 
                                             <a href="{{ route('admin.users.edit', $user) }}" class="text-emerald-600 hover:text-emerald-700 transition-colors" title="Edit User">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #059669;">
