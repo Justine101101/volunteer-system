@@ -113,6 +113,30 @@ class DatabaseQueryService
     }
 
     /**
+     * Get event by ID using privileged (service role) access, for admin screens.
+     */
+    public function getEventByIdPrivileged(string $eventId)
+    {
+        try {
+            $result = $this->supabase->fromPrivileged('events')
+                ->select('id,title,event_date,event_time,location,event_status,created_at')
+                ->eq('id', $eventId)
+                ->single()
+                ->execute();
+
+            // Normalize possible [0 => record] shape into a single record
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Error fetching event (privileged): ' . $e->getMessage());
+            return ['error' => 'Event not found'];
+        }
+    }
+
+    /**
      * Find event by matching fields (for compatibility with MySQL integer IDs)
      */
     public function findEventByFields(string $title, string $date, string $location)
@@ -626,7 +650,6 @@ class DatabaseQueryService
                 'notification_pref' => $user['notification_pref'] ?? true,
                 'dark_mode' => $user['dark_mode'] ?? false,
                 'email_verified_at' => $user['email_verified_at'] ?? null,
-                'created_at' => now()->toISOString(),
                 'updated_at' => now()->toISOString(),
             ]];
 
@@ -658,6 +681,64 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error upserting user to Supabase: ' . $e->getMessage());
             return ['error' => 'Failed to upsert user to Supabase'];
+        }
+    }
+
+    /**
+     * Upsert a local audit log into Supabase (idempotent by local_audit_log_id).
+     */
+    public function upsertAuditLog(array $auditLog): array
+    {
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return ['error' => 'Supabase not configured'];
+            }
+
+            $payload = [[
+                'local_audit_log_id' => $auditLog['local_audit_log_id'],
+                'user_id' => $auditLog['user_id'] ?? null,
+                'local_user_id' => $auditLog['local_user_id'] ?? null,
+                'user_email' => $auditLog['user_email'] ?? null,
+                'action' => $auditLog['action'],
+                'resource_type' => $auditLog['resource_type'],
+                'resource_id' => $auditLog['resource_id'] ?? null,
+                'payload' => $auditLog['payload'] ?? null,
+                // Preserve original timestamps when syncing
+                'created_at' => $auditLog['created_at'] ?? now()->toISOString(),
+                'updated_at' => $auditLog['updated_at'] ?? now()->toISOString(),
+            ]];
+
+            return $this->supabase
+                ->from('audit_logs')
+                ->insertPrivileged($payload, 'local_audit_log_id');
+        } catch (\Throwable $e) {
+            Log::error('Error upserting audit log to Supabase: ' . $e->getMessage());
+            return ['error' => 'Failed to upsert audit log to Supabase'];
+        }
+    }
+
+    /**
+     * Upsert a password reset token row into Supabase (idempotent by email).
+     */
+    public function upsertPasswordResetToken(array $row): array
+    {
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return ['error' => 'Supabase not configured'];
+            }
+
+            $payload = [[
+                'email' => $row['email'],
+                'token' => $row['token'],
+                'created_at' => $row['created_at'] ?? null,
+            ]];
+
+            return $this->supabase
+                ->from('password_reset_tokens')
+                ->insertPrivileged($payload, 'email');
+        } catch (\Throwable $e) {
+            Log::error('Error upserting password reset token to Supabase: ' . $e->getMessage());
+            return ['error' => 'Failed to upsert password reset token to Supabase'];
         }
     }
 
@@ -897,6 +978,88 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error updating registration: ' . $e->getMessage());
             return ['error' => 'Failed to update registration'];
+        }
+    }
+
+    /**
+     * Notifications: fetch notifications for a user (Supabase UUID).
+     */
+    public function getNotificationsForUser(string $userId, int $limit = 50): array
+    {
+        try {
+            return $this->supabase->fromPrivileged('notifications')
+                ->select('*')
+                ->eq('user_id', $userId)
+                ->order('created_at', 'desc')
+                ->limit($limit)
+                ->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching notifications: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch notifications'];
+        }
+    }
+
+    /**
+     * Notifications: create a notification (privileged insert).
+     */
+    public function createNotification(array $data): array
+    {
+        try {
+            $payload = [[
+                'user_id' => $data['user_id'] ?? null,
+                'type' => $data['type'] ?? 'system',
+                'title' => $data['title'] ?? 'Notification',
+                'body' => $data['body'] ?? null,
+                'metadata' => $data['metadata'] ?? null,
+                'read_at' => $data['read_at'] ?? null,
+                'created_at' => now()->toISOString(),
+                'updated_at' => now()->toISOString(),
+            ]];
+
+            return $this->supabase->from('notifications')->insertPrivileged($payload);
+        } catch (\Exception $e) {
+            Log::error('Error creating notification: ' . $e->getMessage());
+            return ['error' => 'Failed to create notification'];
+        }
+    }
+
+    /**
+     * Notifications: mark as read (privileged update).
+     */
+    public function markNotificationRead(string $notificationId): array
+    {
+        try {
+            return $this->supabase->from('notifications')->updatePrivileged([
+                'read_at' => now()->toISOString(),
+                'updated_at' => now()->toISOString(),
+            ], ['id' => 'eq.' . $notificationId]);
+        } catch (\Exception $e) {
+            Log::error('Error marking notification read: ' . $e->getMessage());
+            return ['error' => 'Failed to mark notification read'];
+        }
+    }
+
+    /**
+     * Registrations: fetch a registration by UUID with related user/event (privileged).
+     */
+    public function getEventRegistrationById(string $registrationId): array
+    {
+        try {
+            $result = $this->supabase->fromPrivileged('event_registrations')
+                // Keep this query minimal and reliable (do not depend on PostgREST embedded relationships)
+                ->select('id,user_id,event_id,registration_status,created_at')
+                ->eq('id', $registrationId)
+                ->single()
+                ->execute();
+
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Error fetching registration by id: ' . $e->getMessage());
+            return ['error' => 'Registration not found'];
         }
     }
 

@@ -4,10 +4,51 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ $event->title }}
             </h2>
-            <a href="{{ route('events.index') }}" 
-               class="text-gray-600 hover:text-gray-900">
-                ← Back to Events
-            </a>
+
+            <div class="flex items-center gap-3">
+                <a href="{{ route('events.index') }}"
+                   class="text-gray-600 hover:text-gray-900">
+                    ← Back to Events
+                </a>
+
+                @auth
+                    <x-dropdown align="right" width="48">
+                        <x-slot name="trigger">
+                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:text-gray-900 focus:outline-none transition ease-in-out duration-150">
+                                <div class="flex flex-col items-start mr-2 hidden sm:flex">
+                                    <span class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</span>
+                                    <span class="text-xs text-gray-600">{{ auth()->user()->isAdminOrSuperAdmin() ? 'Admin' : 'Volunteer' }}</span>
+                                </div>
+                                <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
+                                    {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                                </div>
+                                <div class="ms-1">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </button>
+                        </x-slot>
+
+                        <x-slot name="content">
+                            <x-dropdown-link :href="route('home')">
+                                {{ __('Home') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('settings')">
+                                {{ __('Settings') }}
+                            </x-dropdown-link>
+
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit"
+                                        class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">
+                                    {{ __('Log Out') }}
+                                </button>
+                            </form>
+                        </x-slot>
+                    </x-dropdown>
+                @endauth
+            </div>
         </div>
     </x-slot>
 
@@ -27,45 +68,45 @@
 
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
                 <!-- Event Header -->
-                <div class="bg-white border-b border-gray-200 p-8">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ $event->title }}</h1>
-                            <div class="flex flex-wrap gap-6 text-gray-600">
-                                <div class="flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-white border-b border-gray-200 p-6 sm:p-8">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div class="min-w-0">
+                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight line-clamp-2">{{ $event->title }}</h1>
+                            <div class="mt-3 flex flex-wrap gap-2 text-gray-600">
+                                <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
+                                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
-                                    {{ $event->date->format('F j, Y') }}
+                                    <span class="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">{{ $event->date->format('F j, Y') }}</span>
                                 </div>
-                                <div class="flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
+                                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    {{ $event->time }}
+                                    <span class="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">{{ $event->time }}</span>
                                 </div>
-                                <div class="flex items-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100 max-w-full">
+                                    <svg class="w-4 h-4 text-emerald-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    {{ $event->location }}
+                                    <span class="text-xs sm:text-sm font-semibold text-slate-700 line-clamp-1">{{ $event->location }}</span>
                                 </div>
                             </div>
                         </div>
                         @auth
                             @if(auth()->user()->isAdminOrSuperAdmin() && isset($event->id) && $event->id)
-                                <div class="flex space-x-2">
+                                <div class="flex items-center gap-2 sm:pt-1">
                                     <a href="{{ route('events.edit', $event->id) }}" 
-                                       class="border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition duration-300">
+                                       class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-50 transition duration-300 text-sm font-semibold">
                                         Edit
                                     </a>
                                     <form method="POST" action="{{ route('events.destroy', $event->id) }}" 
                                           class="inline" 
-                                          onsubmit="return confirm('Are you sure you want to delete this event? This action cannot be undone.')">
+                                          data-confirm="Delete this event? This action cannot be undone.">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-300">
+                                        <button type="submit" class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition duration-300 text-sm font-semibold">
                                             Delete
                                         </button>
                                     </form>
@@ -126,6 +167,10 @@
                                 $userRegistration = (isset($currentUserSupabaseId) && $currentUserSupabaseId && $event->registrations)
                                     ? $event->registrations->firstWhere('user_id', $currentUserSupabaseId)
                                     : null;
+
+                                $rawStatus = strtolower((string) ($event->event_status ?? ''));
+                                $eventIsPast = ($event->date instanceof \Carbon\Carbon) ? $event->date->isPast() && !$event->date->isToday() : false;
+                                $canJoin = !$eventIsPast && $rawStatus !== 'completed';
                             @endphp
                             
                             <div class="bg-gray-50 p-6 rounded-lg">
@@ -167,14 +212,22 @@
                                     </div>
                                 @else
                                     <div class="text-center">
-                                        <p class="text-gray-600 mb-4">You haven't registered for this event yet.</p>
-                                        <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
-                                            @csrf
-                                            <button type="submit" 
-                                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
-                                                Join Event
+                                        @if($canJoin)
+                                            <p class="text-gray-600 mb-4">You haven't registered for this event yet.</p>
+                                            <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" 
+                                                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
+                                                    Join Event
+                                                </button>
+                                            </form>
+                                        @else
+                                            <p class="text-gray-600 mb-4">This event has ended. Registration is closed.</p>
+                                            <button type="button" disabled
+                                                    class="bg-gray-300 text-gray-600 px-6 py-2 rounded-lg cursor-not-allowed">
+                                                Join Closed
                                             </button>
-                                        </form>
+                                        @endif
                                     </div>
                                 @endif
                             </div>

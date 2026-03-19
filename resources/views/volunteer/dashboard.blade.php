@@ -28,9 +28,6 @@
                         <x-dropdown-link :href="route('home')">
                             {{ __('Home') }}
                         </x-dropdown-link>
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
                         <x-dropdown-link :href="route('settings')">
                             {{ __('Settings') }}
                         </x-dropdown-link>

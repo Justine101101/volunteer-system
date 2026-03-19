@@ -43,8 +43,8 @@
                                     {{ __($onHeroPage ? 'Dashboard' : 'Home') }}
                                 </x-dropdown-link>
                             @elseif(auth()->user()->isVolunteer())
-                                <x-dropdown-link :href="$onHeroPage ? route('volunteer.dashboard') : route('home')">
-                                    {{ __($onHeroPage ? 'Dashboard' : 'Home') }}
+                                <x-dropdown-link :href="route('home')">
+                                    {{ __('Home') }}
                                 </x-dropdown-link>
                             @else
                                 <x-dropdown-link :href="$onHeroPage ? route('dashboard') : route('home')">

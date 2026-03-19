@@ -85,7 +85,7 @@
                                         @php $isPending = $status === 'pending'; @endphp
                                         <div class="flex items-center justify-end space-x-3">
                                             @if(!empty($registrationId))
-                                                <form method="POST" action="{{ route('supabase.registrations.approve', ['registrationId' => $registrationId]) }}" onsubmit="return confirm('Approve this registration?')">
+                                                <form method="POST" action="{{ route('supabase.registrations.approve', ['registrationId' => $registrationId]) }}" data-confirm="Approve this registration?">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" {{ $isPending ? '' : 'disabled aria-disabled=true' }}
@@ -95,7 +95,7 @@
                                                         <span style="{{ $isPending ? 'color:#ffffff;' : 'color:#6B7280;' }}">Approve</span>
                                                     </button>
                                                 </form>
-                                                <form method="POST" action="{{ route('supabase.registrations.reject', ['registrationId' => $registrationId]) }}" onsubmit="return confirm('Decline this registration?')">
+                                                <form method="POST" action="{{ route('supabase.registrations.reject', ['registrationId' => $registrationId]) }}" data-confirm="Decline this registration?">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" {{ $isPending ? '' : 'disabled aria-disabled=true' }}
@@ -129,24 +129,64 @@
                         document.querySelectorAll('.reg-check:not(:disabled)').forEach(cb => { cb.checked = checkAll.checked; });
                     });
                 }
+
                 function submitBulkAction(actionUrl, confirmText) {
                     const ids = Array.from(document.querySelectorAll('.reg-check:checked')).map(cb => cb.value);
-                    if (ids.length === 0) { alert('Select at least one pending registration.'); return; }
-                    if (!confirm(confirmText)) return;
+                    if (ids.length === 0) {
+                        window.dispatchEvent(new CustomEvent('confirm-dialog', {
+                            detail: {
+                                title: 'Nothing selected',
+                                message: 'Select at least one pending registration.',
+                                confirmLabel: 'OK',
+                                cancelLabel: 'Close',
+                                tone: 'safe',
+                                formId: null,
+                            }
+                        }));
+                        return;
+                    }
+
+                    const isDecline = /decline|reject/i.test(confirmText || '');
+                    window.dispatchEvent(new CustomEvent('confirm-dialog', {
+                        detail: {
+                            title: 'Confirm bulk action',
+                            message: confirmText,
+                            confirmLabel: isDecline ? 'Decline selected' : 'Approve selected',
+                            cancelLabel: 'Cancel',
+                            tone: isDecline ? 'danger' : 'safe',
+                            formId: null,
+                            onConfirmEvent: 'vms-bulk-registration-action',
+                            onConfirmDetail: { actionUrl, ids },
+                        }
+                    }));
+                }
+
+                // Receive confirmation from the global modal and submit the bulk form
+                window.addEventListener('vms-bulk-registration-action', (e) => {
+                    const { actionUrl, ids } = (e?.detail || {});
+                    if (!actionUrl || !Array.isArray(ids) || ids.length === 0) return;
+
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = actionUrl;
+
                     const token = document.createElement('input');
-                    token.type = 'hidden'; token.name = '_token'; token.value = '{{ csrf_token() }}';
+                    token.type = 'hidden';
+                    token.name = '_token';
+                    token.value = '{{ csrf_token() }}';
                     form.appendChild(token);
+
                     ids.forEach(id => {
                         const input = document.createElement('input');
-                        input.type = 'hidden'; input.name = 'ids[]'; input.value = id;
+                        input.type = 'hidden';
+                        input.name = 'ids[]';
+                        input.value = id;
                         form.appendChild(input);
                     });
+
                     document.body.appendChild(form);
                     form.submit();
-                }
+                });
             </script>
         </div>
     </div>

@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\MessagingController as SharedMessagingController;
 use App\Http\Controllers\VolunteerDashboardController;
 use App\Http\Controllers\SupabaseController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -84,6 +85,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/events/{eventId}/leave', [EventRegistrationController::class, 'leave'])
         ->name('events.leave')
         ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+    // Notifications (for all authenticated users)
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notificationId}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     
     // Volunteer Dashboard
     Route::get('/volunteer/dashboard', [VolunteerDashboardController::class, 'index'])->name('volunteer.dashboard');
@@ -155,6 +160,7 @@ Route::middleware('auth')->group(function () {
         
         // Reports
         Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports');
+        Route::get('/admin/reports/export', [ReportController::class, 'export'])->name('admin.reports.export');
 
         // Audit logs
         Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');

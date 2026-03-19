@@ -7,6 +7,7 @@ use App\Models\EventRegistration;
 use Illuminate\Support\Facades\Auth;
 use App\Services\DatabaseQueryService;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class EventRegistrationController extends Controller
 {
@@ -18,6 +19,27 @@ class EventRegistrationController extends Controller
     public function join(string $eventId)
     {
         $user = Auth::user();
+
+        // Guard: do not allow joining past/ended events (server-side)
+        $event = $this->queryService->getEventById($eventId);
+        if (is_array($event) && !isset($event['error'])) {
+            $eventStatus = strtolower((string) ($event['event_status'] ?? ''));
+            if ($eventStatus === 'completed') {
+                return redirect()->back()->with('error', 'This event has ended. Registration is closed.');
+            }
+
+            $eventDateRaw = $event['event_date'] ?? null;
+            if (!empty($eventDateRaw)) {
+                try {
+                    $eventDate = Carbon::parse((string) $eventDateRaw);
+                    if ($eventDate->isPast() && !$eventDate->isToday()) {
+                        return redirect()->back()->with('error', 'This event has ended. Registration is closed.');
+                    }
+                } catch (\Throwable $e) {
+                    // If parsing fails, don’t block; just proceed.
+                }
+            }
+        }
 
         // Resolve Supabase user ID from local user (by email), creating if needed
         $supabaseUser = $user && $user->email
@@ -199,6 +221,8 @@ class EventRegistrationController extends Controller
             return redirect()->back()->with('error', 'Failed to approve registration. Please try again.');
         }
 
+        $this->notifyRegistrationDecision($registrationId, 'approved');
+
         return redirect()->back()->with('success', 'Registration approved successfully!');
     }
 
@@ -221,7 +245,77 @@ class EventRegistrationController extends Controller
             return redirect()->back()->with('error', 'Failed to reject registration. Please try again.');
         }
 
+        $this->notifyRegistrationDecision($registrationId, 'rejected');
+
         return redirect()->back()->with('success', 'Registration rejected.');
+    }
+
+    private function notifyRegistrationDecision(string $registrationId, string $status): void
+    {
+        try {
+            $reg = $this->queryService->getEventRegistrationById($registrationId);
+            if (!is_array($reg) || isset($reg['error'])) {
+                return;
+            }
+
+            $userId = $reg['user_id'] ?? null;
+            if (!$userId) {
+                return;
+            }
+
+            $eventTitle = 'Event';
+            $eventDate = '';
+            $eventId = (string) ($reg['event_id'] ?? '');
+            if ($eventId) {
+                $event = $this->queryService->getEventById($eventId);
+                if (is_array($event) && !isset($event['error'])) {
+                    $eventTitle = (string) ($event['title'] ?? $eventTitle);
+                    $eventDate = (string) ($event['event_date'] ?? $eventDate);
+                }
+            }
+
+            $type = $status === 'approved' ? 'registration.approved' : 'registration.rejected';
+            $title = $status === 'approved'
+                ? 'Registration approved'
+                : 'Registration declined';
+            $body = $status === 'approved'
+                ? "Your registration was approved for {$eventTitle}."
+                : "Your registration was declined for {$eventTitle}.";
+
+            if ($eventDate) {
+                $body .= " ({$eventDate})";
+            }
+
+            $created = $this->queryService->createNotification([
+                'user_id' => $userId,
+                'type' => $type,
+                'title' => $title,
+                'body' => $body,
+                'metadata' => [
+                    'registration_id' => $registrationId,
+                    'event_id' => $reg['event_id'] ?? null,
+                    'event_title' => $eventTitle,
+                    'event_date' => $eventDate ?: null,
+                    'status' => $status,
+                ],
+            ]);
+
+            if (is_array($created) && isset($created['error'])) {
+                Log::error('Failed to insert notification to Supabase', [
+                    'registration_id' => $registrationId,
+                    'user_id' => $userId,
+                    'status' => $status,
+                    'error' => $created['error'] ?? null,
+                    'details' => $created['details'] ?? null,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to create registration decision notification', [
+                'registration_id' => $registrationId,
+                'status' => $status,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

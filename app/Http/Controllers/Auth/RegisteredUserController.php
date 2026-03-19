@@ -44,6 +44,11 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Ensure Supabase is configured; registration is expected to be mirrored to Supabase.
+        if (!config('supabase.url') || !config('supabase.service_role_key')) {
+            return back()->withInput()->with('error', 'Supabase is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your .env.');
+        }
+
         // Default role for all new registrations
         $defaultRole = 'volunteer';
 
@@ -68,7 +73,27 @@ class RegisteredUserController extends Controller
         ]);
 
         if (isset($supabaseResult['error'])) {
-            Log::error('Failed to create user in Supabase (OTP registration): ' . ($supabaseResult['error'] ?? 'Unknown error'));
+            Log::error('Failed to create user in Supabase (OTP registration)', [
+                'error' => $supabaseResult['error'] ?? 'Unknown error',
+                'status' => $supabaseResult['status'] ?? null,
+                'details' => $supabaseResult['details'] ?? null,
+                'email' => $user->email,
+            ]);
+
+            // Keep databases consistent: if Supabase write fails, rollback local user creation.
+            $user->delete();
+
+            return back()
+                ->withInput()
+                ->with('error', 'Registration failed because the Supabase users table could not be updated. Please contact the admin to fix Supabase schema/RLS.');
+        }
+
+        // Store Supabase UUID on local mirror for easier mapping (if available)
+        $supabaseRow = is_array($supabaseResult) && isset($supabaseResult[0]) ? $supabaseResult[0] : $supabaseResult;
+        $supabaseId = is_array($supabaseRow) ? ($supabaseRow['id'] ?? null) : null;
+        if ($supabaseId && $user->fillable && in_array('supabase_user_id', $user->getFillable(), true)) {
+            $user->supabase_user_id = $supabaseId;
+            $user->save();
         }
 
         // Generate secure 6-digit OTP

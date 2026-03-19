@@ -4,16 +4,16 @@ namespace App\Policies;
 
 use App\Models\Event;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
-class eventpolicy
+class EventPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return ra
+        // All authenticated users can view the events list
+        return true;
     }
 
     /**
@@ -21,7 +21,8 @@ class eventpolicy
      */
     public function view(User $user, Event $event): bool
     {
-        return false;
+        // All authenticated users can view event details
+        return true;
     }
 
     /**
@@ -29,7 +30,8 @@ class eventpolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        // Only Admin/President can create events
+        return (bool) $user->isAdminOrSuperAdmin();
     }
 
     /**
@@ -37,7 +39,8 @@ class eventpolicy
      */
     public function update(User $user, Event $event): bool
     {
-        return false;
+        // Only Admin/President can update events
+        return (bool) $user->isAdminOrSuperAdmin();
     }
 
     /**
@@ -45,7 +48,8 @@ class eventpolicy
      */
     public function delete(User $user, Event $event): bool
     {
-        return false;
+        // Only Admin/President can delete events
+        return (bool) $user->isAdminOrSuperAdmin();
     }
 
     /**
@@ -53,7 +57,7 @@ class eventpolicy
      */
     public function restore(User $user, Event $event): bool
     {
-        return false;
+        return (bool) $user->isAdminOrSuperAdmin();
     }
 
     /**
@@ -61,6 +65,6 @@ class eventpolicy
      */
     public function forceDelete(User $user, Event $event): bool
     {
-        return false;
+        return (bool) $user->isAdminOrSuperAdmin();
     }
 }

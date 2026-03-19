@@ -120,7 +120,7 @@
                                 </div>
                                 <div class="ml-4">
                                     <h3 class="text-lg font-semibold mb-1 text-slate-dark">Email</h3>
-                                    <p class="text-gray-600">info@cordilleraadivaylions.org</p>
+                                    <p class="text-gray-600">beltranjerek@gmail.com</p>
                                 </div>
                             </div>
 

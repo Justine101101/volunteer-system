@@ -1,8 +1,48 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Upcoming Events') }}
-        </h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                {{ __('Upcoming Events') }}
+            </h2>
+
+            @auth
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:text-gray-900 focus:outline-none transition ease-in-out duration-150">
+                            <div class="flex flex-col items-start mr-2 hidden sm:flex">
+                                <span class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</span>
+                                <span class="text-xs text-gray-600">{{ auth()->user()->isAdminOrSuperAdmin() ? 'Admin' : 'Volunteer' }}</span>
+                            </div>
+                            <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
+                                {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}
+                            </div>
+                            <div class="ms-1">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </button>
+                    </x-slot>
+
+                    <x-slot name="content">
+                        <x-dropdown-link :href="route('home')">
+                            {{ __('Home') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('settings')">
+                            {{ __('Settings') }}
+                        </x-dropdown-link>
+
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                    class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">
+                                {{ __('Log Out') }}
+                            </button>
+                        </form>
+                    </x-slot>
+                </x-dropdown>
+            @endauth
+        </div>
     </x-slot>
 
     <!-- Hero Section -->
@@ -102,6 +142,7 @@
                     }
 
                     $statusLabel = $derived;
+                    $canJoin = !in_array($statusLabel, ['Ended', 'Completed'], true);
                     $statusClasses = match ($statusLabel) {
                         'Ongoing' => 'bg-indigo-50 text-indigo-700 border border-indigo-200',
                         'Ended' => 'bg-gray-50 text-gray-700 border border-gray-200',
@@ -152,26 +193,26 @@
 
                         <!-- Event Details -->
                         <div class="md:w-2/3 p-4">
-                            <div class="flex justify-between items-start mb-4">
-                                <h3 class="event-title text-2xl font-bold transition-colors duration-300"
+                            <div class="flex justify-between items-start mb-3 gap-3">
+                                <h3 class="event-title text-lg sm:text-xl font-bold leading-snug transition-colors duration-300 line-clamp-2"
                                     style="color: {{ $isEven ? '#1a5f3f' : '#4a1a5f' }};">
                                     {{ e($event->title ?: 'Untitled event') }}
                                 </h3>
                                 @auth
                                     {{-- Show edit/delete for admins if event has an ID (Supabase UUID) --}}
                                     @if(auth()->user()->isAdminOrSuperAdmin() && isset($event->id) && $event->id)
-                                        <div class="flex space-x-2">
+                                        <div class="flex shrink-0 items-center gap-2">
                                             <a href="{{ route('events.edit', ['eventId' => $event->id]) }}" 
-                                               class="text-sm font-medium transition-colors duration-300 hover:underline" 
+                                               class="text-xs font-semibold transition-colors duration-300 hover:underline" 
                                                style="color: #1a5f3f;">
                                                 Edit
                                             </a>
                                             <form method="POST" action="{{ route('events.destroy', ['eventId' => $event->id]) }}" 
                                                   class="inline" 
-                                                  onsubmit="return confirm('Are you sure you want to delete this event? This action cannot be undone.')">
+                                                  data-confirm="Delete this event? This action cannot be undone.">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-300 hover:underline">
+                                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-semibold transition-colors duration-300 hover:underline">
                                                     Delete
                                                 </button>
                                             </form>
@@ -180,23 +221,23 @@
                                 @endauth
                             </div>
 
-                            <p class="text-gray-700 mb-4 leading-relaxed">
+                            <p class="text-sm text-slate-700 mb-3 leading-relaxed line-clamp-3">
                                 {{ \Illuminate\Support\Str::limit($event->description ? strip_tags($event->description) : 'Details will be announced soon.', 180) }}
                             </p>
 
-                            <div class="flex flex-wrap gap-4 mb-6">
-                                <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/10">
-                                    <svg class="w-5 h-5 mr-2 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <div class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/10 max-w-full">
+                                    <svg class="w-4 h-4 text-lions-green shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    <span class="text-gray-700 font-medium">{{ e($event->location ?: 'Location TBA') }}</span>
+                                    <span class="text-xs sm:text-sm text-slate-700 font-semibold line-clamp-1">{{ e($event->location ?: 'Location TBA') }}</span>
                                 </div>
-                                <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-indigo-50">
-                                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-300 bg-indigo-50">
+                                    <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span class="text-gray-700 font-medium">{{ e($event->time ?: 'Time TBA') }}</span>
+                                    <span class="text-xs sm:text-sm text-slate-700 font-semibold whitespace-nowrap">{{ e($event->time ?: 'Time TBA') }}</span>
                                 </div>
                                 @php
                                     // Only attempt to read creator when this is an Eloquent Event model
@@ -205,11 +246,11 @@
                                         : null;
                                 @endphp
                                 @if($creatorName)
-                                    <div class="flex items-center px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/5">
-                                        <svg class="w-5 h-5 mr-2" style="color: #008751;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/5">
+                                        <svg class="w-4 h-4 shrink-0" style="color: #008751;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                         </svg>
-                                        <span class="text-gray-700 font-medium">
+                                        <span class="text-xs sm:text-sm text-slate-700 font-semibold line-clamp-1">
                                             Created by {{ e($creatorName) }}
                                         </span>
                                     </div>
@@ -265,14 +306,23 @@
                                             </form>
                                         </div>
                                     @else
-                                        <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
-                                            @csrf
-                                            <button type="submit" 
-                                                    class="px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
-                                                    style="background: linear-gradient(to right, #008751, #10b981);">
-                                                Join Event
-                                            </button>
-                                        </form>
+                                        @if($canJoin)
+                                            <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" 
+                                                        class="px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
+                                                        style="background: linear-gradient(to right, #008751, #10b981);">
+                                                    Join Event
+                                                </button>
+                                            </form>
+                                        @else
+                                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-sm font-semibold">
+                                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Event ended
+                                            </div>
+                                        @endif
                                     @endif
                                 @endif
                             @else
@@ -468,7 +518,7 @@
                         Close
                     </button>
 
-                    <template x-if="event">
+                    <template x-if="event && (event.status !== 'Ended' && event.status !== 'Completed')">
                         <form method="POST" :action="event.join_url">
                             @csrf
                             <button
@@ -478,6 +528,14 @@
                                 Join Event
                             </button>
                         </form>
+                    </template>
+                    <template x-if="event && (event.status === 'Ended' || event.status === 'Completed')">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs sm:text-sm font-semibold">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Joining closed
+                        </div>
                     </template>
                 </div>
             </div>

@@ -79,7 +79,19 @@ class UserController extends Controller
                         }
 
                         // Fetch event details for display (small list per user, acceptable to fetch individually)
-                        $event = $this->queryService->getEventById($eventId);
+                        $event = $this->queryService->getEventByIdPrivileged($eventId);
+                        // Supabase client may wrap result inside a "data" key; normalize it
+                        if (is_array($event) && isset($event['data']) && is_array($event['data'])) {
+                            $event = $event['data'];
+                        }
+                        // Normalize possible [0 => record] shape into a single record
+                        if (is_array($event) && isset($event[0]) && is_array($event[0])) {
+                            $event = $event[0];
+                        }
+                        // Skip if the event lookup failed (prevents "Untitled event" spam)
+                        if (!is_array($event) || isset($event['error'])) {
+                            continue;
+                        }
                         $participation[] = [
                             'event_id' => $eventId,
                             'title' => is_array($event) ? ($event['title'] ?? 'Untitled event') : 'Untitled event',

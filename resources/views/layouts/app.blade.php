@@ -20,7 +20,7 @@
     <body class="font-sans antialiased bg-light-gray dark:bg-slate-900 transition-colors duration-200">
         <a href="#main" class="sr-only focus:not-sr-only focus-ring px-3 py-2 bg-white dark:bg-slate-800 text-gray-800 dark:text-white">Skip to content</a>
         <div class="min-h-screen bg-light-gray dark:bg-slate-900" role="document">
-            @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
+            @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || ((request()->routeIs('events.*') && !request()->routeIs('events.calendar')) && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('notifications*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
                 <div class="bg-slate-50 dark:bg-slate-900">
                     @include('layouts.sidebar')
                     <!-- Main content area with left margin for fixed sidebar -->
@@ -41,7 +41,7 @@
                         </main>
                     </div>
                 </div>
-            @elseif(request()->routeIs('volunteer.*') || (request()->routeIs('messaging*') && auth()->user()?->isVolunteer()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('events.*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isVolunteer()))
+            @elseif(request()->routeIs('volunteer.*') || (request()->routeIs('messaging*') && auth()->user()?->isVolunteer()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isVolunteer()) || ((request()->routeIs('events.*') && !request()->routeIs('events.calendar')) && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('notifications*') && auth()->check() && auth()->user()?->isVolunteer()))
                 <div class="bg-white dark:bg-slate-900">
                     @include('layouts.volunteer-sidebar')
                     <!-- Main content area with left margin for fixed sidebar -->
@@ -128,6 +128,8 @@
                     cancelLabel: 'Cancel',
                     tone: 'danger',
                     formId: null,
+                    onConfirmEvent: null,
+                    onConfirmDetail: null,
                     show(detail) {
                         this.title = detail?.title ?? 'Confirm action';
                         this.message = detail?.message ?? 'Are you sure you want to continue?';
@@ -135,17 +137,23 @@
                         this.cancelLabel = detail?.cancelLabel ?? 'Cancel';
                         this.tone = detail?.tone ?? 'danger';
                         this.formId = detail?.formId ?? null;
+                        this.onConfirmEvent = detail?.onConfirmEvent ?? null;
+                        this.onConfirmDetail = detail?.onConfirmDetail ?? null;
                         this.open = true;
                         this.$nextTick(() => this.$refs.confirmBtn?.focus());
                     },
                     close() {
                         this.open = false;
                         this.formId = null;
+                        this.onConfirmEvent = null;
+                        this.onConfirmDetail = null;
                     },
                     confirm() {
                         if (this.formId) {
                             const form = document.getElementById(this.formId);
                             if (form) form.submit();
+                        } else if (this.onConfirmEvent) {
+                            window.dispatchEvent(new CustomEvent(this.onConfirmEvent, { detail: this.onConfirmDetail ?? {} }));
                         }
                         this.close();
                     }
@@ -209,6 +217,46 @@
                     </div>
                 </div>
             </div>
+
+            <script>
+                // Global confirm handler: replace native confirm() with the Tailwind modal above.
+                // Usage: add `data-confirm="Message..."` to any <form>.
+                (function () {
+                    function ensureId(el) {
+                        if (el.id) return el.id;
+                        el.id = 'confirm-form-' + Math.random().toString(16).slice(2);
+                        return el.id;
+                    }
+
+                    function openConfirmModal(form) {
+                        const message = form.getAttribute('data-confirm') || 'Are you sure you want to continue?';
+                        const isDanger = /delete|remove|decline|reject|disable/i.test(message);
+                        const confirmLabel =
+                            /delete|remove/i.test(message) ? 'Delete' :
+                            /decline|reject/i.test(message) ? 'Decline' :
+                            'Confirm';
+
+                        window.dispatchEvent(new CustomEvent('confirm-dialog', {
+                            detail: {
+                                title: 'Confirm action',
+                                message,
+                                confirmLabel,
+                                cancelLabel: 'Cancel',
+                                tone: isDanger ? 'danger' : 'safe',
+                                formId: ensureId(form),
+                            }
+                        }));
+                    }
+
+                    document.addEventListener('submit', function (e) {
+                        const form = e.target;
+                        if (!(form instanceof HTMLFormElement)) return;
+                        if (!form.matches('form[data-confirm]')) return;
+                        e.preventDefault();
+                        openConfirmModal(form);
+                    }, true);
+                })();
+            </script>
         </div>
     </body>
 </html>

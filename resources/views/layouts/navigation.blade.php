@@ -61,8 +61,8 @@
                                     {{ __('Dashboard') }}
                                 </x-dropdown-link>
                             @elseif(auth()->user()->isVolunteer())
-                                <x-dropdown-link :href="route('volunteer.dashboard')">
-                                    {{ __('Dashboard') }}
+                                <x-dropdown-link :href="route('home')">
+                                    {{ __('Home') }}
                                 </x-dropdown-link>
                             @else
                                 <x-dropdown-link :href="route('dashboard')">
@@ -151,8 +151,8 @@
                             {{ __('Dashboard') }}
                         </x-responsive-nav-link>
                     @elseif(auth()->user()->isVolunteer())
-                        <x-responsive-nav-link :href="route('volunteer.dashboard')">
-                            {{ __('Dashboard') }}
+                        <x-responsive-nav-link :href="route('home')">
+                            {{ __('Home') }}
                         </x-responsive-nav-link>
                     @else
                         <x-responsive-nav-link :href="route('dashboard')">

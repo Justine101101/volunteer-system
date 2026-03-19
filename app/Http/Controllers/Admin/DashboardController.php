@@ -79,6 +79,7 @@ class DashboardController extends Controller
         $approvedCount = (is_array($approvedRegsRaw) && !isset($approvedRegsRaw['error'])) ? count($approvedRegsRaw) : 0;
         $rejectedCount = (is_array($rejectedRegsRaw) && !isset($rejectedRegsRaw['error'])) ? count($rejectedRegsRaw) : 0;
         $totalRegCount = (is_array($allRegsRaw) && !isset($allRegsRaw['error'])) ? count($allRegsRaw) : 0;
+        $allRegsArray = (is_array($allRegsRaw) && !isset($allRegsRaw['error'])) ? $allRegsRaw : [];
 
         // Extra defensive logging so dashboard never crashes even if Supabase response shape changes
         $recentSample = null;
@@ -136,21 +137,39 @@ class DashboardController extends Controller
         $eventSuccess = round(($approved / $totalRegs) * 100); // % of approved vs all
         $avgAttendance = round($approved / $totalEvents);      // approved per event
 
-        // Monthly trend (last 5 months) of approved registrations
-        $trendRows = EventRegistration::select(
-                DB::raw("strftime('%Y-%m', created_at) as ym"),
-                DB::raw('COUNT(*) as total')
-            )
-            ->where('status', 'approved')
-            ->groupBy('ym')
-            ->orderBy('ym', 'asc')
-            ->get()
-            ->pluck('total', 'ym');
-
+        // Monthly trend (last 6 months) of approved registrations (from Supabase created_at)
         $months = [];
-        for ($i = 4; $i >= 0; $i--) {
-            $m = now()->subMonths($i)->format('Y-m');
-            $months[$m] = (int) ($trendRows[$m] ?? 0);
+        for ($i = 5; $i >= 0; $i--) {
+            $m = now()->subMonths($i)->startOfMonth();
+            $key = $m->format('Y-m');
+            $months[$key] = collect($allRegsArray)->filter(function ($r) use ($m) {
+                $status = (string) ($r['registration_status'] ?? ($r['status'] ?? 'pending'));
+                if (strtolower($status) !== 'approved') return false;
+                if (empty($r['created_at'])) return false;
+                try {
+                    $c = Carbon::parse((string) $r['created_at']);
+                    return $c->year === $m->year && $c->month === $m->month;
+                } catch (\Throwable $e) {
+                    return false;
+                }
+            })->count();
+        }
+
+        // Events per month (last 6 months) from Supabase event_date
+        $eventsPerMonth = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $m = now()->subMonths($i)->startOfMonth();
+            $key = $m->format('Y-m');
+            $eventsPerMonth[$key] = collect($eventsRaw)->filter(function ($e) use ($m) {
+                if (!is_array($e)) return false;
+                if (empty($e['event_date'])) return false;
+                try {
+                    $d = Carbon::parse((string) $e['event_date']);
+                    return $d->year === $m->year && $d->month === $m->month;
+                } catch (\Throwable $e) {
+                    return false;
+                }
+            })->count();
         }
 
         // Growth rate: current month vs previous month
@@ -164,8 +183,13 @@ class DashboardController extends Controller
             'avg_attendance' => $avgAttendance,
             'growth_rate_pct' => $growthRate,
             'trend' => $months,
+            'by_status' => [
+                'pending' => $pendingCount,
+                'approved' => $approvedCount,
+                'rejected' => $rejectedCount,
+            ],
         ];
 
-        return view('admin.dashboard', compact('stats', 'roleBreakdown', 'analytics', 'quickStats'));
+        return view('admin.dashboard', compact('stats', 'roleBreakdown', 'analytics', 'quickStats', 'eventsPerMonth'));
     }
 }
