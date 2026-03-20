@@ -109,7 +109,8 @@ class User extends Authenticatable
      */
     public function isAdmin()
     {
-        return $this->role === 'admin';
+        // In Supabase we store elevated users as `superadmin`, but middleware treats it as admin.
+        return $this->role === 'admin' || $this->role === 'superadmin';
     }
 
     /**
@@ -118,7 +119,9 @@ class User extends Authenticatable
     public function isAdminOrSuperAdmin()
     {
         // Superadmin removed; admins and presidents share elevated access.
-        return $this->role === 'admin' || $this->role === 'president';
+        return $this->role === 'admin'
+            || $this->role === 'superadmin'
+            || $this->role === 'president';
     }
 
     /**
