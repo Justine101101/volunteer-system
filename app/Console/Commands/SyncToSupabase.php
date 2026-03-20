@@ -111,6 +111,8 @@ class SyncToSupabase extends Command
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                // Include password so supabase doesn't end up with empty placeholders.
+                'password' => $user->password,
                 'role' => $user->role ?? 'volunteer',
                 'phone' => $user->phone ?? null,
                 'google_id' => $user->google_id ?? null,

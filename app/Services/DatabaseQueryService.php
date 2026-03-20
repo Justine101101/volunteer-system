@@ -11,6 +11,22 @@ class DatabaseQueryService
     use RecordsAuditLogs;
     protected SupabaseService $supabase;
 
+    /**
+     * Supabase `public.users.role` check constraint only accepts a limited set of values.
+     * In practice for this project, it accepts `superadmin` and `volunteer` (rejects `admin/president/officer`).
+     */
+    private function normalizeSupabaseUserRole(?string $role): string
+    {
+        $role = $role ? strtolower(trim($role)) : null;
+
+        return match ($role) {
+            'admin', 'president', 'superadmin' => 'superadmin',
+            // Keep volunteer as-is; treat any other legacy/non-elevated roles as volunteer.
+            'volunteer', null => 'volunteer',
+            default => 'volunteer',
+        };
+    }
+
     public function __construct(SupabaseService $supabase)
     {
         $this->supabase = $supabase;
@@ -638,12 +654,26 @@ class DatabaseQueryService
     public function upsertUser(array $user): array
     {
         try {
+            $email = $user['email'] ?? null;
+
+            // If the caller didn't provide a password, preserve the existing Supabase password
+            // instead of overwriting it with an empty string (which breaks email/password login).
+            $passwordToSet = null;
+            if (array_key_exists('password', $user) && $user['password'] !== null && $user['password'] !== '') {
+                $passwordToSet = $user['password'];
+            } elseif ($email) {
+                $existing = $this->getUserByEmail($email);
+                $passwordToSet = $existing['password'] ?? '';
+            } else {
+                $passwordToSet = '';
+            }
+
             $payload = [[
                 'name' => $user['name'] ?? null,
                 'email' => $user['email'] ?? null,
                 // Supabase users.password is NOT NULL in schema; store placeholder
-                'password' => $user['password'] ?? '',
-                'role' => $user['role'] ?? 'volunteer',
+                'password' => $passwordToSet,
+                'role' => $this->normalizeSupabaseUserRole($user['role'] ?? null),
                 'phone' => $user['phone'] ?? null,
                 'google_id' => $user['google_id'] ?? null,
                 'photo_url' => $user['photo_url'] ?? null,
