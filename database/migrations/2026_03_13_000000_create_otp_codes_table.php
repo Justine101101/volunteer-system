@@ -10,14 +10,12 @@ return new class extends Migration
     {
         Schema::create('otp_codes', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
+            // Supabase uses UUID primary keys for `users.id`, but some local setups use integer IDs.
+            // Store as string and avoid a strict FK so migrations don't fail due to type mismatches.
+            $table->string('user_id');
             $table->string('otp_code');        // hashed OTP
             $table->timestamp('expires_at');
             $table->timestamps();              // created_at + updated_at
-
-            $table->foreign('user_id')
-                ->references('id')->on('users')
-                ->onDelete('cascade');
 
             $table->index(['user_id', 'expires_at']);
         });

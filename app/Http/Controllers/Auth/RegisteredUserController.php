@@ -61,6 +61,10 @@ class RegisteredUserController extends Controller
             'email_verified_at' => null,
         ]);
 
+        // Some DB setups (UUID defaults, differing PK types) may not populate `$user->id`
+        // immediately after create(), so re-fetch by unique email.
+        $user = User::where('email', $request->email)->firstOrFail();
+
         // Mirror user to Supabase (Single Source of Truth for user data)
         $supabaseResult = $this->queryService->upsertUser([
             'name' => $user->name,
@@ -102,11 +106,12 @@ class RegisteredUserController extends Controller
         $expiresAt = Carbon::now()->addMinutes(5);
 
         // Invalidate previous OTPs for this user
-        OtpCode::where('user_id', $user->id)->delete();
+        $userId = (string) $user->id;
+        OtpCode::where('user_id', $userId)->delete();
 
         // Store hashed OTP with expiration
         OtpCode::create([
-            'user_id' => $user->id,
+            'user_id' => $userId,
             'otp_code' => $otpHashed,
             'expires_at' => $expiresAt,
         ]);

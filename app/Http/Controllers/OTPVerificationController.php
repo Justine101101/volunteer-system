@@ -32,7 +32,7 @@ class OTPVerificationController extends Controller
 
         $user = User::where('email', $request->email)->firstOrFail();
 
-        $otpRecord = OtpCode::where('user_id', $user->id)->latest()->first();
+        $otpRecord = OtpCode::where('user_id', (string) $user->id)->latest()->first();
 
         if (! $otpRecord) {
             return back()->withErrors(['otp' => 'Invalid or expired verification code.'])->withInput();
