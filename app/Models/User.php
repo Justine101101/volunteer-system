@@ -9,6 +9,13 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
+    // Supabase uses UUIDs for `public.users.id`, but Eloquent defaults to integer keys.
+    // Without this, Laravel can cast the UUID to an integer (e.g. "69..."=>69), which
+    // then breaks queries with: "invalid input syntax for type uuid".
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
