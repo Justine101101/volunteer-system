@@ -343,17 +343,16 @@
                                     class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
                                     @click="open({
                                         id: '{{ $event->id }}',
-                                        title: @js($event->title ?? ''),
-                                        description: @js($event->description ? strip_tags($event->description) : ''),
+                                        title: @json($event->title ?? ''),
+                                        description: @json($event->description ? strip_tags($event->description) : ''),
                                         date: '{{ optional($event->date)->format('M j, Y') ?? '' }}',
                                         time: '{{ $event->time ?? '' }}',
-                                        location: @js($event->location ?? ''),
-                                        // Use @js() so quotes/special chars in URLs don't break Alpine/JS.
-                                        image: @js($event->photo_url ?? ''),
+                                        location: @json($event->location ?? ''),
+                                        image: @json($event->photo_url ?? ''),
                                         status: '{{ $statusLabel }}',
                                         current_volunteers: {{ $currentVolunteers }},
                                         max_volunteers: {{ $maxVolunteers ?? 'null' }},
-                                        organizer: @js($creatorName ?? 'Organizer'),
+                                        organizer: @json($creatorName ?? 'Organizer'),
                                         join_url: '{{ route('events.join', ['eventId' => $event->id]) }}'
                                     })"
                                 >
