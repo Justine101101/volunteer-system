@@ -342,23 +342,26 @@
 
                             <!-- View Details (modal trigger) -->
                             <div class="mt-4 flex justify-between items-center">
+                                @php
+                                    $modalPayload = [
+                                        'id' => (string) ($event->id ?? ''),
+                                        'title' => (string) ($event->title ?? ''),
+                                        'description' => (string) ($event->description ? strip_tags($event->description) : ''),
+                                        'date' => (string) (optional($event->date)->format('M j, Y') ?? ''),
+                                        'time' => (string) ($event->time ?? ''),
+                                        'location' => (string) ($event->location ?? ''),
+                                        'image' => (string) ($event->photo_url ?? ''),
+                                        'status' => (string) ($statusLabel ?? 'Upcoming'),
+                                        'current_volunteers' => (int) ($currentVolunteers ?? 0),
+                                        'max_volunteers' => $maxVolunteers !== null ? (int) $maxVolunteers : null,
+                                        'organizer' => (string) ($creatorName ?? 'Organizer'),
+                                        'join_url' => (string) route('events.join', ['eventId' => $event->id]),
+                                    ];
+                                @endphp
                                 <button
                                     type="button"
                                     class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
-                                    @click='open(@json([
-                                        "id" => (string) ($event->id ?? ""),
-                                        "title" => (string) ($event->title ?? ""),
-                                        "description" => (string) ($event->description ? strip_tags($event->description) : ""),
-                                        "date" => (string) (optional($event->date)->format("M j, Y") ?? ""),
-                                        "time" => (string) ($event->time ?? ""),
-                                        "location" => (string) ($event->location ?? ""),
-                                        "image" => (string) ($event->photo_url ?? ""),
-                                        "status" => (string) ($statusLabel ?? "Upcoming"),
-                                        "current_volunteers" => (int) ($currentVolunteers ?? 0),
-                                        "max_volunteers" => $maxVolunteers !== null ? (int) $maxVolunteers : null,
-                                        "organizer" => (string) ($creatorName ?? "Organizer"),
-                                        "join_url" => (string) route("events.join", ["eventId" => $event->id]),
-                                    ]))'
+                                    @click='open(@json($modalPayload))'
                                 >
                                     View Details
                                 </button>
