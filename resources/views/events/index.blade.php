@@ -348,7 +348,8 @@
                                         date: '{{ optional($event->date)->format('M j, Y') ?? '' }}',
                                         time: '{{ $event->time ?? '' }}',
                                         location: @js($event->location ?? ''),
-                                        image: '{{ $event->photo_url ?? '' }}',
+                                        // Use @js() so quotes/special chars in URLs don't break Alpine/JS.
+                                        image: @js($event->photo_url ?? ''),
                                         status: '{{ $statusLabel }}',
                                         current_volunteers: {{ $currentVolunteers }},
                                         max_volunteers: {{ $maxVolunteers ?? 'null' }},
