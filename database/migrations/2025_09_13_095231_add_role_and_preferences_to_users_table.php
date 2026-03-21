@@ -11,11 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['superadmin', 'admin', 'volunteer'])->default('volunteer');
-            $table->boolean('notification_pref')->default(true);
-            $table->boolean('dark_mode')->default(false);
-        });
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                if (!Schema::hasColumn('users', 'role')) {
+                    $table->enum('role', ['superadmin', 'admin', 'volunteer'])->default('volunteer');
+                }
+                if (!Schema::hasColumn('users', 'notification_pref')) {
+                    $table->boolean('notification_pref')->default(true);
+                }
+                if (!Schema::hasColumn('users', 'dark_mode')) {
+                    $table->boolean('dark_mode')->default(false);
+                }
+            });
+        }
     }
 
     /**
@@ -23,8 +31,22 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['role', 'notification_pref', 'dark_mode']);
-        });
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                $toDrop = [];
+                if (Schema::hasColumn('users', 'role')) {
+                    $toDrop[] = 'role';
+                }
+                if (Schema::hasColumn('users', 'notification_pref')) {
+                    $toDrop[] = 'notification_pref';
+                }
+                if (Schema::hasColumn('users', 'dark_mode')) {
+                    $toDrop[] = 'dark_mode';
+                }
+                if (!empty($toDrop)) {
+                    $table->dropColumn($toDrop);
+                }
+            });
+        }
     }
 };
