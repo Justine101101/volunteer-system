@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('events', function (Blueprint $table) {
-            $table->id();
-            $table->string('title', 255);
-            $table->text('description');
-            $table->date('date');
-            $table->time('time');
-            $table->string('location', 255);
-            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
-            $table->timestamps();
-            $table->index('date');
-            $table->index('created_by');
-        });
+        if (!Schema::hasTable('events')) {
+            Schema::create('events', function (Blueprint $table) {
+                $table->id();
+                $table->string('title', 255);
+                $table->text('description');
+                $table->date('date');
+                $table->time('time');
+                $table->string('location', 255);
+                $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+                $table->timestamps();
+                $table->index('date');
+                $table->index('created_by');
+            });
+        }
     }
 
     /**

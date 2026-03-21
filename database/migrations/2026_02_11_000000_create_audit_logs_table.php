@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('audit_logs', function (Blueprint $table) {
-            $table->id();
-            // Nullable because some actions may be system-initiated (e.g. sync jobs)
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('action', 100);
-            $table->string('resource_type', 150);
-            // Flexible to support integer IDs and UUIDs from Supabase
-            $table->string('resource_id', 191)->nullable();
-            // Store old/new values, request metadata, etc.
-            $table->json('payload')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('audit_logs')) {
+            Schema::create('audit_logs', function (Blueprint $table) {
+                $table->id();
+                // Nullable because some actions may be system-initiated (e.g. sync jobs)
+                $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->string('action', 100);
+                $table->string('resource_type', 150);
+                // Flexible to support integer IDs and UUIDs from Supabase
+                $table->string('resource_id', 191)->nullable();
+                // Store old/new values, request metadata, etc.
+                $table->json('payload')->nullable();
+                $table->timestamps();
 
-            $table->index(['resource_type', 'resource_id']);
-            $table->index('action');
-            $table->index('created_at');
-        });
+                $table->index(['resource_type', 'resource_id']);
+                $table->index('action');
+                $table->index('created_at');
+            });
+        }
     }
 
     /**
