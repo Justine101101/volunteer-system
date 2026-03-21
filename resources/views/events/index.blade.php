@@ -70,7 +70,11 @@
 
     <!-- Events Section -->
     <div class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="eventsModal()">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+             x-data="{ openModal: false, event: null,
+                open(payload) { this.event = payload; this.openModal = true; },
+                close() { this.openModal = false; this.event = null; }
+             }">
             @if(session('success'))
                 <div class="mb-6 flex items-start gap-3 rounded-2xl border border-lions-green bg-lions-green/10 px-4 py-3 text-sm font-semibold text-lions-green shadow-soft">
                     <svg class="mt-0.5 h-5 w-5 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -567,20 +571,5 @@
         }
     </style>
 
-    <script>
-        function eventsModal() {
-            return {
-                openModal: false,
-                event: null,
-                open(payload) {
-                    this.event = payload;
-                    this.openModal = true;
-                },
-                close() {
-                    this.openModal = false;
-                    this.event = null;
-                }
-            }
-        }
-    </script>
+    {{-- Modal state is handled by Alpine x-data inline above (no global JS needed). --}}
 </x-app-layout>
