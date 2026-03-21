@@ -17,12 +17,29 @@ class GoogleController extends Controller
     {
     }
 
+    private function googleRedirectUrl(): string
+    {
+        $configured = (string) config('services.google.redirect', '');
+        $fallback = url('/auth/google/callback');
+        $url = $configured !== '' ? $configured : $fallback;
+
+        // Cloud OAuth callback should be HTTPS to match Google Console settings.
+        if (str_starts_with($url, 'http://')) {
+            $url = 'https://' . substr($url, 7);
+        }
+
+        return $url;
+    }
+
     /**
      * Redirect the user to Google OAuth provider.
      */
     public function redirectToGoogle(): RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')
+            ->redirectUrl($this->googleRedirectUrl())
+            ->stateless()
+            ->redirect();
     }
 
     /**
@@ -31,7 +48,10 @@ class GoogleController extends Controller
     public function handleGoogleCallback(): RedirectResponse
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')
+                ->redirectUrl($this->googleRedirectUrl())
+                ->stateless()
+                ->user();
 
             // Check if user exists by google_id or email
             $user = User::where('google_id', $googleUser->getId())
