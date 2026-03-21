@@ -15,6 +15,27 @@ class VolunteerDashboardController extends Controller
         $this->middleware('auth');
     }
 
+    private function normalizePhotoUrl(?string $photoUrl): ?string
+    {
+        if (!$photoUrl || $photoUrl === 'null' || trim($photoUrl) === '') {
+            return null;
+        }
+
+        if (str_starts_with($photoUrl, 'http://') || str_starts_with($photoUrl, 'https://')) {
+            return $photoUrl;
+        }
+
+        if (str_starts_with($photoUrl, '/storage/')) {
+            return $photoUrl;
+        }
+
+        if (str_starts_with($photoUrl, 'storage/')) {
+            return '/' . $photoUrl;
+        }
+
+        return '/storage/' . ltrim($photoUrl, '/');
+    }
+
     /**
      * Build participation statistics for a given volunteer user.
      * This can be reused on the volunteer dashboard or profile page.
@@ -46,18 +67,7 @@ class VolunteerDashboardController extends Controller
         if (is_array($allEventsResult) && !isset($allEventsResult['error'])) {
             $events = array_map(function ($event) {
                 $photoUrl = $event['photo_url'] ?? null;
-
-                if ($photoUrl && !empty($photoUrl) && $photoUrl !== 'null' && $photoUrl !== '') {
-                    if (!str_starts_with($photoUrl, 'http')) {
-                        if (str_starts_with($photoUrl, '/storage/')) {
-                            $photoUrl = asset($photoUrl);
-                        } else {
-                            $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
-                        }
-                    }
-                } else {
-                    $photoUrl = null;
-                }
+                $photoUrl = $this->normalizePhotoUrl($photoUrl);
 
                 return (object) [
                     'id' => $event['id'] ?? null,

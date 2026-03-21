@@ -55,6 +55,29 @@ class EventController extends Controller
         return $startFormatted ?? ($endFormatted ?? '');
     }
 
+    private function normalizePhotoUrl(?string $photoUrl): ?string
+    {
+        if (!$photoUrl || $photoUrl === 'null' || trim($photoUrl) === '') {
+            return null;
+        }
+
+        // Keep absolute URLs as-is.
+        if (str_starts_with($photoUrl, 'http://') || str_starts_with($photoUrl, 'https://')) {
+            return $photoUrl;
+        }
+
+        // Prefer origin-relative paths on Cloud to avoid APP_URL/mixed-content issues.
+        if (str_starts_with($photoUrl, '/storage/')) {
+            return $photoUrl;
+        }
+
+        if (str_starts_with($photoUrl, 'storage/')) {
+            return '/' . $photoUrl;
+        }
+
+        return '/storage/' . ltrim($photoUrl, '/');
+    }
+
     /**
      * Display a listing of the resource.
      * Primary Database: Supabase
@@ -81,19 +104,9 @@ class EventController extends Controller
                     'photo_url_empty' => empty($photoUrl),
                 ]);
                 
-                // Ensure photo_url is a full URL if it exists
-                if ($photoUrl && !empty($photoUrl) && $photoUrl !== 'null' && $photoUrl !== '') {
-                    // If it's already a full URL, use it as is
-                    if (str_starts_with($photoUrl, 'http')) {
-                        // Already a full URL, use as is
-                    } elseif (str_starts_with($photoUrl, '/storage/')) {
-                        // Convert relative path to full URL
-                        $photoUrl = asset($photoUrl);
-                    } else {
-                        // If it doesn't start with /storage/, add it
-                        $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
-                    }
-                    
+                $photoUrl = $this->normalizePhotoUrl($photoUrl);
+
+                if ($photoUrl) {
                     Log::info('Event photo URL converted', [
                         'event_id' => $event['id'] ?? null,
                         'event_title' => $event['title'] ?? null,
@@ -337,21 +350,7 @@ class EventController extends Controller
 
         // Transform Supabase response to object for view compatibility
         $photoUrl = $supabaseEvent['photo_url'] ?? null;
-        // Ensure photo_url is a full URL if it exists
-        if ($photoUrl && !empty($photoUrl)) {
-            // If it's already a full URL, use it as is
-            if (str_starts_with($photoUrl, 'http')) {
-                // Already a full URL, use as is
-            } elseif (str_starts_with($photoUrl, '/storage/')) {
-                // Convert relative path to full URL
-                $photoUrl = asset($photoUrl);
-            } else {
-                // If it doesn't start with /storage/, add it
-                $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
-            }
-        } else {
-            $photoUrl = null;
-        }
+        $photoUrl = $this->normalizePhotoUrl($photoUrl);
         
         // Debug logging
         Log::debug('Event show photo URL', [
@@ -416,21 +415,7 @@ class EventController extends Controller
 
         // Transform Supabase response to object for view compatibility
         $photoUrl = $supabaseEvent['photo_url'] ?? null;
-        // Ensure photo_url is a full URL if it exists
-        if ($photoUrl && !empty($photoUrl)) {
-            // If it's already a full URL, use it as is
-            if (str_starts_with($photoUrl, 'http')) {
-                // Already a full URL, use as is
-            } elseif (str_starts_with($photoUrl, '/storage/')) {
-                // Convert relative path to full URL
-                $photoUrl = asset($photoUrl);
-            } else {
-                // If it doesn't start with /storage/, add it
-                $photoUrl = asset('/storage/' . ltrim($photoUrl, '/'));
-            }
-        } else {
-            $photoUrl = null;
-        }
+        $photoUrl = $this->normalizePhotoUrl($photoUrl);
         
         $eventData = (object) [
             'id' => $supabaseEvent['id'] ?? null,
