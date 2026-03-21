@@ -345,20 +345,20 @@
                                 <button
                                     type="button"
                                     class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
-                                    @click="open({
-                                        id: '{{ $event->id }}',
-                                        title: @json($event->title ?? ''),
-                                        description: @json($event->description ? strip_tags($event->description) : ''),
-                                        date: '{{ optional($event->date)->format('M j, Y') ?? '' }}',
-                                        time: '{{ $event->time ?? '' }}',
-                                        location: @json($event->location ?? ''),
-                                        image: @json($event->photo_url ?? ''),
-                                        status: '{{ $statusLabel }}',
-                                        current_volunteers: {{ $currentVolunteers }},
-                                        max_volunteers: {{ $maxVolunteers ?? 'null' }},
-                                        organizer: @json($creatorName ?? 'Organizer'),
-                                        join_url: '{{ route('events.join', ['eventId' => $event->id]) }}'
-                                    })"
+                                    @click='open(@json([
+                                        "id" => (string) ($event->id ?? ""),
+                                        "title" => (string) ($event->title ?? ""),
+                                        "description" => (string) ($event->description ? strip_tags($event->description) : ""),
+                                        "date" => (string) (optional($event->date)->format("M j, Y") ?? ""),
+                                        "time" => (string) ($event->time ?? ""),
+                                        "location" => (string) ($event->location ?? ""),
+                                        "image" => (string) ($event->photo_url ?? ""),
+                                        "status" => (string) ($statusLabel ?? "Upcoming"),
+                                        "current_volunteers" => (int) ($currentVolunteers ?? 0),
+                                        "max_volunteers" => $maxVolunteers !== null ? (int) $maxVolunteers : null,
+                                        "organizer" => (string) ($creatorName ?? "Organizer"),
+                                        "join_url" => (string) route("events.join", ["eventId" => $event->id]),
+                                    ]))'
                                 >
                                     View Details
                                 </button>
@@ -406,7 +406,7 @@
                 <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
                     <div>
                         <p class="text-[11px] uppercase tracking-wide text-slate-400">Event</p>
-                        <h3 class="text-sm font-semibold text-slate-900" x-text="event?.title ?? 'Event details'"></h3>
+                        <h3 class="text-sm font-semibold text-slate-900" x-text="(event && event.title) ? event.title : 'Event details'"></h3>
                     </div>
                     <button
                         type="button"
@@ -439,14 +439,14 @@
 
                                 <div class="flex flex-wrap items-center gap-2 text-xs">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full font-semibold"
-                                          :class="(event?.status === 'Completed')
+                                          :class="((event && event.status) === 'Completed')
                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                            : (event?.status === 'Ongoing')
+                                            : ((event && event.status) === 'Ongoing')
                                                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                                : (event?.status === 'Ended')
+                                                : ((event && event.status) === 'Ended')
                                                     ? 'bg-slate-50 text-slate-700 border border-slate-200'
                                                     : 'bg-amber-50 text-amber-700 border border-amber-200'">
-                                        <span x-text="event?.status || 'Upcoming'"></span>
+                                        <span x-text="(event && event.status) ? event.status : 'Upcoming'"></span>
                                     </span>
                                 </div>
 
