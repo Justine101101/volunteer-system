@@ -9,10 +9,14 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\DatabaseQueryService;
+use App\Services\SupabaseService;
 
 class EventController extends Controller
 {
-    public function __construct(private DatabaseQueryService $queryService)
+    public function __construct(
+        private DatabaseQueryService $queryService,
+        private SupabaseService $supabaseService
+    )
     {
         // Allow public/volunteer access to the event list, detail page, and calendar.
         // Restrict creation and management actions to authenticated admins.
@@ -61,6 +65,20 @@ class EventController extends Controller
             return null;
         }
 
+        $photoUrl = trim($photoUrl);
+
+        // Convert expiring signed Supabase URLs into stable public URLs for public buckets.
+        // Example:
+        // /storage/v1/object/sign/<bucket>/<path>?token=...  -> /storage/v1/object/public/<bucket>/<path>
+        if (preg_match('#/storage/v1/object/sign/([^/]+)/([^?]+)#', $photoUrl, $m)) {
+            $bucket = $m[1];
+            $path = $m[2];
+            $base = rtrim((string) config('supabase.url'), '/');
+            if ($base !== '') {
+                return $base . '/storage/v1/object/public/' . $bucket . '/' . $path;
+            }
+        }
+
         // Keep absolute URLs as-is.
         if (str_starts_with($photoUrl, 'http://') || str_starts_with($photoUrl, 'https://')) {
             return $photoUrl;
@@ -76,6 +94,32 @@ class EventController extends Controller
         }
 
         return '/storage/' . ltrim($photoUrl, '/');
+    }
+
+    private function uploadEventPhoto(\Illuminate\Http\UploadedFile $photo, string $title): ?string
+    {
+        $filename = Str::slug($title) . '-' . time() . '.' . $photo->getClientOriginalExtension();
+        $bucket = (string) config('supabase.bucket_name', 'volunteer-portal');
+        $path = 'events/' . $filename;
+
+        try {
+            $result = $this->supabaseService->uploadFile($bucket, $path, $photo->getContent());
+            if (is_array($result) && isset($result['error'])) {
+                throw new \RuntimeException((string) $result['error']);
+            }
+
+            return $this->supabaseService->getFileUrl($bucket, $path);
+        } catch (\Throwable $e) {
+            Log::warning('Supabase photo upload failed, falling back to local storage', [
+                'message' => $e->getMessage(),
+                'bucket' => $bucket,
+                'path' => $path,
+            ]);
+
+            // Fallback for local dev if Supabase Storage config/policy is unavailable.
+            $localPath = $photo->storeAs('events', $filename, 'public');
+            return Storage::url($localPath);
+        }
     }
 
     /**
@@ -274,17 +318,7 @@ class EventController extends Controller
         
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
-            $filename = Str::slug($request->title) . '-' . time() . '.' . $photo->getClientOriginalExtension();
-            $path = $photo->storeAs('events', $filename, 'public');
-            $photoUrl = Storage::url($path);
-            
-            // Log the photo upload for debugging
-            Log::info('Event photo uploaded', [
-                'filename' => $filename,
-                'path' => $path,
-                'photo_url' => $photoUrl,
-                'file_exists' => Storage::disk('public')->exists($path),
-            ]);
+            $photoUrl = $this->uploadEventPhoto($photo, $request->title);
         }
 
         // Write only to Supabase (Single Source of Truth)
@@ -472,17 +506,9 @@ class EventController extends Controller
         $photoUrl = is_array($supabaseEvent) ? ($supabaseEvent['photo_url'] ?? null) : null;
         
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
-            if ($photoUrl) {
-                $oldPath = str_replace('/storage/', '', $photoUrl);
-                Storage::disk('public')->delete($oldPath);
-            }
-            
-            // Upload new photo
+            // Upload replacement photo; keeping old file cleanup out-of-band avoids cloud storage path mismatches.
             $photo = $request->file('photo');
-            $filename = Str::slug($request->title) . '-' . time() . '.' . $photo->getClientOriginalExtension();
-            $path = $photo->storeAs('events', $filename, 'public');
-            $photoUrl = Storage::url($path);
+            $photoUrl = $this->uploadEventPhoto($photo, $request->title);
         }
 
         // Update only in Supabase (Single Source of Truth)
@@ -517,15 +543,6 @@ class EventController extends Controller
     {
         // Get the event from Supabase to get photo_url for deletion
         $supabaseEvent = $this->queryService->getEventById($eventId);
-        
-        // Delete photo if exists
-        if ($supabaseEvent && !isset($supabaseEvent['error']) && isset($supabaseEvent['photo_url'])) {
-            $photoUrl = $supabaseEvent['photo_url'];
-            if ($photoUrl) {
-                $oldPath = str_replace('/storage/', '', $photoUrl);
-                Storage::disk('public')->delete($oldPath);
-            }
-        }
         
         // Delete from Supabase (Single Source of Truth)
         $result = $this->queryService->deleteEvent($eventId);
