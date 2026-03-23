@@ -218,7 +218,7 @@
         reader.readAsDataURL(file);
     }
 
-    function closeCropModal() {
+    function closeCropModal(resetInput = true) {
         document.getElementById('cropModal').classList.add('hidden');
         
         if (profileCropper) {
@@ -227,7 +227,7 @@
         }
         
         // Reset file input
-        if (originalProfileFileInput) {
+        if (resetInput && originalProfileFileInput) {
             originalProfileFileInput.value = '';
         }
     }
@@ -286,15 +286,16 @@
                 currentPhoto.parentNode.replaceChild(newImg, currentPhoto);
             }
 
-            // Close modal
-            closeCropModal();
+        // Close modal and keep the cropped file so the form submits it.
+        closeCropModal(false);
         }, 'image/jpeg', 0.9);
     }
 
     // Close modal on outside click
     document.getElementById('cropModal').addEventListener('click', function(e) {
         if (e.target === this) {
-            closeCropModal();
+            // Outside click = cancel, clear the selected file
+            closeCropModal(true);
         }
     });
 </script>
