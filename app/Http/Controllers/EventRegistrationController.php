@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\DatabaseQueryService;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\RegistrationDecisionMail;
 
 class EventRegistrationController extends Controller
 {
@@ -166,6 +168,8 @@ class EventRegistrationController extends Controller
             return redirect()->back()->with('error', 'Failed to approve registration. Please try again.');
         }
 
+        $this->notifyRegistrationDecision($registrationId, 'approved');
+
         return redirect()->back()->with('success', 'Registration approved successfully!');
     }
 
@@ -198,6 +202,8 @@ class EventRegistrationController extends Controller
             Log::error('Failed to reject registration in Supabase: ' . ($result['error'] ?? 'Unknown error'));
             return redirect()->back()->with('error', 'Failed to reject registration. Please try again.');
         }
+
+        $this->notifyRegistrationDecision($registrationId, 'rejected');
 
         return redirect()->back()->with('success', 'Registration rejected.');
     }
@@ -308,6 +314,22 @@ class EventRegistrationController extends Controller
                     'error' => $created['error'] ?? null,
                     'details' => $created['details'] ?? null,
                 ]);
+            }
+
+            // Email only if user has enabled it in settings (notification_pref).
+            $supabaseUser = $this->queryService->getUserById($userId);
+            $notificationPref = true;
+            $email = null;
+            if (is_array($supabaseUser) && !isset($supabaseUser['error'])) {
+                $notificationPref = (bool) ($supabaseUser['notification_pref'] ?? true);
+                $email = $supabaseUser['email'] ?? null;
+            }
+
+            if ($notificationPref === true && !empty($email)) {
+                Mail::to($email)->send(new RegistrationDecisionMail(
+                    eventTitle: $eventTitle,
+                    status: $status,
+                ));
             }
         } catch (\Throwable $e) {
             Log::warning('Failed to create registration decision notification', [

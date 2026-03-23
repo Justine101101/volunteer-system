@@ -700,7 +700,8 @@
                                                    name="notification_pref"
                                                    value="1"
                                                    {{ old('notification_pref', $user->notification_pref) ? 'checked' : '' }}
-                                                   class="sr-only peer">
+                                                   class="sr-only peer"
+                                                   onchange="document.getElementById('appearanceThemeForm')?.requestSubmit();">
                                             <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-emerald-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition-all peer-checked:after:translate-x-full"></div>
                                         </label>
                                     </div>
