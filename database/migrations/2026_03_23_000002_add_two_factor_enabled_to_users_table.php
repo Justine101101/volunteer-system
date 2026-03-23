@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasColumn('users', 'two_factor_enabled')) {
             Schema::table('users', function (Blueprint $table) {
-                $table->boolean('two_factor_enabled')->default(false)->after('dark_mode');
+                $table->boolean('two_factor_enabled')->default(false);
             });
         }
     }

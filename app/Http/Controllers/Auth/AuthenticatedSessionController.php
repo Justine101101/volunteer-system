@@ -14,9 +14,14 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
 use App\Mail\OtpVerificationMail;
 use App\Models\User;
+use App\Services\DatabaseQueryService;
 
 class AuthenticatedSessionController extends Controller
 {
+    public function __construct(private DatabaseQueryService $queryService)
+    {
+    }
+
     /**
      * Display the login view.
      */
@@ -34,9 +39,28 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // If 2FA is enabled, challenge the user before allowing access.
         $authUser = Auth::user();
-        if ($authUser && (bool) ($authUser->two_factor_enabled ?? false)) {
+        $twoFactorEnabledLocal = null;
+        if ($authUser) {
+            $attrs = $authUser->getAttributes();
+            if (array_key_exists('two_factor_enabled', $attrs)) {
+                $twoFactorEnabledLocal = (bool) $attrs['two_factor_enabled'];
+            }
+        }
+
+        // If the local column isn't present or not set, fall back to Supabase.
+        $twoFactorEnabled = $twoFactorEnabledLocal;
+        if ($twoFactorEnabled === null && $authUser?->email) {
+            try {
+                $supUser = $this->queryService->getUserByEmail($authUser->email);
+                $twoFactorEnabled = (bool) ($supUser['two_factor_enabled'] ?? false);
+            } catch (\Throwable $e) {
+                $twoFactorEnabled = false;
+            }
+        }
+
+        // If 2FA is enabled, challenge the user before allowing access.
+        if ($authUser && (bool) ($twoFactorEnabled ?? false)) {
             $destination = $authUser->isAdminOrSuperAdmin()
                 ? route('admin.dashboard', absolute: false)
                 : route('dashboard', absolute: false);

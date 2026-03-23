@@ -121,7 +121,23 @@ class GoogleController extends Controller
             }
 
             // If 2FA is enabled, challenge before redirecting.
-            if ((bool) ($user->two_factor_enabled ?? false)) {
+            $twoFactorEnabledLocal = null;
+            $attrs = $user->getAttributes();
+            if (array_key_exists('two_factor_enabled', $attrs)) {
+                $twoFactorEnabledLocal = (bool) $attrs['two_factor_enabled'];
+            }
+
+            $twoFactorEnabled = $twoFactorEnabledLocal;
+            if ($twoFactorEnabled === null && $user->email) {
+                try {
+                    $supUser = $this->queryService->getUserByEmail($user->email);
+                    $twoFactorEnabled = (bool) ($supUser['two_factor_enabled'] ?? false);
+                } catch (\Throwable $e) {
+                    $twoFactorEnabled = false;
+                }
+            }
+
+            if ((bool) ($twoFactorEnabled ?? false)) {
                 $destination = $user->isAdminOrSuperAdmin()
                     ? route('admin.dashboard', absolute: false)
                     : route('dashboard', absolute: false);

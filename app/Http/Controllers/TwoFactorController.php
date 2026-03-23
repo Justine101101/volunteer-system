@@ -74,7 +74,14 @@ class TwoFactorController extends Controller
         $user = Auth::user();
 
         $user->two_factor_enabled = false;
-        $user->save();
+        try {
+            $user->save();
+        } catch (\Throwable $e) {
+            Log::warning('Failed to persist 2FA disabled locally', [
+                'user_id' => (string) $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Sync change to Supabase (preserve everything else).
         try {
@@ -155,7 +162,16 @@ class TwoFactorController extends Controller
         // Mode dispatch
         if ($mode === 'setup') {
             $user->two_factor_enabled = true;
-            $user->save();
+            try {
+                $user->save();
+            } catch (\Throwable $e) {
+                // On Laravel Cloud, migrations may not have added the local column yet.
+                // We still continue with Supabase sync so verification doesn't crash.
+                Log::warning('Failed to persist 2FA enabled locally', [
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             try {
                 $queryService->upsertUser([
