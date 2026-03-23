@@ -71,7 +71,7 @@ return new class extends Migration
                     WHERE conrelid = 'public.users'::regclass
                       AND contype = 'c'
                       AND pg_get_constraintdef(oid) ILIKE '%role%'
-                      AND pg_get_constraintdef(oid) ILIKE '%volunteer%';
+                      AND pg_get_constraintdef(oid) ILIKE '%volunteer%'
                 LOOP
                     EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(r.conname);
                 END LOOP;
@@ -162,7 +162,7 @@ return new class extends Migration
                     WHERE conrelid = 'public.users'::regclass
                       AND contype = 'c'
                       AND pg_get_constraintdef(oid) ILIKE '%role%'
-                      AND pg_get_constraintdef(oid) ILIKE '%volunteer%';
+                      AND pg_get_constraintdef(oid) ILIKE '%volunteer%'
                 LOOP
                     EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(r.conname);
                 END LOOP;
