@@ -68,6 +68,17 @@ class GoogleController extends Controller
     public function handleGoogleCallback(): RedirectResponse
     {
         try {
+            // If Google rejects the request, it may redirect back with query params like:
+            // error=redirect_uri_mismatch&error_description=...
+            $callbackError = request()->query('error');
+            if (!empty($callbackError)) {
+                \Log::error('Google OAuth callback rejected', [
+                    'error' => $callbackError,
+                    'error_description' => request()->query('error_description'),
+                    'redirect_url_used' => $this->googleRedirectUrl(),
+                ]);
+            }
+
             $googleUser = Socialite::driver('google')
                 ->redirectUrl($this->googleRedirectUrl())
                 ->stateless()
@@ -191,7 +202,12 @@ class GoogleController extends Controller
 
             return redirect()->intended(route('dashboard', absolute: false));
         } catch (\Exception $e) {
-            \Log::error('Google OAuth error: ' . $e->getMessage());
+            \Log::error('Google OAuth error', [
+                'message' => $e->getMessage(),
+                'redirect_url_used' => $this->googleRedirectUrl(),
+                'callback_error' => request()->query('error'),
+                'callback_error_description' => request()->query('error_description'),
+            ]);
             return redirect()->route('login')->with('error', 'Unable to login with Google. Please try again.');
         }
     }
