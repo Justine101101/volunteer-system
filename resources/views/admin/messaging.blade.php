@@ -424,12 +424,12 @@
                         <!-- User Dropdown List -->
                         <div id="userDropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                             @foreach($users as $user)
-                                <div 
-                                    class="user-option px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0 transition-colors"
+                                <button
+                                    type="button"
+                                    class="user-option w-full text-left px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0 transition-colors"
                                     data-user-id="{{ $user->id }}"
-                                    data-user-name="{{ strtolower($user->name) }}"
-                                    data-user-email="{{ strtolower($user->email) }}"
-                                    onclick="selectUser({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ addslashes($user->email) }}')">
+                                    data-user-name="{{ $user->name }}"
+                                    data-user-email="{{ $user->email }}">
                                     <div class="flex items-center gap-3">
                                         @if($user->photo_url)
                                             <img src="{{ asset($user->photo_url) }}" alt="{{ $user->name }}" class="w-8 h-8 rounded-full object-cover">
@@ -443,7 +443,7 @@
                                             <p class="text-xs text-slate-500">{{ $user->email }}</p>
                                         </div>
                                     </div>
-                                </div>
+                                </button>
                             @endforeach
                         </div>
                         
@@ -552,8 +552,8 @@
             
             let hasMatches = false;
             options.forEach(option => {
-                const name = option.getAttribute('data-user-name') || '';
-                const email = option.getAttribute('data-user-email') || '';
+                const name = (option.getAttribute('data-user-name') || '').toLowerCase();
+                const email = (option.getAttribute('data-user-email') || '').toLowerCase();
                 
                 if (name.includes(term) || email.includes(term)) {
                     option.style.display = 'block';
@@ -632,6 +632,16 @@
 
         // Auto-scroll to bottom on load
         document.addEventListener('DOMContentLoaded', function() {
+            // Make dropdown rows reliably clickable (avoids fragile inline JS string escaping issues).
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                dropdown.addEventListener('click', function(event) {
+                    const btn = event.target.closest('.user-option');
+                    if (!btn) return;
+                    selectUser(btn.dataset.userId, btn.dataset.userName, btn.dataset.userEmail);
+                });
+            }
+
             const messagesContainer = document.getElementById('messagesContainer');
             if (messagesContainer) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
