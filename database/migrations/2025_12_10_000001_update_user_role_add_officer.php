@@ -47,10 +47,60 @@ return new class extends Migration
             return;
         }
 
-        // PostgreSQL (enum backed by CHECK constraint in SQLite-like style)
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['superadmin', 'admin', 'officer', 'volunteer'])->default('volunteer')->change();
-        });
+        // PostgreSQL: Laravel's enum->change() generates invalid SQL for CHECK constraints on existing columns.
+        // Use explicit CHECK constraint SQL instead.
+        DB::statement("
+            DO $$
+            DECLARE
+                r RECORD;
+            BEGIN
+                -- If the constraint has the expected name, drop it explicitly first.
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'users_role_check'
+                      AND conrelid = 'public.users'::regclass
+                ) THEN
+                    ALTER TABLE public.users DROP CONSTRAINT users_role_check;
+                END IF;
+
+                -- Drop any existing CHECK constraints that look like they enforce the users.role set
+                FOR r IN
+                    SELECT conname
+                    FROM pg_constraint
+                    WHERE conrelid = 'public.users'::regclass
+                      AND contype = 'c'
+                      AND pg_get_constraintdef(oid) ILIKE '%role%'
+                      AND pg_get_constraintdef(oid) ILIKE '%volunteer%';
+                LOOP
+                    EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(r.conname);
+                END LOOP;
+            END $$;
+        ");
+
+        DB::statement("
+            ALTER TABLE public.users
+                ALTER COLUMN role TYPE varchar(255),
+                ALTER COLUMN role SET NOT NULL,
+                ALTER COLUMN role SET DEFAULT 'volunteer'
+        ");
+
+        // Add the updated constraint only if it's not already present.
+        DB::statement("
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'users_role_check'
+                      AND conrelid = 'public.users'::regclass
+                ) THEN
+                    ALTER TABLE public.users
+                        ADD CONSTRAINT users_role_check
+                        CHECK (role IN ('superadmin', 'admin', 'officer', 'volunteer'));
+                END IF;
+            END $$;
+        ");
     }
 
     /**
@@ -91,9 +141,56 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['superadmin', 'admin', 'volunteer'])->default('volunteer')->change();
-        });
+        // PostgreSQL: revert CHECK constraint to remove 'officer'
+        DB::statement("
+            DO $$
+            DECLARE
+                r RECORD;
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'users_role_check'
+                      AND conrelid = 'public.users'::regclass
+                ) THEN
+                    ALTER TABLE public.users DROP CONSTRAINT users_role_check;
+                END IF;
+
+                FOR r IN
+                    SELECT conname
+                    FROM pg_constraint
+                    WHERE conrelid = 'public.users'::regclass
+                      AND contype = 'c'
+                      AND pg_get_constraintdef(oid) ILIKE '%role%'
+                      AND pg_get_constraintdef(oid) ILIKE '%volunteer%';
+                LOOP
+                    EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(r.conname);
+                END LOOP;
+            END $$;
+        ");
+
+        DB::statement("
+            ALTER TABLE public.users
+                ALTER COLUMN role TYPE varchar(255),
+                ALTER COLUMN role SET NOT NULL,
+                ALTER COLUMN role SET DEFAULT 'volunteer'
+        ");
+
+        DB::statement("
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'users_role_check'
+                      AND conrelid = 'public.users'::regclass
+                ) THEN
+                    ALTER TABLE public.users
+                        ADD CONSTRAINT users_role_check
+                        CHECK (role IN ('superadmin', 'admin', 'volunteer'));
+                END IF;
+            END $$;
+        ");
     }
 };
 
