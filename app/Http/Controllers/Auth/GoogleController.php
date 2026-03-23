@@ -9,6 +9,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Models\OtpCode;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OtpVerificationMail;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
@@ -114,6 +118,38 @@ class GoogleController extends Controller
                 }
 
                 Auth::login($user, true);
+            }
+
+            // If 2FA is enabled, challenge before redirecting.
+            if ((bool) ($user->two_factor_enabled ?? false)) {
+                $destination = $user->isAdminOrSuperAdmin()
+                    ? route('admin.dashboard', absolute: false)
+                    : route('dashboard', absolute: false);
+
+                $otpPlain = (string) random_int(100000, 999999);
+                $otpHashed = Hash::make($otpPlain);
+                $expiresAt = Carbon::now()->addMinutes(5);
+
+                OtpCode::where('user_id', (string) $user->id)->delete();
+
+                OtpCode::create([
+                    'user_id' => (string) $user->id,
+                    'otp_code' => $otpHashed,
+                    'expires_at' => $expiresAt,
+                ]);
+
+                Mail::to($user->email)->send(new OtpVerificationMail($otpPlain));
+
+                request()->session()->put([
+                    'two_factor_mode' => 'challenge',
+                    'two_factor_user_id' => (string) $user->id,
+                    'two_factor_destination' => $destination,
+                ]);
+
+                Auth::logout();
+                request()->session()->regenerate();
+
+                return redirect()->route('two_factor.verify.form');
             }
 
             // Redirect based on user role

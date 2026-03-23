@@ -119,6 +119,7 @@ class SyncToSupabase extends Command
                 'photo_url' => $user->photo_url ?? null,
                 'notification_pref' => $user->notification_pref ?? true,
                 'dark_mode' => $user->dark_mode ?? false,
+                    'two_factor_enabled' => $user->two_factor_enabled ?? false,
                 'email_verified_at' => $user->email_verified_at?->toISOString(),
             ];
 

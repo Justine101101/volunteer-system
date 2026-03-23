@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\OTPVerificationController;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -78,4 +79,19 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+});
+
+// 2FA (email OTP) routes
+Route::get('2fa/verify', [TwoFactorController::class, 'showVerifyForm'])
+    ->name('two_factor.verify.form');
+
+Route::post('2fa/verify', [TwoFactorController::class, 'verify'])
+    ->name('two_factor.verify.post');
+
+Route::middleware('auth')->group(function () {
+    Route::post('2fa/setup/start', [TwoFactorController::class, 'startSetup'])
+        ->name('two_factor.setup.start');
+
+    Route::post('2fa/disable', [TwoFactorController::class, 'disable'])
+        ->name('two_factor.disable');
 });

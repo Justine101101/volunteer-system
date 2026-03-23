@@ -32,6 +32,7 @@ class User extends Authenticatable
         'role',
         'notification_pref',
         'dark_mode',
+        'two_factor_enabled',
         'email_verified_at',
         'photo_url',
         'google_id',
@@ -59,6 +60,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'notification_pref' => 'boolean',
             'dark_mode' => 'boolean',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

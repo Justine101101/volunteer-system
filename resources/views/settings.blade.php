@@ -399,26 +399,48 @@
                                 </div>
                             </div>
 
-                            <!-- 2FA card (placeholder – requires backend implementation) -->
+                            <!-- 2FA card -->
                             <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                 <div>
                                     <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50">Two-Factor Authentication (2FA)</h3>
                                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                        Add an extra verification step using an authenticator app or SMS code.
+                                        Adds an extra verification step using a 6-digit OTP sent to your email.
                                     </p>
-                                    <p class="mt-2 text-[11px] text-slate-400">
-                                        <!-- TODO: Wire this toggle and actions to actual 2FA backend implementation (e.g., Laravel Fortify / custom module). -->
-                                        This is a UI placeholder. Connect to your chosen 2FA provider in the controller.
-                                    </p>
+                                    @if($errors->has('two_factor'))
+                                        <p class="mt-2 text-[12px] text-red-600 dark:text-red-400 font-medium">
+                                            {{ $errors->first('two_factor') }}
+                                        </p>
+                                    @endif
                                 </div>
                                 <div class="flex flex-col items-end gap-3">
                                     <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" disabled class="sr-only peer">
+                                        <input
+                                            type="checkbox"
+                                            disabled
+                                            class="sr-only peer"
+                                            {{ ($user->two_factor_enabled ?? false) ? 'checked' : '' }}
+                                        >
                                         <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-emerald-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition-all peer-checked:after:translate-x-full"></div>
                                     </label>
-                                    <button type="button" disabled class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-500 bg-white/40 cursor-not-allowed">
-                                        Configure 2FA
-                                    </button>
+                                    @if(!($user->two_factor_enabled ?? false))
+                                        <form method="POST" action="{{ route('two_factor.setup.start') }}">
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 bg-white hover:bg-slate-50">
+                                                Configure 2FA
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('two_factor.disable') }}">
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100">
+                                                Disable 2FA
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
 

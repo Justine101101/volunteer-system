@@ -659,11 +659,11 @@ class DatabaseQueryService
             // If the caller didn't provide a password, preserve the existing Supabase password
             // instead of overwriting it with an empty string (which breaks email/password login).
             $passwordToSet = null;
+            $existingRecord = $email ? $this->getUserByEmail($email) : null;
             if (array_key_exists('password', $user) && $user['password'] !== null && $user['password'] !== '') {
                 $passwordToSet = $user['password'];
-            } elseif ($email) {
-                $existing = $this->getUserByEmail($email);
-                $passwordToSet = $existing['password'] ?? '';
+            } elseif ($existingRecord && is_array($existingRecord)) {
+                $passwordToSet = $existingRecord['password'] ?? '';
             } else {
                 $passwordToSet = '';
             }
@@ -680,6 +680,9 @@ class DatabaseQueryService
                 'notification_pref' => $user['notification_pref'] ?? true,
                 'dark_mode' => $user['dark_mode'] ?? false,
                 'email_verified_at' => $user['email_verified_at'] ?? null,
+                'two_factor_enabled' => array_key_exists('two_factor_enabled', $user)
+                    ? (bool) $user['two_factor_enabled']
+                    : (isset($existingRecord['two_factor_enabled']) ? (bool) $existingRecord['two_factor_enabled'] : false),
                 'updated_at' => now()->toISOString(),
             ]];
 
