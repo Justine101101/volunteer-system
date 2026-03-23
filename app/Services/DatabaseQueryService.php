@@ -723,12 +723,18 @@ class DatabaseQueryService
     public function upsertAuditLog(array $auditLog): array
     {
         try {
+            $localAuditId = $auditLog['local_audit_log_id'] ?? null;
+            if ($localAuditId === null || $localAuditId === '') {
+                // Supabase column is NOT NULL; skip bad payloads instead of crashing sync.
+                return ['error' => 'Missing local_audit_log_id'];
+            }
+
             if (!config('supabase.url') || !config('supabase.service_role_key')) {
                 return ['error' => 'Supabase not configured'];
             }
 
             $payload = [[
-                'local_audit_log_id' => $auditLog['local_audit_log_id'],
+                'local_audit_log_id' => (int) $localAuditId,
                 'user_id' => $auditLog['user_id'] ?? null,
                 'local_user_id' => $auditLog['local_user_id'] ?? null,
                 'user_email' => $auditLog['user_email'] ?? null,

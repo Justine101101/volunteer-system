@@ -36,6 +36,12 @@ class PushAuditLogsToSupabase extends Command
         $failed = 0;
 
         foreach ($logs as $log) {
+            if ($log->id === null) {
+                $failed++;
+                $this->warn('Skipping audit log with null local id');
+                continue;
+            }
+
             $userEmail = $log->user?->email;
             $supabaseUserId = null;
 
