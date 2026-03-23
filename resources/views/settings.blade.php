@@ -9,7 +9,7 @@
                             {{ strtoupper(substr($user->name, 0, 2)) }}
                         </div>
                     @else
-                        <img src="{{ asset($user->photo_url) }}"
+                        <img src="{{ (is_string($user->photo_url) && str_starts_with($user->photo_url, 'http')) ? $user->photo_url : asset($user->photo_url) }}"
                              alt="{{ $user->name }}"
                              class="w-14 h-14 rounded-full object-cover shadow-md border-2 border-emerald-200">
                     @endif
@@ -158,7 +158,7 @@
                             <label for="photo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Photo</label>
                             <div class="flex items-center gap-4">
                                 @if($user->photo_url)
-                                    <img src="{{ asset($user->photo_url) }}" 
+                                    <img src="{{ (is_string($user->photo_url) && str_starts_with($user->photo_url, 'http')) ? $user->photo_url : asset($user->photo_url) }}" 
                                          alt="Current photo" 
                                          id="currentPhoto"
                                          class="w-20 h-20 rounded-full object-cover border-2 border-gray-300 shadow-md">

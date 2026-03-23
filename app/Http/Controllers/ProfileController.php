@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\SupabaseService;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -41,7 +42,7 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request, DatabaseQueryService $queryService): RedirectResponse
+    public function update(ProfileUpdateRequest $request, DatabaseQueryService $queryService, SupabaseService $supabaseService): RedirectResponse
     {
         $user = $request->user();
         $user->fill($request->validated());
@@ -52,17 +53,26 @@ class ProfileController extends Controller
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
-            if ($user->photo_url) {
-                $oldPath = str_replace('/storage/', '', $user->photo_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-            
             // Upload new photo
             $photo = $request->file('photo');
             $filename = Str::slug($user->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
-            $path = $photo->storeAs('profiles', $filename, 'public');
-            $user->photo_url = Storage::url($path);
+
+            // Upload directly to Supabase Storage so Cloud doesn't depend on local `storage:link`.
+            $bucket = (string) config('supabase.bucket_name', 'volunteer-portal');
+            $supabasePath = 'profiles/' . $filename;
+
+            try {
+                $supabaseService->uploadFile($bucket, $supabasePath, $photo->getContent());
+                $user->photo_url = $supabaseService->getFileUrl($bucket, $supabasePath);
+            } catch (\Throwable $e) {
+                // Fallback for local dev.
+                Log::warning('Profile photo upload to Supabase failed; falling back to local storage', [
+                    'message' => $e->getMessage(),
+                ]);
+
+                $path = $photo->storeAs('profiles', $filename, 'public');
+                $user->photo_url = Storage::url($path);
+            }
         }
 
         // Save to Laravel DB first

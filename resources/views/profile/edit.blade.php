@@ -6,7 +6,7 @@
                 <div class="flex items-center gap-6">
                     <!-- Avatar -->
                     @if($user->photo_url)
-                        <img src="{{ asset($user->photo_url) }}" 
+                        <img src="{{ (is_string($user->photo_url) && str_starts_with($user->photo_url, 'http')) ? $user->photo_url : asset($user->photo_url) }}" 
                              alt="{{ $user->name }}" 
                              class="w-24 h-24 rounded-full object-cover shadow-lg border-4 border-emerald-200">
                     @else

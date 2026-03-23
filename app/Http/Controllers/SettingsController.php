@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\DatabaseQueryService;
+use App\Services\SupabaseService;
 
 class SettingsController extends Controller
 {
@@ -38,7 +39,7 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request, DatabaseQueryService $queryService)
+    public function update(Request $request, DatabaseQueryService $queryService, SupabaseService $supabaseService)
     {
         $user = Auth::user();
 
@@ -55,17 +56,25 @@ class SettingsController extends Controller
 
         // Handle photo upload (Only for Volunteers)
         if ($request->hasFile('photo') && $user->isVolunteer()) {
-            // Delete old photo if exists
-            if ($user->photo_url) {
-                $oldPath = str_replace('/storage/', '', $user->photo_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-            
-            // Upload new photo
             $photo = $request->file('photo');
             $filename = Str::slug($user->name) . '-' . time() . '.' . $photo->getClientOriginalExtension();
-            $path = $photo->storeAs('profiles', $filename, 'public');
-            $user->photo_url = Storage::url($path);
+
+            // Upload directly to Supabase Storage so Cloud doesn't depend on local `storage:link`.
+            $bucket = (string) config('supabase.bucket_name', 'volunteer-portal');
+            $supabasePath = 'profiles/' . $filename;
+
+            try {
+                $supabaseService->uploadFile($bucket, $supabasePath, $photo->getContent());
+                $user->photo_url = $supabaseService->getFileUrl($bucket, $supabasePath);
+            } catch (\Throwable $e) {
+                // Fallback: store locally (useful for local dev).
+                Log::warning('Profile photo upload to Supabase failed; falling back to local storage', [
+                    'message' => $e->getMessage(),
+                ]);
+
+                $localPath = $photo->storeAs('profiles', $filename, 'public');
+                $user->photo_url = Storage::url($localPath);
+            }
         }
         
         // Always remove photo_url for admins (force default avatar)
