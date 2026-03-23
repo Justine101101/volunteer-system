@@ -23,12 +23,28 @@ class GoogleController extends Controller
 
     private function googleRedirectUrl(): string
     {
-        $configured = (string) config('services.google.redirect', '');
-        $fallback = url('/auth/google/callback');
-        $url = $configured !== '' ? $configured : $fallback;
+        // Use env() at runtime to avoid stale values when config is cached.
+        $configured = (string) env('GOOGLE_REDIRECT_URI', (string) config('services.google.redirect', ''));
+        $configured = trim($configured);
 
-        // Cloud OAuth callback should be HTTPS to match Google Console settings.
-        if (str_starts_with($url, 'http://')) {
+        $callbackPath = '/auth/google/callback';
+
+        if ($configured !== '') {
+            $url = $configured;
+        } else {
+            $appUrl = (string) env('APP_URL', (string) config('app.url', ''));
+            $appUrl = trim($appUrl);
+            $appUrl = rtrim($appUrl, '/');
+            $url = ($appUrl !== '' ? $appUrl : url('/')) . $callbackPath;
+        }
+
+        // Normalize: exact match is required by Google (no trailing slash, HTTPS).
+        $url = trim($url);
+        $url = rtrim($url, '/');
+
+        if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+            $url = 'https://' . ltrim($url, '/');
+        } elseif (str_starts_with($url, 'http://')) {
             $url = 'https://' . substr($url, 7);
         }
 
