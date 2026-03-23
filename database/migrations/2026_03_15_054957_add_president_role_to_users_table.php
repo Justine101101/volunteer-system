@@ -56,10 +56,47 @@ return new class extends Migration
             return;
         }
 
-        // PostgreSQL (enum backed by CHECK constraint in SQLite-like style)
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['superadmin', 'admin', 'president', 'officer', 'volunteer'])->default('volunteer')->change();
-        });
+        // PostgreSQL: use explicit CHECK constraint SQL (Laravel enum->change() generates invalid SQL here).
+        DB::statement("
+            DO $$
+            DECLARE
+                r RECORD;
+            BEGIN
+                -- Drop expected constraint name first if present.
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'users_role_check'
+                      AND conrelid = 'public.users'::regclass
+                ) THEN
+                    ALTER TABLE public.users DROP CONSTRAINT users_role_check;
+                END IF;
+
+                -- Drop any other role-related CHECK constraints (defensive).
+                FOR r IN
+                    SELECT conname
+                    FROM pg_constraint
+                    WHERE conrelid = 'public.users'::regclass
+                      AND contype = 'c'
+                      AND pg_get_constraintdef(oid) ILIKE '%role%'
+                LOOP
+                    EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(r.conname);
+                END LOOP;
+            END $$;
+        ");
+
+        DB::statement("
+            ALTER TABLE public.users
+                ALTER COLUMN role TYPE varchar(255),
+                ALTER COLUMN role SET NOT NULL,
+                ALTER COLUMN role SET DEFAULT 'volunteer'
+        ");
+
+        DB::statement("
+            ALTER TABLE public.users
+                ADD CONSTRAINT users_role_check
+                CHECK (role IN ('superadmin', 'admin', 'president', 'officer', 'volunteer'))
+        ");
     }
 
     /**
@@ -102,8 +139,44 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['superadmin', 'admin', 'officer', 'volunteer'])->default('volunteer')->change();
-        });
+        // PostgreSQL: revert CHECK constraint to remove 'president'
+        DB::statement("
+            DO $$
+            DECLARE
+                r RECORD;
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'users_role_check'
+                      AND conrelid = 'public.users'::regclass
+                ) THEN
+                    ALTER TABLE public.users DROP CONSTRAINT users_role_check;
+                END IF;
+
+                FOR r IN
+                    SELECT conname
+                    FROM pg_constraint
+                    WHERE conrelid = 'public.users'::regclass
+                      AND contype = 'c'
+                      AND pg_get_constraintdef(oid) ILIKE '%role%'
+                LOOP
+                    EXECUTE 'ALTER TABLE public.users DROP CONSTRAINT ' || quote_ident(r.conname);
+                END LOOP;
+            END $$;
+        ");
+
+        DB::statement("
+            ALTER TABLE public.users
+                ALTER COLUMN role TYPE varchar(255),
+                ALTER COLUMN role SET NOT NULL,
+                ALTER COLUMN role SET DEFAULT 'volunteer'
+        ");
+
+        DB::statement("
+            ALTER TABLE public.users
+                ADD CONSTRAINT users_role_check
+                CHECK (role IN ('superadmin', 'admin', 'officer', 'volunteer'))
+        ");
     }
 };
