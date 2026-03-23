@@ -671,12 +671,21 @@
                     <!-- Appearance & Preferences -->
                     <section x-show="section === 'appearance'" x-cloak>
                         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 space-y-6">
-                            <div>
-                                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Appearance & Preferences</h2>
-                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Customize how the Volunteer Management System looks and feels.</p>
-                            </div>
+                            <form method="POST" action="{{ route('settings.update') }}" id="appearanceThemeForm" class="space-y-6">
+                                @csrf
+                                @method('PUT')
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Required by SettingsController validation -->
+                                <input type="hidden" name="name" value="{{ $user->name }}">
+                                <input type="hidden" name="email" value="{{ $user->email }}">
+                                <input type="hidden" name="phone" value="{{ $user->phone ?? '' }}">
+
+                                <div>
+                                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Appearance & Preferences</h2>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Customize how the Volunteer Management System looks and feels.</p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Notifications -->
                                 <div class="flex flex-col gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-emerald-50/60 dark:bg-emerald-900/20 p-4">
                                     <div class="flex items-center justify-between gap-4">
@@ -690,7 +699,6 @@
                                             <input type="checkbox"
                                                    name="notification_pref"
                                                    value="1"
-                                                   form=""
                                                    {{ old('notification_pref', $user->notification_pref) ? 'checked' : '' }}
                                                    class="sr-only peer">
                                             <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-emerald-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition-all peer-checked:after:translate-x-full"></div>
@@ -717,7 +725,7 @@
                                                    id="darkModeToggleSecondary"
                                                    {{ old('dark_mode', $user->dark_mode) ? 'checked' : '' }}
                                                    class="sr-only peer"
-                                                   onchange="window.DarkMode?.apply(this.checked)">
+                                                   onchange="window.DarkMode?.apply(this.checked); document.getElementById('appearanceThemeForm')?.requestSubmit();">
                                             <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 rounded-full peer peer-checked:bg-emerald-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-500/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition-all peer-checked:after:translate-x-full"></div>
                                         </label>
                                     </div>
@@ -727,25 +735,36 @@
                                 </div>
                             </div>
 
-                            <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-                                <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2">Theme density & layout</h3>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Choose how compact tables and cards should appear.</p>
-                                <div class="flex flex-wrap gap-3">
-                                    <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500 bg-emerald-50 text-emerald-700">
-                                        Comfortable
-                                    </button>
-                                    <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
-                                        Compact
-                                    </button>
-                                    <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
-                                        Spacious
+                                <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+                                    <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-2">Theme density & layout</h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Choose how compact tables and cards should appear.</p>
+                                    <div class="flex flex-wrap gap-3">
+                                        <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500 bg-emerald-50 text-emerald-700">
+                                            Comfortable
+                                        </button>
+                                        <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
+                                            Compact
+                                        </button>
+                                        <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
+                                            Spacious
+                                        </button>
+                                    </div>
+                                    <p class="mt-3 text-[11px] text-slate-400">
+                                        <!-- TODO: Persist layout preferences in user meta table and apply in Blade components. -->
+                                        Layout presets are visual only for now; wire them to a user preferences store to make them persistent.
+                                    </p>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button
+                                        type="submit"
+                                        class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg border border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm"
+                                    >
+                                        Save theme
                                     </button>
                                 </div>
-                                <p class="mt-3 text-[11px] text-slate-400">
-                                    <!-- TODO: Persist layout preferences in user meta table and apply in Blade components. -->
-                                    Layout presets are visual only for now; wire them to a user preferences store to make them persistent.
-                                </p>
                             </div>
+                            </form>
                         </div>
                     </section>
                 </div>
