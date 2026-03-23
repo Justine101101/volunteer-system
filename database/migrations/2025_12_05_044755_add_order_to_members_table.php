@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('members', function (Blueprint $table) {
-            $table->integer('order')->default(0)->after('id');
-        });
+        if (!Schema::hasColumn('members', 'order')) {
+            Schema::table('members', function (Blueprint $table) {
+                $table->integer('order')->default(0)->after('id');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('members', function (Blueprint $table) {
-            $table->dropColumn('order');
-        });
+        if (Schema::hasColumn('members', 'order')) {
+            Schema::table('members', function (Blueprint $table) {
+                $table->dropColumn('order');
+            });
+        }
     }
 };
