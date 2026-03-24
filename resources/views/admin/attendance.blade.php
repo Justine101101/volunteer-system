@@ -84,6 +84,14 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                                         @php $isPending = $status === 'pending'; @endphp
                                         <div class="flex items-center justify-end space-x-3">
+                                            @if(!empty($reg->local_user_id))
+                                                <a
+                                                    href="{{ route('admin.users.show', $reg->local_user_id) }}"
+                                                    class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50"
+                                                >
+                                                    View Profile
+                                                </a>
+                                            @endif
                                             @if(!empty($registrationId))
                                                 <form method="POST" action="{{ route('supabase.registrations.approve', ['registrationId' => $registrationId]) }}" data-confirm="Approve this registration?">
                                                     @csrf

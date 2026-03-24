@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\DatabaseQueryService;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -58,6 +59,14 @@ class AttendanceController extends Controller
                 ];
             }
 
+            // Resolve local Laravel user so Attendance can link to the same admin profile page.
+            $localUserId = null;
+            if (!empty($user?->email)) {
+                $localUserId = User::query()
+                    ->where('email', $user->email)
+                    ->value('id');
+            }
+
             // Prefer embedded event if present; fall back to minimal object
             $embeddedEvent = $reg['event'] ?? null;
             $event = null;
@@ -72,6 +81,7 @@ class AttendanceController extends Controller
                 'registration_status' => $status,
                 'created_at' => $createdAt,
                 'user' => $user,
+                'local_user_id' => $localUserId,
                 'event' => $event,
             ];
         });
