@@ -48,9 +48,9 @@
     <!-- Hero Section -->
     <div class="py-20 bg-light-gray">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h1 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">Upcoming Events</h1>
-                <p class="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">Discover opportunities to make a difference in your community through our volunteer events</p>
+            <div class="text-left">
+                <h1 class="text-4xl md:text-5xl font-bold text-slate-dark mb-3">Upcoming Events</h1>
+                <p class="text-lg text-gray-600 leading-relaxed max-w-3xl">Discover opportunities to make a difference in your community through our volunteer events.</p>
             </div>
             @auth
                 @if(auth()->user()->isAdminOrSuperAdmin())
@@ -93,7 +93,41 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div class="mb-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                    <div class="lg:col-span-7">
+                        <label for="event-search" class="sr-only">Search events</label>
+                        <input
+                            id="event-search"
+                            type="text"
+                            placeholder="Search events"
+                            class="w-full rounded-xl border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
+                        >
+                    </div>
+                    <div class="lg:col-span-3">
+                        <label for="event-category-filter" class="sr-only">Category</label>
+                        <select id="event-category-filter" class="w-full rounded-xl border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
+                            <option value="all">All Categories</option>
+                            <option value="environment">Environment</option>
+                            <option value="health">Health</option>
+                            <option value="community">Community</option>
+                            <option value="education">Education</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label for="event-date-filter" class="sr-only">Date range</label>
+                        <select id="event-date-filter" class="w-full rounded-xl border-slate-300 focus:border-emerald-500 focus:ring-emerald-500">
+                            <option value="all">Any Date</option>
+                            <option value="this_week">This Week</option>
+                            <option value="this_month">This Month</option>
+                            <option value="upcoming">Upcoming</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             @forelse($events as $event)
                 @php /** @var \stdClass|\App\Models\Event $event */ @endphp
                 @php
@@ -153,112 +187,56 @@
                         'Completed' => 'bg-lions-green/10 text-lions-green border border-lions-green',
                         default => 'bg-amber-50 text-amber-700 border border-amber-200', // Upcoming
                     };
+                    $category = strtolower(trim((string) ($event->category ?? 'general')));
                 @endphp
-                <div class="event-card bg-white rounded-3xl shadow-soft-lg border border-gray-200 overflow-hidden cursor-pointer hover:shadow-soft-xl transition-all duration-300">
-                    <div class="md:flex">
-                        <!-- Event Image/Icon -->
-                        <div class="event-image-container md:w-1/3 h-36 flex items-center justify-center p-4 border-b-2 md:border-b-0 md:border-r-2 border-gray-200 relative overflow-hidden transition-all duration-300"
-                             style="background: linear-gradient(135deg, {{ $isEven ? '#f8faf9' : '#f3f4f6' }}, {{ $isEven ? '#e0e7ff' : '#ddd6fe' }});">
-                            <span class="absolute top-3 left-3 inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold {{ $statusClasses }} bg-white/90 backdrop-blur">
+                <div
+                    class="event-card bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300"
+                    data-event-card
+                    data-event-title="{{ strtolower((string) ($event->title ?? '')) }}"
+                    data-event-description="{{ strtolower((string) strip_tags($event->description ?? '')) }}"
+                    data-event-location="{{ strtolower((string) ($event->location ?? '')) }}"
+                    data-event-category="{{ $category }}"
+                    data-event-date="{{ optional($event->date)->format('Y-m-d') ?? '' }}"
+                >
+                    <div class="relative h-44 bg-slate-100 overflow-hidden">
+                        @if($event->photo_url)
+                            <img src="{{ $event->photo_url }}"
+                                 alt="{{ $event->title }}"
+                                 class="event-image w-full h-full object-cover"
+                                 onerror="this.style.display='none';">
+                        @endif
+                        <span class="absolute top-3 left-3 inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold bg-white/95 border border-emerald-100 text-emerald-700 capitalize">
+                            {{ $category }}
+                        </span>
+                        <div class="absolute top-3 right-3 rounded-xl bg-white/95 px-3 py-1.5 text-center shadow-sm border border-slate-200">
+                            <p class="text-xs font-bold text-emerald-700">{{ optional($event->date)->format('M') ?? 'TBA' }}</p>
+                            <p class="text-2xl leading-none font-extrabold text-slate-800">{{ optional($event->date)->format('d') ?? '—' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4">
+                        <div class="mb-2">
+                            <span class="inline-flex items-center h-6 px-2.5 rounded-full text-xs font-semibold {{ $statusClasses }}">
                                 {{ $statusLabel }}
                             </span>
-                            @if($event->photo_url)
-                                <img src="{{ $event->photo_url }}" 
-                                     alt="{{ $event->title }}" 
-                                     class="event-image w-full h-full object-cover absolute inset-0 transition-transform duration-300"
-                                     onerror="this.style.display='none';">
-                                <div class="absolute inset-0 flex items-center justify-center" style="background-color: rgba(0, 0, 0, 0.4);">
-                                    <div class="text-center text-white">
-                                        <div class="text-6xl font-bold mb-2 drop-shadow-lg event-date-day">
-                                            {{ optional($event->date)->format('d') ?? '—' }}
-                                        </div>
-                                        <div class="text-lg font-semibold drop-shadow-lg">
-                                            {{ optional($event->date)->format('M Y') ?? '' }}
-                                        </div>
-                                        <div class="text-sm drop-shadow-lg">
-                                            {{ $event->time ?? '' }}
-                                        </div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="text-center text-white">
-                                    <div class="text-6xl font-bold mb-2 event-date-day">
-                                        {{ optional($event->date)->format('d') ?? '—' }}
-                                    </div>
-                                    <div class="text-lg font-semibold">
-                                        {{ optional($event->date)->format('M Y') ?? '' }}
-                                    </div>
-                                    <div class="text-sm" style="color: #90EE90;">
-                                        {{ $event->time ?? '' }}
-                                    </div>
-                                </div>
-                            @endif
                         </div>
 
-                        <!-- Event Details -->
-                        <div class="md:w-2/3 p-4">
-                            <div class="flex justify-between items-start mb-3 gap-3">
-                                <h3 class="event-title text-lg sm:text-xl font-bold leading-snug transition-colors duration-300 line-clamp-2"
-                                    style="color: {{ $isEven ? '#1a5f3f' : '#4a1a5f' }};">
-                                    {{ e($event->title ?: 'Untitled event') }}
-                                </h3>
-                                @auth
-                                    {{-- Show edit/delete for admins if event has an ID (Supabase UUID) --}}
-                                    @if(auth()->user()->isAdminOrSuperAdmin() && isset($event->id) && $event->id)
-                                        <div class="flex shrink-0 items-center gap-2">
-                                            <a href="{{ route('events.edit', ['eventId' => $event->id]) }}" 
-                                               class="text-xs font-semibold transition-colors duration-300 hover:underline" 
-                                               style="color: #1a5f3f;">
-                                                Edit
-                                            </a>
-                                            <form method="POST" action="{{ route('events.destroy', ['eventId' => $event->id]) }}" 
-                                                  class="inline" 
-                                                  data-confirm="Delete this event? This action cannot be undone.">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-semibold transition-colors duration-300 hover:underline">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </div>
-                                    @endif
-                                @endauth
+                        <h3 class="event-title text-xl font-bold text-slate-900 leading-snug line-clamp-2 min-h-[3.25rem]">
+                            {{ e($event->title ?: 'Untitled event') }}
+                        </h3>
+
+                        <p class="mt-2 text-sm text-slate-600 line-clamp-2 min-h-[2.5rem]">
+                            {{ \Illuminate\Support\Str::limit($event->description ? strip_tags($event->description) : 'Details will be announced soon.', 90) }}
+                        </p>
+
+                        <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                            <div class="rounded-lg bg-slate-50 px-2.5 py-2">
+                                <p class="text-[11px] uppercase tracking-wide text-slate-400">Full location</p>
+                                <p class="font-medium text-slate-700 line-clamp-1">{{ e($event->location ?: 'Address TBA') }}</p>
                             </div>
-
-                            <p class="text-sm text-slate-700 mb-3 leading-relaxed line-clamp-3">
-                                {{ \Illuminate\Support\Str::limit($event->description ? strip_tags($event->description) : 'Details will be announced soon.', 180) }}
-                            </p>
-
-                            <div class="flex flex-wrap gap-2 mb-4">
-                                <div class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/10 max-w-full">
-                                    <svg class="w-4 h-4 text-lions-green shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                    <span class="text-xs sm:text-sm text-slate-700 font-semibold line-clamp-1">{{ e($event->location ?: 'Location TBA') }}</span>
-                                </div>
-                                <div class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-300 bg-indigo-50">
-                                    <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    <span class="text-xs sm:text-sm text-slate-700 font-semibold whitespace-nowrap">{{ e($event->time ?: 'Time TBA') }}</span>
-                                </div>
-                                @php
-                                    // Only attempt to read creator when this is an Eloquent Event model
-                                    $creatorName = $event instanceof \App\Models\Event
-                                        ? optional($event->creator)->name
-                                        : null;
-                                @endphp
-                                @if($creatorName)
-                                    <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-300 bg-lions-green/5">
-                                        <svg class="w-4 h-4 shrink-0" style="color: #008751;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                        </svg>
-                                        <span class="text-xs sm:text-sm text-slate-700 font-semibold line-clamp-1">
-                                            Created by {{ e($creatorName) }}
-                                        </span>
-                                    </div>
-                                @endif
+                            <div class="rounded-lg bg-slate-50 px-2.5 py-2">
+                                <p class="text-[11px] uppercase tracking-wide text-slate-400">Time</p>
+                                <p class="font-medium text-slate-700 line-clamp-1">{{ e($event->time ?: 'Time TBA') }}</p>
                             </div>
 
                             <!-- Registration Section -->
@@ -343,6 +321,9 @@
                             <!-- View Details (modal trigger) -->
                             <div class="mt-4 flex justify-between items-center">
                                 @php
+                                    $creatorName = $event instanceof \App\Models\Event
+                                        ? optional($event->creator)->name
+                                        : null;
                                     $modalPayload = [
                                         'id' => (string) ($event->id ?? ''),
                                         'title' => (string) ($event->title ?? ''),
@@ -360,10 +341,10 @@
                                 @endphp
                                 <button
                                     type="button"
-                                    class="inline-flex items-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
+                                    class="inline-flex items-center text-base font-semibold text-slate-800 hover:text-emerald-700 transition"
                                     @click='open(@json($modalPayload))'
                                 >
-                                    View Details
+                                    View Details →
                                 </button>
 
                             </div>
@@ -555,24 +536,77 @@
             transition: all 0.3s ease-in-out;
         }
         .event-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-        }
-        .event-card:hover .event-image-container {
-            transform: scale(1.05);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12);
         }
         .event-card:hover .event-image {
-            transform: scale(1.1);
-        }
-        .event-card:hover .event-date-day {
-            transform: scale(1.1);
-            transition: transform 0.3s ease-in-out;
-        }
-        .event-card:hover .event-title {
-            transform: translateX(4px);
+            transform: scale(1.05);
             transition: transform 0.3s ease-in-out;
         }
     </style>
 
-    {{-- Modal state is handled by Alpine x-data inline above (no global JS needed). --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('event-search');
+            const categorySelect = document.getElementById('event-category-filter');
+            const dateSelect = document.getElementById('event-date-filter');
+            const cards = document.querySelectorAll('[data-event-card]');
+
+            function inDateRange(rawDate, range) {
+                if (!rawDate) return range === 'all';
+                if (range === 'all') return true;
+
+                const eventDate = new Date(rawDate + 'T00:00:00');
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                if (range === 'upcoming') {
+                    return eventDate >= today;
+                }
+
+                if (range === 'this_week') {
+                    const day = today.getDay();
+                    const mondayOffset = day === 0 ? -6 : 1 - day;
+                    const start = new Date(today);
+                    start.setDate(today.getDate() + mondayOffset);
+                    const end = new Date(start);
+                    end.setDate(start.getDate() + 6);
+                    return eventDate >= start && eventDate <= end;
+                }
+
+                if (range === 'this_month') {
+                    return eventDate.getFullYear() === today.getFullYear()
+                        && eventDate.getMonth() === today.getMonth();
+                }
+
+                return true;
+            }
+
+            function applyFilters() {
+                const term = (searchInput?.value || '').toLowerCase().trim();
+                const category = categorySelect?.value || 'all';
+                const dateRange = dateSelect?.value || 'all';
+
+                cards.forEach((card) => {
+                    const haystack = [
+                        card.dataset.eventTitle || '',
+                        card.dataset.eventDescription || '',
+                        card.dataset.eventLocation || ''
+                    ].join(' ');
+                    const cardCategory = (card.dataset.eventCategory || '').toLowerCase();
+                    const cardDate = card.dataset.eventDate || '';
+
+                    const matchText = term === '' || haystack.includes(term);
+                    const matchCategory = category === 'all' || cardCategory === category;
+                    const matchDate = inDateRange(cardDate, dateRange);
+
+                    card.style.display = (matchText && matchCategory && matchDate) ? '' : 'none';
+                });
+            }
+
+            searchInput?.addEventListener('input', applyFilters);
+            categorySelect?.addEventListener('change', applyFilters);
+            dateSelect?.addEventListener('change', applyFilters);
+        });
+    </script>
 </x-app-layout>
