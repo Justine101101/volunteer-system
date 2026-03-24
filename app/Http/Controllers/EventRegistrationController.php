@@ -95,6 +95,16 @@ class EventRegistrationController extends Controller
             return redirect()->back()->with('error', 'Failed to register for event. Please try again.');
         }
 
+        // Notify admins/presidents that a volunteer submitted a registration.
+        // Keep registration success independent from notification errors.
+        $this->notifyAdminsOfNewRegistration(
+            volunteerSupabaseId: $supabaseUserId,
+            eventId: $eventId,
+            volunteerName: (string) ($user->name ?? 'Volunteer'),
+            volunteerEmail: (string) ($user->email ?? ''),
+            eventTitle: (string) ((is_array($event) && !isset($event['error'])) ? ($event['title'] ?? 'Event') : 'Event')
+        );
+
         return redirect()->back()->with('success', 'Successfully registered for the event!');
     }
 
@@ -335,6 +345,67 @@ class EventRegistrationController extends Controller
             Log::warning('Failed to create registration decision notification', [
                 'registration_id' => $registrationId,
                 'status' => $status,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Create in-app notifications for admin/president users when a volunteer applies to an event.
+     */
+    private function notifyAdminsOfNewRegistration(
+        string $volunteerSupabaseId,
+        string $eventId,
+        string $volunteerName,
+        string $volunteerEmail,
+        string $eventTitle
+    ): void {
+        try {
+            $targets = [];
+            foreach (['admin', 'president'] as $role) {
+                $rows = $this->queryService->getUsers(1, 200, ['role' => $role]);
+                if (is_array($rows) && !isset($rows['error'])) {
+                    foreach ($rows as $row) {
+                        if (is_array($row) && !empty($row['id'])) {
+                            $targets[$row['id']] = $row;
+                        }
+                    }
+                }
+            }
+
+            foreach ($targets as $adminId => $adminRow) {
+                // Do not notify the same user if an admin applies as volunteer.
+                if ($adminId === $volunteerSupabaseId) {
+                    continue;
+                }
+
+                $created = $this->queryService->createNotification([
+                    'user_id' => $adminId,
+                    'type' => 'registration.pending',
+                    'title' => 'New event application',
+                    'body' => "{$volunteerName} applied for {$eventTitle}.",
+                    'metadata' => [
+                        'event_id' => $eventId,
+                        'event_title' => $eventTitle,
+                        'volunteer_id' => $volunteerSupabaseId,
+                        'volunteer_name' => $volunteerName,
+                        'volunteer_email' => $volunteerEmail ?: null,
+                        'status' => 'pending',
+                    ],
+                ]);
+
+                if (is_array($created) && isset($created['error'])) {
+                    Log::warning('Failed to create admin notification for new registration', [
+                        'admin_id' => $adminId,
+                        'event_id' => $eventId,
+                        'error' => $created['error'] ?? null,
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to notify admins of new registration', [
+                'event_id' => $eventId,
+                'volunteer_id' => $volunteerSupabaseId,
                 'error' => $e->getMessage(),
             ]);
         }
