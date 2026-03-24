@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-12 bg-slate-50">
+    <div class="py-12 bg-slate-50" x-data="attendanceProfiles()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
@@ -84,13 +84,14 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                                         @php $isPending = $status === 'pending'; @endphp
                                         <div class="flex items-center justify-end space-x-3">
-                                            @if(!empty($reg->local_user_id))
-                                                <a
-                                                    href="{{ route('admin.users.show', $reg->local_user_id) }}"
+                                            @if(!empty($reg->profile))
+                                                <button
+                                                    type="button"
+                                                    @click='openProfile(@js($reg->profile))'
                                                     class="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-50"
                                                 >
                                                     View Profile
-                                                </a>
+                                                </button>
                                             @endif
                                             @if(!empty($registrationId))
                                                 <form method="POST" action="{{ route('supabase.registrations.approve', ['registrationId' => $registrationId]) }}" data-confirm="Approve this registration?">
@@ -130,7 +131,95 @@
 
                 <div class="px-6 py-4">{{ $registrations->links() }}</div>
             </div>
+
+            <!-- Profile Modal -->
+            <div
+                x-show="openModal"
+                x-cloak
+                x-transition.opacity
+                class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                @click.self="closeProfile()"
+            >
+                <div
+                    x-show="openModal"
+                    x-transition.scale
+                    class="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden"
+                >
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+                        <div>
+                            <p class="text-[11px] uppercase tracking-wide text-slate-400">User Profile</p>
+                            <h3 class="text-sm font-semibold text-slate-900" x-text="profile?.name ?? 'User details'"></h3>
+                        </div>
+                        <button type="button" class="inline-flex items-center justify-center rounded-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100" @click="closeProfile()">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="px-6 py-5 space-y-4 text-sm text-slate-700">
+                        <template x-if="profile">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-12 w-12 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold text-lg">
+                                        <template x-if="profile.photo_url">
+                                            <img :src="profile.photo_url" :alt="profile.name || 'User'" class="h-full w-full object-cover" x-on:error="$el.style.display='none'">
+                                        </template>
+                                        <span x-show="!profile.photo_url" x-text="(profile.name || 'U').charAt(0).toUpperCase()"></span>
+                                    </div>
+                                    <div>
+                                        <p class="text-base font-semibold text-slate-900" x-text="profile.name || 'Unknown'"></p>
+                                        <p class="text-xs text-slate-500" x-text="profile.email || 'No email'"></p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Role</p>
+                                        <p class="mt-1 text-sm font-semibold text-slate-900" x-text="profile.role || 'Volunteer'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Phone Number</p>
+                                        <p class="mt-1 text-sm text-slate-700" x-text="profile.phone || 'Not provided'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Member Since</p>
+                                        <p class="mt-1 text-sm text-slate-700" x-text="profile.created_at || 'Not available'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Preferences</p>
+                                        <p class="mt-1 text-sm text-slate-700">
+                                            <span x-text="profile.notification_pref ? 'Email notifications: On' : 'Email notifications: Off'"></span><br>
+                                            <span x-text="profile.dark_mode ? 'Dark mode: Enabled' : 'Dark mode: Disabled'"></span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <button type="button" class="text-sm font-medium text-slate-600 hover:text-slate-800" @click="closeProfile()">Close</button>
+                    </div>
+                </div>
+            </div>
+
             <script>
+                function attendanceProfiles() {
+                    return {
+                        openModal: false,
+                        profile: null,
+                        openProfile(payload) {
+                            this.profile = payload;
+                            this.openModal = true;
+                        },
+                        closeProfile() {
+                            this.openModal = false;
+                            this.profile = null;
+                        },
+                    }
+                }
+
                 const checkAll = document.getElementById('check-all');
                 if (checkAll) {
                     checkAll.addEventListener('change', () => {

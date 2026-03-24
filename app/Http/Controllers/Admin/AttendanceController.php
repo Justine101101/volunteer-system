@@ -41,10 +41,23 @@ class AttendanceController extends Controller
             ]);
         }
 
+        // Build a lookup of local users by email so profile modal can show details
+        // without redirecting away from Attendance.
+        $pageRows = collect(is_array($raw) && !isset($raw['error']) ? $raw : []);
+        $emails = $pageRows
+            ->pluck('user.email')
+            ->filter(fn ($email) => is_string($email) && $email !== '')
+            ->unique()
+            ->values();
+        $localUsersByEmail = User::query()
+            ->whereIn('email', $emails)
+            ->get(['id', 'name', 'email', 'phone', 'role', 'notification_pref', 'dark_mode', 'photo_url', 'created_at'])
+            ->keyBy('email');
+
         // Build human-friendly objects for the Blade view.
         // Use the embedded `user` and `event` data that already comes from Supabase
         // to avoid doing hundreds of extra HTTP requests (which were causing timeouts).
-        $items = collect(is_array($raw) && !isset($raw['error']) ? $raw : [])->map(function ($reg) {
+        $items = $pageRows->map(function ($reg) use ($localUsersByEmail) {
             $registrationId = $reg['id'] ?? null;
             $status = $reg['registration_status'] ?? ($reg['status'] ?? 'pending');
             $createdAt = isset($reg['created_at']) ? \Carbon\Carbon::parse($reg['created_at']) : null;
@@ -60,11 +73,36 @@ class AttendanceController extends Controller
             }
 
             // Resolve local Laravel user so Attendance can link to the same admin profile page.
-            $localUserId = null;
-            if (!empty($user?->email)) {
-                $localUserId = User::query()
-                    ->where('email', $user->email)
-                    ->value('id');
+            $localUser = (!empty($user?->email) && $localUsersByEmail->has($user->email))
+                ? $localUsersByEmail->get($user->email)
+                : null;
+            $localUserId = $localUser?->id;
+            $profile = null;
+            if ($localUser) {
+                $profile = [
+                    'id' => $localUser->id,
+                    'name' => $localUser->name ?? 'Unknown',
+                    'email' => $localUser->email ?? null,
+                    'phone' => $localUser->phone ?? null,
+                    'role' => $localUser->role ?? 'volunteer',
+                    'notification_pref' => (bool) ($localUser->notification_pref ?? false),
+                    'dark_mode' => (bool) ($localUser->dark_mode ?? false),
+                    'photo_url' => $localUser->photo_url ?? null,
+                    'created_at' => optional($localUser->created_at)->format('M j, Y g:i A'),
+                ];
+            } elseif ($user) {
+                // Fallback when user is only present in Supabase and no local row exists.
+                $profile = [
+                    'id' => null,
+                    'name' => $user->name ?? 'Unknown',
+                    'email' => $user->email ?? null,
+                    'phone' => null,
+                    'role' => 'volunteer',
+                    'notification_pref' => false,
+                    'dark_mode' => false,
+                    'photo_url' => null,
+                    'created_at' => null,
+                ];
             }
 
             // Prefer embedded event if present; fall back to minimal object
@@ -82,6 +120,7 @@ class AttendanceController extends Controller
                 'created_at' => $createdAt,
                 'user' => $user,
                 'local_user_id' => $localUserId,
+                'profile' => $profile,
                 'event' => $event,
             ];
         });
