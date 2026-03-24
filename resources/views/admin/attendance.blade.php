@@ -53,7 +53,14 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($registrations as $reg)
-                                <tr>
+                                @php $profileUrl = !empty($reg->local_user_id) ? route('admin.users.show', $reg->local_user_id) : null; @endphp
+                                <tr
+                                    @if($profileUrl)
+                                        data-profile-url="{{ $profileUrl }}"
+                                        class="hover:bg-slate-50 cursor-pointer"
+                                        title="Open user profile"
+                                    @endif
+                                >
                                     @php
                                         $status = strtolower(trim($reg->registration_status ?? 'pending'));
                                         $selectable = $status === 'pending';
@@ -67,7 +74,15 @@
                                             {{ $selectable && !empty($registrationId) ? '' : 'disabled' }}
                                         />
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->user->name ?? 'Unknown' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">
+                                        @if($profileUrl)
+                                            <a href="{{ $profileUrl }}" class="font-medium text-slate-900 hover:text-emerald-700" data-row-ignore-click>
+                                                {{ $reg->user->name ?? 'Unknown' }}
+                                            </a>
+                                        @else
+                                            {{ $reg->user->name ?? 'Unknown' }}
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->event->title ?? '' }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
@@ -138,6 +153,18 @@
                         document.querySelectorAll('.reg-check:not(:disabled)').forEach(cb => { cb.checked = checkAll.checked; });
                     });
                 }
+
+                document.querySelectorAll('tr[data-profile-url]').forEach((row) => {
+                    row.addEventListener('click', (event) => {
+                        if (event.target.closest('a, button, input, form, [data-row-ignore-click]')) {
+                            return;
+                        }
+                        const profileUrl = row.getAttribute('data-profile-url');
+                        if (profileUrl) {
+                            window.location.href = profileUrl;
+                        }
+                    });
+                });
 
                 function submitBulkAction(actionUrl, confirmText) {
                     const ids = Array.from(document.querySelectorAll('.reg-check:checked')).map(cb => cb.value);
