@@ -262,7 +262,7 @@
                             </div>
 
                             <!-- Registration Section -->
-                            @auth
+                            @if(auth()->check())
                                 @if(!empty($event->id))
                                     @php
                                         // Map built in EventController@index from Supabase registrations
@@ -338,7 +338,7 @@
                                         Login to Join
                                     </a>
                                 </div>
-                            @endauth
+                            @endif
 
                             <!-- View Details (modal trigger) -->
                             <div class="mt-4 flex justify-between items-center">
