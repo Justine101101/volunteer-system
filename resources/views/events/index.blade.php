@@ -221,6 +221,28 @@
                             </span>
                         </div>
 
+                        @auth
+                            @if(auth()->user()->isAdminOrSuperAdmin() && !empty($event->id))
+                                <div class="mb-2 flex items-center gap-3">
+                                    <a href="{{ route('events.edit', ['eventId' => $event->id]) }}"
+                                       class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition">
+                                        Edit
+                                    </a>
+                                    <form method="POST"
+                                          action="{{ route('events.destroy', ['eventId' => $event->id]) }}"
+                                          class="inline"
+                                          data-confirm="Delete this event? This action cannot be undone.">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                class="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline transition">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            @endif
+                        @endauth
+
                         <h3 class="event-title text-xl font-bold text-slate-900 leading-snug line-clamp-2 min-h-[3.25rem]">
                             {{ e($event->title ?: 'Untitled event') }}
                         </h3>
@@ -335,7 +357,9 @@
                                         'status' => (string) ($statusLabel ?? 'Upcoming'),
                                         'current_volunteers' => (int) ($currentVolunteers ?? 0),
                                         'max_volunteers' => $maxVolunteers !== null ? (int) $maxVolunteers : null,
-                                        'organizer' => (string) ($creatorName ?? 'Organizer'),
+                                        'organizer' => (string) (($event->organizer ?? '') ?: ($creatorName ?? 'Organizer')),
+                                        'venue' => (string) (($event->venue ?? '') ?: ($event->location ?? '')),
+                                        'requirements' => (string) ($event->requirements ?? ''),
                                         'join_url' => (string) route('events.join', ['eventId' => $event->id]),
                                     ];
                                 @endphp
@@ -467,6 +491,17 @@
                                     <div class="flex items-start gap-2">
                                         <svg class="w-4 h-4 mt-0.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                                        </svg>
+                                        <div>
+                                            <p class="font-medium text-slate-900">Venue</p>
+                                            <p class="text-slate-600" x-text="event.venue || 'Venue TBA'"></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-start gap-2">
+                                        <svg class="w-4 h-4 mt-0.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                   d="M9 17v-2a4 4 0 118 0v2m-6 4h4a2 2 0 002-2v-2a6 6 0 10-12 0v2a2 2 0 002 2z"/>
                                         </svg>
                                         <div>
@@ -490,6 +525,11 @@
                                             </p>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div class="rounded-lg border border-amber-100 bg-amber-50/70 p-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Requirements</p>
+                                    <p class="mt-1 text-sm text-slate-700" x-text="event.requirements || 'No special requirements listed.'"></p>
                                 </div>
                             </div>
                         </div>
