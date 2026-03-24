@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\DatabaseQueryService;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
@@ -41,8 +40,8 @@ class AttendanceController extends Controller
             ]);
         }
 
-        // Build a lookup of local users by email so profile modal can show details
-        // without redirecting away from Attendance.
+        // Build a lookup of local users by email so Attendance can link directly
+        // to Manage Users profile page.
         $pageRows = collect(is_array($raw) && !isset($raw['error']) ? $raw : []);
         $emails = $pageRows
             ->pluck('user.email')
@@ -50,8 +49,8 @@ class AttendanceController extends Controller
             ->unique()
             ->values();
         $localUsersByEmail = User::query()
-            ->whereIn('email', $emails)
-            ->get(['id', 'name', 'email', 'phone', 'role', 'notification_pref', 'dark_mode', 'photo_url', 'created_at'])
+            ->whereIn('email', $emails->all())
+            ->get(['id', 'email'])
             ->keyBy('email');
 
         // Build human-friendly objects for the Blade view.
@@ -77,33 +76,6 @@ class AttendanceController extends Controller
                 ? $localUsersByEmail->get($user->email)
                 : null;
             $localUserId = $localUser?->id;
-            $profile = null;
-            if ($localUser) {
-                $profile = [
-                    'id' => $localUser->id,
-                    'name' => $localUser->name ?? 'Unknown',
-                    'email' => $localUser->email ?? null,
-                    'phone' => $localUser->phone ?? null,
-                    'role' => $localUser->role ?? 'volunteer',
-                    'notification_pref' => (bool) ($localUser->notification_pref ?? false),
-                    'dark_mode' => (bool) ($localUser->dark_mode ?? false),
-                    'photo_url' => $localUser->photo_url ?? null,
-                    'created_at' => optional($localUser->created_at)->format('M j, Y g:i A'),
-                ];
-            } elseif ($user) {
-                // Fallback when user is only present in Supabase and no local row exists.
-                $profile = [
-                    'id' => null,
-                    'name' => $user->name ?? 'Unknown',
-                    'email' => $user->email ?? null,
-                    'phone' => null,
-                    'role' => 'volunteer',
-                    'notification_pref' => false,
-                    'dark_mode' => false,
-                    'photo_url' => null,
-                    'created_at' => null,
-                ];
-            }
 
             // Prefer embedded event if present; fall back to minimal object
             $embeddedEvent = $reg['event'] ?? null;
@@ -120,7 +92,6 @@ class AttendanceController extends Controller
                 'created_at' => $createdAt,
                 'user' => $user,
                 'local_user_id' => $localUserId,
-                'profile' => $profile,
                 'event' => $event,
             ];
         });

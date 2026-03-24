@@ -102,6 +102,7 @@
                         @if(!empty($participation))
                             <div class="space-y-3">
                                 @foreach($participation as $item)
+                                    @php $isPending = ($item['registration_status'] ?? 'pending') === 'pending'; @endphp
                                     <div class="flex items-start justify-between rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50/60 dark:bg-slate-700/40">
                                         <div>
                                             <p class="text-sm font-medium text-slate-900 dark:text-slate-50">
@@ -118,13 +119,43 @@
                                                 @endif
                                             </p>
                                         </div>
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                            @if($item['registration_status'] === 'approved') bg-emerald-100 text-emerald-800
-                                            @elseif($item['registration_status'] === 'rejected') bg-red-100 text-red-800
-                                            @else bg-amber-100 text-amber-800
-                                            @endif">
-                                            {{ ucfirst($item['registration_status']) }}
-                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                @if($item['registration_status'] === 'approved') bg-emerald-100 text-emerald-800
+                                                @elseif($item['registration_status'] === 'rejected') bg-red-100 text-red-800
+                                                @else bg-amber-100 text-amber-800
+                                                @endif">
+                                                {{ ucfirst($item['registration_status']) }}
+                                            </span>
+
+                                            @if(!empty($item['registration_id']))
+                                                <form method="POST" action="{{ route('supabase.registrations.approve', ['registrationId' => $item['registration_id']]) }}" data-confirm="Approve this registration?">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button
+                                                        type="submit"
+                                                        {{ $isPending ? '' : 'disabled aria-disabled=true' }}
+                                                        class="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold shadow-sm {{ $isPending ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed' }}"
+                                                        title="{{ $isPending ? 'Approve registration' : 'Already processed' }}"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                </form>
+
+                                                <form method="POST" action="{{ route('supabase.registrations.reject', ['registrationId' => $item['registration_id']]) }}" data-confirm="Decline this registration?">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button
+                                                        type="submit"
+                                                        {{ $isPending ? '' : 'disabled aria-disabled=true' }}
+                                                        class="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold shadow-sm {{ $isPending ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed' }}"
+                                                        title="{{ $isPending ? 'Decline registration' : 'Already processed' }}"
+                                                    >
+                                                        Decline
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>

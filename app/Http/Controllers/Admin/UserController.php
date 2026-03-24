@@ -93,6 +93,7 @@ class UserController extends Controller
                             continue;
                         }
                         $participation[] = [
+                            'registration_id' => $reg['id'] ?? null,
                             'event_id' => $eventId,
                             'title' => is_array($event) ? ($event['title'] ?? 'Untitled event') : 'Untitled event',
                             'event_date' => is_array($event) && isset($event['event_date']) ? $event['event_date'] : null,
