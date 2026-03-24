@@ -10,6 +10,9 @@ use App\Services\ContentFilter;
 
 class MessagingController extends Controller
 {
+    private const CHAT_MESSAGE_LIMIT = 150;
+    private const SIDEBAR_SCAN_LIMIT = 600;
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -21,59 +24,11 @@ class MessagingController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        // Get all unique users that the current user has exchanged messages with
-        $messages = Message::where(function($query) use ($user) {
-                $query->where('sender_id', $user->id)
-                      ->orWhere('receiver_id', $user->id);
-            })
-            ->with(['sender', 'receiver'])
-            ->latest()
-            ->get();
-        
-        $conversations = collect();
-        
-        if ($messages->isNotEmpty()) {
-            $conversations = $messages->groupBy(function($message) use ($user) {
-                    // Group by the other user in the conversation
-                    return $message->sender_id === $user->id 
-                        ? $message->receiver_id 
-                        : $message->sender_id;
-                })
-                ->map(function($messages) use ($user) {
-                    $latestMessage = $messages->first();
-                    if (!$latestMessage) {
-                        return null;
-                    }
-                    
-                    $otherUser = $latestMessage->sender_id === $user->id 
-                        ? $latestMessage->receiver 
-                        : $latestMessage->sender;
-                    
-                    if (!$otherUser) {
-                        return null;
-                    }
-                    
-                    $unreadCount = $messages->where('receiver_id', $user->id)
-                        ->whereNull('read_at')
-                        ->count();
-                    
-                    return [
-                        'user' => $otherUser,
-                        'latest_message' => $latestMessage,
-                        'unread_count' => $unreadCount,
-                        'total_messages' => $messages->count(),
-                    ];
-                })
-                ->filter()
-                ->sortByDesc(function($conversation) {
-                    return $conversation['latest_message']->created_at ?? now();
-                })
-                ->values();
-        }
+        $conversations = $this->buildConversations($user->id);
 
         // Get all users for sending new messages
         $users = User::where('id', '!=', $user->id)
+            ->select('id', 'name', 'photo_url')
             ->orderBy('name')
             ->get();
 
@@ -88,7 +43,7 @@ class MessagingController extends Controller
         $currentUser = Auth::user();
         $otherUser = User::findOrFail($user);
 
-        // Get all messages between current user and the other user
+        // Load only the newest chunk to keep response time fast on Cloud.
         $messages = Message::where(function($query) use ($currentUser, $otherUser) {
                 $query->where(function($q) use ($currentUser, $otherUser) {
                     $q->where('sender_id', $currentUser->id)
@@ -99,8 +54,10 @@ class MessagingController extends Controller
                 });
             })
             ->with(['sender', 'receiver'])
-            ->orderBy('created_at', 'asc')
+            ->latest('created_at')
+            ->limit(self::CHAT_MESSAGE_LIMIT)
             ->get();
+        $messages = $messages->sortBy('created_at')->values();
 
         // Mark all unread messages as read
         Message::where('sender_id', $otherUser->id)
@@ -110,57 +67,11 @@ class MessagingController extends Controller
 
         // Get all users for sending new messages
         $users = User::where('id', '!=', $currentUser->id)
+            ->select('id', 'name', 'photo_url')
             ->orderBy('name')
             ->get();
 
-        // Get all conversations for the inbox sidebar
-        $sidebarMessages = Message::where(function($query) use ($currentUser) {
-                $query->where('sender_id', $currentUser->id)
-                      ->orWhere('receiver_id', $currentUser->id);
-            })
-            ->with(['sender', 'receiver'])
-            ->latest()
-            ->get();
-        
-        $conversations = collect();
-        
-        if ($sidebarMessages->isNotEmpty()) {
-            $conversations = $sidebarMessages->groupBy(function($message) use ($currentUser) {
-                    return $message->sender_id === $currentUser->id 
-                        ? $message->receiver_id 
-                        : $message->sender_id;
-                })
-                ->map(function($messages) use ($currentUser) {
-                    $latestMessage = $messages->first();
-                    if (!$latestMessage) {
-                        return null;
-                    }
-                    
-                    $otherUser = $latestMessage->sender_id === $currentUser->id 
-                        ? $latestMessage->receiver 
-                        : $latestMessage->sender;
-                    
-                    if (!$otherUser) {
-                        return null;
-                    }
-                    
-                    $unreadCount = $messages->where('receiver_id', $currentUser->id)
-                        ->whereNull('read_at')
-                        ->count();
-                    
-                    return [
-                        'user' => $otherUser,
-                        'latest_message' => $latestMessage,
-                        'unread_count' => $unreadCount,
-                        'total_messages' => $messages->count(),
-                    ];
-                })
-                ->filter()
-                ->sortByDesc(function($conversation) {
-                    return $conversation['latest_message']->created_at ?? now();
-                })
-                ->values();
-        }
+        $conversations = $this->buildConversations($currentUser->id);
 
         return view('messaging.index', compact('messages', 'otherUser', 'conversations', 'users'));
     }
@@ -243,6 +154,47 @@ class MessagingController extends Controller
         if ($message->sender_id !== auth()->id()) {
             abort(403, 'You are not allowed to modify this message.');
         }
+    }
+
+    private function buildConversations(int $userId)
+    {
+        $messages = Message::where(function($query) use ($userId) {
+                $query->where('sender_id', $userId)
+                    ->orWhere('receiver_id', $userId);
+            })
+            ->with(['sender', 'receiver'])
+            ->latest('created_at')
+            ->limit(self::SIDEBAR_SCAN_LIMIT)
+            ->get();
+
+        if ($messages->isEmpty()) {
+            return collect();
+        }
+
+        return $messages->groupBy(function ($message) use ($userId) {
+                return $message->sender_id === $userId ? $message->receiver_id : $message->sender_id;
+            })
+            ->map(function ($messages) use ($userId) {
+                $latestMessage = $messages->first();
+                if (!$latestMessage) {
+                    return null;
+                }
+
+                $otherUser = $latestMessage->sender_id === $userId ? $latestMessage->receiver : $latestMessage->sender;
+                if (!$otherUser) {
+                    return null;
+                }
+
+                return [
+                    'user' => $otherUser,
+                    'latest_message' => $latestMessage,
+                    'unread_count' => $messages->where('receiver_id', $userId)->whereNull('read_at')->count(),
+                    'total_messages' => $messages->count(),
+                ];
+            })
+            ->filter()
+            ->sortByDesc(fn ($conversation) => $conversation['latest_message']->created_at ?? now())
+            ->values();
     }
 }
 
