@@ -835,7 +835,7 @@ class DatabaseQueryService
     {
         try {
             return $this->supabase->fromPrivileged('event_registrations')
-                ->select('user_id,event_id,registration_status,created_at')
+                ->select('id,user_id,event_id,registration_status,created_at')
                 ->eq('user_id', $userId)
                 ->order('created_at', 'desc')
                 ->execute();
