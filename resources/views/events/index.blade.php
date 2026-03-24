@@ -95,7 +95,6 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             @forelse($events as $event)
-                @php /** @var \stdClass|\App\Models\Event $event */ @endphp
                 @php
                     $isEven = ($loop->iteration % 2) === 0;
                     $currentVolunteers = $event->current_volunteers ?? 0;
@@ -279,17 +278,16 @@
                                     @endphp
 
                                     @if($regStatus)
+                                        @php
+                                            $regLabel = $regStatus === 'approved'
+                                                ? 'Approved'
+                                                : ($regStatus === 'rejected' ? 'Rejected' : 'Pending');
+                                        @endphp
                                         <div class="flex items-center justify-between">
                                             <div class="flex items-center">
                                                 <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
                                                       style="{{ $statusStyle }}">
-                                                    @if($regStatus === 'approved')
-                                                        ✓ Approved
-                                                    @elseif($regStatus === 'rejected')
-                                                        ✗ Rejected
-                                                    @else
-                                                        ⏳ Pending
-                                                    @endif
+                                                    {{ $regStatus === 'approved' ? '✓' : ($regStatus === 'rejected' ? '✗' : '⏳') }} {{ $regLabel }}
                                                 </span>
                                             </div>
                                             <form id="leave-event-{{ $event->id }}" method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
