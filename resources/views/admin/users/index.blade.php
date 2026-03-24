@@ -122,8 +122,16 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 h-10 w-10">
-                                                <div class="h-10 w-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
-                                                    {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+                                                <div class="h-10 w-10 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold">
+                                                    @if($user->photo_url)
+                                                        <img
+                                                            src="{{ (is_string($user->photo_url) && str_starts_with($user->photo_url, 'http')) ? $user->photo_url : asset($user->photo_url) }}"
+                                                            alt="{{ $user->name }}"
+                                                            class="h-full w-full object-cover"
+                                                        >
+                                                    @else
+                                                        {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+                                                    @endif
                                                 </div>
                                             </div>
                                             <div class="ml-4">
@@ -247,8 +255,16 @@
                     <template x-if="user">
                         <div class="px-6 py-5 space-y-4 text-sm text-slate-700 dark:text-slate-300">
                             <div class="flex items-center gap-4">
-                                <div class="h-12 w-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-lg">
-                                    <span x-text="(user.name || 'U').charAt(0).toUpperCase()"></span>
+                                <div class="h-12 w-12 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold text-lg">
+                                    <template x-if="user.photo_url">
+                                        <img
+                                            :src="user.photo_url"
+                                            :alt="user.name || 'User'"
+                                            class="h-full w-full object-cover"
+                                            x-on:error="$el.style.display='none'"
+                                        >
+                                    </template>
+                                    <span x-show="!user.photo_url" x-text="(user.name || 'U').charAt(0).toUpperCase()"></span>
                                 </div>
                                 <div>
                                     <p class="text-base font-semibold text-slate-900 dark:text-slate-50" x-text="user.name"></p>

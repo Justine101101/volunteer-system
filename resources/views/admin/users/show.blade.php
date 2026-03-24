@@ -38,8 +38,16 @@
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div class="p-6 sm:p-8">
                     <div class="flex items-start gap-4">
-                        <div class="h-14 w-14 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-xl">
-                            {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+                        <div class="h-14 w-14 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold text-xl">
+                            @if($user->photo_url)
+                                <img
+                                    src="{{ (is_string($user->photo_url) && str_starts_with($user->photo_url, 'http')) ? $user->photo_url : asset($user->photo_url) }}"
+                                    alt="{{ $user->name }}"
+                                    class="h-full w-full object-cover"
+                                >
+                            @else
+                                {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
+                            @endif
                         </div>
 
                         <div class="min-w-0">

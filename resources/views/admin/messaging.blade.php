@@ -58,7 +58,7 @@
                                 <div class="flex-shrink-0 relative">
                                     @if($conversation['user']->photo_url)
                                         <img 
-                                            src="{{ asset($conversation['user']->photo_url) }}" 
+                                            src="{{ (is_string($conversation['user']->photo_url) && str_starts_with($conversation['user']->photo_url, 'http')) ? $conversation['user']->photo_url : asset($conversation['user']->photo_url) }}" 
                                             alt="{{ $conversation['user']->name }}"
                                             class="w-12 h-12 rounded-full object-cover border-2 border-slate-200">
                                     @else
@@ -133,7 +133,7 @@
                                 <div class="relative">
                                     @if($otherUser->photo_url)
                                         <img 
-                                            src="{{ asset($otherUser->photo_url) }}" 
+                                            src="{{ (is_string($otherUser->photo_url) && str_starts_with($otherUser->photo_url, 'http')) ? $otherUser->photo_url : asset($otherUser->photo_url) }}" 
                                             alt="{{ $otherUser->name }}"
                                             class="w-12 h-12 rounded-full object-cover border-2 border-slate-200">
                                     @else
@@ -192,7 +192,7 @@
                                         <div class="flex-shrink-0">
                                             @if($message->sender->photo_url)
                                                 <img 
-                                                    src="{{ asset($message->sender->photo_url) }}" 
+                                                    src="{{ (is_string($message->sender->photo_url) && str_starts_with($message->sender->photo_url, 'http')) ? $message->sender->photo_url : asset($message->sender->photo_url) }}" 
                                                     alt="{{ $message->sender->name }}"
                                                     class="w-8 h-8 rounded-full object-cover">
                                             @else
@@ -432,7 +432,7 @@
                                     data-user-email="{{ $user->email }}">
                                     <div class="flex items-center gap-3">
                                         @if($user->photo_url)
-                                            <img src="{{ asset($user->photo_url) }}" alt="{{ $user->name }}" class="w-8 h-8 rounded-full object-cover">
+                                            <img src="{{ (is_string($user->photo_url) && str_starts_with($user->photo_url, 'http')) ? $user->photo_url : asset($user->photo_url) }}" alt="{{ $user->name }}" class="w-8 h-8 rounded-full object-cover">
                                         @else
                                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-semibold text-sm">
                                                 {{ strtoupper(substr($user->name ?? 'U', 0, 1)) }}
