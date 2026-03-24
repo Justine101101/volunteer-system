@@ -154,6 +154,14 @@
                                     <span class="font-medium">{{ $event->location }}</span>
                                 </div>
                                 <div class="flex justify-between">
+                                    <span class="text-gray-600">Venue:</span>
+                                    <span class="font-medium">{{ $event->venue ?: 'Not specified' }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Organizer:</span>
+                                    <span class="font-medium">{{ $event->organizer ?: ($event->creator->name ?? 'Organizer') }}</span>
+                                </div>
+                                <div class="flex justify-between">
                                     <span class="text-gray-600">Created by:</span>
                                     <span class="font-medium">{{ $event->creator->name }}</span>
                                 </div>
@@ -242,6 +250,15 @@
                             </div>
                         @endauth
                     </div>
+
+                    @if(!empty($event->requirements))
+                        <div class="mb-8">
+                            <h2 class="text-xl font-bold text-gray-900 mb-3">Requirements</h2>
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-gray-700">
+                                {{ $event->requirements }}
+                            </div>
+                        </div>
+                    @endif
 
                     <!-- Registered Volunteers (for admins) -->
                     @auth

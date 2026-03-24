@@ -71,9 +71,9 @@
     <!-- Events Section -->
     <div class="py-20 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-             x-data="{ openModal: false, event: null,
-                open(payload) { this.event = payload; this.openModal = true; },
-                close() { this.openModal = false; this.event = null; }
+             x-data="{ openModal: false, event: null, imageError: false,
+                open(payload) { this.event = payload; this.imageError = false; this.openModal = true; },
+                close() { this.openModal = false; this.event = null; this.imageError = false; }
              }">
             @if(session('success'))
                 <div class="mb-6 flex items-start gap-3 rounded-2xl border border-lions-green bg-lions-green/10 px-4 py-3 text-sm font-semibold text-lions-green shadow-soft">
@@ -166,7 +166,7 @@
                                 <img src="{{ $event->photo_url }}" 
                                      alt="{{ $event->title }}" 
                                      class="event-image w-full h-full object-cover absolute inset-0 transition-transform duration-300"
-                                     onerror="this.style.display='none';">
+                                     onerror="this.remove();">
                                 <div class="absolute inset-0 flex items-center justify-center" style="background-color: rgba(0, 0, 0, 0.4);">
                                     <div class="text-center text-white">
                                         <div class="text-6xl font-bold mb-2 drop-shadow-lg event-date-day">
@@ -350,11 +350,13 @@
                                         'date' => (string) (optional($event->date)->format('M j, Y') ?? ''),
                                         'time' => (string) ($event->time ?? ''),
                                         'location' => (string) ($event->location ?? ''),
+                                        'venue' => (string) ($event->venue ?? ''),
+                                        'requirements' => (string) ($event->requirements ?? ''),
                                         'image' => (string) ($event->photo_url ?? ''),
                                         'status' => (string) ($statusLabel ?? 'Upcoming'),
                                         'current_volunteers' => (int) ($currentVolunteers ?? 0),
                                         'max_volunteers' => $maxVolunteers !== null ? (int) $maxVolunteers : null,
-                                        'organizer' => (string) ($creatorName ?? 'Organizer'),
+                                        'organizer' => (string) ($event->organizer ?? ($creatorName ?? 'Organizer')),
                                         'join_url' => (string) route('events.join', ['eventId' => $event->id]),
                                     ];
                                 @endphp
@@ -427,10 +429,10 @@
                     <template x-if="event">
                         <div>
                             <div class="h-48 w-full bg-slate-100 overflow-hidden">
-                                <template x-if="event.image">
-                                    <img :src="event.image" :alt="event.title" class="w-full h-full object-cover">
+                                <template x-if="event.image && !imageError">
+                                    <img :src="event.image" :alt="event.title" class="w-full h-full object-cover" @error="imageError = true">
                                 </template>
-                                <template x-if="!event.image">
+                                <template x-if="!event.image || imageError">
                                     <div class="w-full h-full flex items-center justify-center bg-gradient-to-r from-emerald-500 to-sky-500 text-white">
                                         <span class="text-2xl font-semibold" x-text="event.title"></span>
                                     </div>
@@ -467,6 +469,17 @@
                                                     <span> • <span x-text="event.time"></span></span>
                                                 </template>
                                             </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-start gap-2">
+                                        <svg class="w-4 h-4 mt-0.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M19 11H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/>
+                                        </svg>
+                                        <div>
+                                            <p class="font-medium text-slate-900">Venue</p>
+                                            <p class="text-slate-600" x-text="event.venue || 'Venue TBA'"></p>
                                         </div>
                                     </div>
 
@@ -510,6 +523,13 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <template x-if="event.requirements">
+                                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs sm:text-sm">
+                                        <p class="font-medium text-slate-900 mb-1">Requirements</p>
+                                        <p class="text-slate-700" x-text="event.requirements"></p>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </template>

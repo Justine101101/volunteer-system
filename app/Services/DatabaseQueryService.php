@@ -276,6 +276,18 @@ class DatabaseQueryService
                 $cleanData['created_by'] = $eventData['created_by'];
             }
 
+            if (isset($eventData['organizer']) && $eventData['organizer'] !== null && $eventData['organizer'] !== '') {
+                $cleanData['organizer'] = $eventData['organizer'];
+            }
+
+            if (isset($eventData['requirements']) && $eventData['requirements'] !== null && $eventData['requirements'] !== '') {
+                $cleanData['requirements'] = $eventData['requirements'];
+            }
+
+            if (isset($eventData['venue']) && $eventData['venue'] !== null && $eventData['venue'] !== '') {
+                $cleanData['venue'] = $eventData['venue'];
+            }
+
             // Add timestamps (Supabase will use defaults if not provided, but we set them explicitly)
             $cleanData['created_at'] = now()->toISOString();
             $cleanData['updated_at'] = now()->toISOString();
@@ -318,64 +330,35 @@ class DatabaseQueryService
             if (isset($result['error'])) {
                 $errorMessage = $result['error'] ?? 'Unknown error';
                 $errorDetails = $result;
-                
-                // If error mentions event_end_time column, retry without it (still allow event creation)
-                if ((str_contains(strtolower($errorMessage), 'event_end_time') ||
-                     str_contains(strtolower($errorMessage), 'column')) &&
-                    isset($cleanData['event_end_time'])) {
-                    Log::warning('event_end_time column may not exist, retrying without it', [
-                        'error' => $errorMessage,
-                    ]);
 
-                    unset($cleanData['event_end_time']);
-                    $result = $this->supabase->from('events')
-                        ->insertPrivileged([$cleanData]);
+                $optionalColumns = ['event_end_time', 'photo_url', 'organizer', 'requirements', 'venue'];
+                $retried = true;
+                while (isset($result['error']) && $retried) {
+                    $retried = false;
+                    $errorMessage = (string) ($result['error'] ?? 'Unknown error');
+                    $errorLower = strtolower($errorMessage);
 
-                    if (isset($result['error'])) {
-                        $errorMessage = $result['error'] ?? 'Unknown error';
-                        Log::error('Supabase error creating event (after end_time retry)', [
-                            'error' => $errorMessage,
-                            'status' => $result['status'] ?? null,
-                            'details' => $result,
-                            'event_data' => $cleanData,
-                        ]);
-                        return ['error' => $errorMessage];
+                    foreach ($optionalColumns as $column) {
+                        if (isset($cleanData[$column]) && str_contains($errorLower, strtolower($column))) {
+                            Log::warning("{$column} column may not exist, retrying without it", [
+                                'error' => $errorMessage,
+                            ]);
+                            unset($cleanData[$column]);
+                            $result = $this->supabase->from('events')->insertPrivileged([$cleanData]);
+                            $retried = true;
+                            break;
+                        }
                     }
                 }
 
-                // If error mentions photo_url column, retry without it
-                if ((str_contains(strtolower($errorMessage), 'photo_url') || 
-                     str_contains(strtolower($errorMessage), 'column')) && 
-                    isset($cleanData['photo_url'])) {
-                    Log::warning('photo_url column may not exist, retrying without it', [
-                        'error' => $errorMessage,
-                    ]);
-                    
-                    // Remove photo_url and retry
-                    unset($cleanData['photo_url']);
-                    $result = $this->supabase->from('events')
-                        ->insertPrivileged([$cleanData])
-                    ;
-                    
-                    // Check again after retry
-                    if (isset($result['error'])) {
-                        $errorMessage = $result['error'] ?? 'Unknown error';
-                        Log::error('Supabase error creating event (after retry)', [
-                            'error' => $errorMessage,
-                            'status' => $result['status'] ?? null,
-                            'details' => $result,
-                            'event_data' => $cleanData,
-                        ]);
-                        return ['error' => $errorMessage];
-                    }
-                } else {
+                if (isset($result['error'])) {
                     Log::error('Supabase error creating event', [
-                        'error' => $errorMessage,
+                        'error' => $result['error'] ?? $errorMessage,
                         'status' => $result['status'] ?? null,
                         'details' => $errorDetails,
                         'event_data' => $cleanData,
                     ]);
-                    return ['error' => $errorMessage];
+                    return ['error' => $result['error'] ?? $errorMessage];
                 }
             }
 
@@ -484,29 +467,34 @@ class DatabaseQueryService
                 ->updatePrivileged($eventData, ['id' => 'eq.' . $eventId]);
 
             if (isset($result['error'])) {
-                // If end-time column doesn't exist yet, retry update without it
-                $err = strtolower((string) ($result['error'] ?? ''));
-                if (isset($eventData['event_end_time']) && (str_contains($err, 'event_end_time') || str_contains($err, 'column'))) {
-                    $retryData = $eventData;
-                    unset($retryData['event_end_time']);
+                $retryData = $eventData;
+                $optionalColumns = ['event_end_time', 'photo_url', 'organizer', 'requirements', 'venue'];
+                $retried = true;
 
-                    $retry = $this->supabase->from('events')
-                        ->updatePrivileged($retryData, ['id' => 'eq.' . $eventId]);
-
-                    if (!isset($retry['error'])) {
-                        $updated = is_array($retry) && count($retry) > 0 ? $retry[0] : $retry;
-                        return $updated;
+                while (isset($result['error']) && $retried) {
+                    $retried = false;
+                    $err = strtolower((string) ($result['error'] ?? ''));
+                    foreach ($optionalColumns as $column) {
+                        if (isset($retryData[$column]) && str_contains($err, strtolower($column))) {
+                            unset($retryData[$column]);
+                            $result = $this->supabase->from('events')
+                                ->updatePrivileged($retryData, ['id' => 'eq.' . $eventId]);
+                            $retried = true;
+                            break;
+                        }
                     }
                 }
 
-                Log::error('Error updating event in Supabase', [
-                    'error' => $result['error'] ?? 'Unknown error',
-                    'status' => $result['status'] ?? null,
-                    'details' => $result['details'] ?? null,
-                    'event_id' => $eventId,
-                    'event_data' => $eventData,
-                ]);
-                return ['error' => 'Failed to update event: ' . ($result['error'] ?? 'Unknown error')];
+                if (isset($result['error'])) {
+                    Log::error('Error updating event in Supabase', [
+                        'error' => $result['error'] ?? 'Unknown error',
+                        'status' => $result['status'] ?? null,
+                        'details' => $result['details'] ?? null,
+                        'event_id' => $eventId,
+                        'event_data' => $eventData,
+                    ]);
+                    return ['error' => 'Failed to update event: ' . ($result['error'] ?? 'Unknown error')];
+                }
             }
 
             // Return the updated event (Supabase returns array of updated records)

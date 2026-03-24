@@ -168,6 +168,9 @@ class EventController extends Controller
                     'id' => $event['id'] ?? null,
                     'title' => $event['title'] ?? '',
                     'description' => $event['description'] ?? '',
+                    'organizer' => $event['organizer'] ?? '',
+                    'requirements' => $event['requirements'] ?? '',
+                    'venue' => $event['venue'] ?? '',
                     'date' => isset($event['event_date']) ? \Carbon\Carbon::parse($event['event_date']) : null,
                     // For backward compatibility, keep a display string in ->time
                     'start_time' => $event['event_time'] ?? '',
@@ -305,6 +308,9 @@ class EventController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
+            'organizer' => 'nullable|string|max:255',
+            'requirements' => 'nullable|string',
+            'venue' => 'nullable|string|max:255',
             'date' => 'required|date|after_or_equal:today',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
@@ -325,6 +331,9 @@ class EventController extends Controller
         $result = $this->queryService->createEvent([
             'title' => $request->title,
             'description' => $request->description,
+            'organizer' => $request->organizer,
+            'requirements' => $request->requirements,
+            'venue' => $request->venue,
             'event_date' => $request->date,
             // Supabase schema stores TIME; save start time as event_time
             'event_time' => $request->start_time,
@@ -406,6 +415,9 @@ class EventController extends Controller
             'id' => $supabaseEvent['id'] ?? null,
             'title' => $supabaseEvent['title'] ?? '',
             'description' => $supabaseEvent['description'] ?? '',
+            'organizer' => $supabaseEvent['organizer'] ?? '',
+            'requirements' => $supabaseEvent['requirements'] ?? '',
+            'venue' => $supabaseEvent['venue'] ?? '',
             'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
             'start_time' => $supabaseEvent['event_time'] ?? '',
             'end_time' => $supabaseEvent['event_end_time'] ?? null,
@@ -455,6 +467,9 @@ class EventController extends Controller
             'id' => $supabaseEvent['id'] ?? null,
             'title' => $supabaseEvent['title'] ?? '',
             'description' => $supabaseEvent['description'] ?? '',
+            'organizer' => $supabaseEvent['organizer'] ?? '',
+            'requirements' => $supabaseEvent['requirements'] ?? '',
+            'venue' => $supabaseEvent['venue'] ?? '',
             'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
             'start_time' => $supabaseEvent['event_time'] ?? '',
             'end_time' => $supabaseEvent['event_end_time'] ?? null,
@@ -483,6 +498,9 @@ class EventController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
+            'organizer' => 'nullable|string|max:255',
+            'requirements' => 'nullable|string',
+            'venue' => 'nullable|string|max:255',
             'date' => 'required|date|after_or_equal:today',
             'start_time' => 'required',
             'end_time' => 'required|after:start_time',
@@ -515,6 +533,9 @@ class EventController extends Controller
         $result = $this->queryService->updateEvent($eventId, [
             'title' => $request->title,
             'description' => $request->description,
+            'organizer' => $request->organizer,
+            'requirements' => $request->requirements,
+            'venue' => $request->venue,
             'event_date' => $request->date,
             // Supabase schema stores TIME; save start time as event_time
             'event_time' => $request->start_time,

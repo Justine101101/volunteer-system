@@ -49,6 +49,47 @@
                             @enderror
                         </div>
 
+                        <!-- Organizer / Venue -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="organizer" class="block text-sm font-medium text-gray-700 mb-2">Organizer</label>
+                                <input type="text"
+                                       id="organizer"
+                                       name="organizer"
+                                       value="{{ old('organizer', $event->organizer) }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('organizer') border-red-500 @enderror"
+                                       placeholder="Enter organizer name">
+                                @error('organizer')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="venue" class="block text-sm font-medium text-gray-700 mb-2">Venue</label>
+                                <input type="text"
+                                       id="venue"
+                                       name="venue"
+                                       value="{{ old('venue', $event->venue) }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('venue') border-red-500 @enderror"
+                                       placeholder="Enter venue">
+                                @error('venue')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Requirements -->
+                        <div>
+                            <label for="requirements" class="block text-sm font-medium text-gray-700 mb-2">Requirements</label>
+                            <textarea id="requirements"
+                                      name="requirements"
+                                      rows="3"
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-transparent @error('requirements') border-red-500 @enderror"
+                                      placeholder="List what volunteers should prepare (e.g. gloves, IDs, water)">{{ old('requirements', $event->requirements) }}</textarea>
+                            @error('requirements')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <!-- Date and Time -->
                         @php
                             $rawTime = $event->time ?? '';
