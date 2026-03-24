@@ -118,7 +118,12 @@
                         </thead>
                         <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                             @forelse($users as $user)
-                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                @php $profileUrl = route('admin.users.show', $user); @endphp
+                                <tr
+                                    class="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                                    data-profile-url="{{ $profileUrl }}"
+                                    title="Open user profile"
+                                >
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 h-10 w-10">
@@ -135,14 +140,14 @@
                                                 </div>
                                             </div>
                                             <div class="ml-4">
-                                                <a href="{{ route('admin.users.show', $user) }}" class="text-sm font-medium text-slate-900 dark:text-slate-50 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">
+                                                <a href="{{ $profileUrl }}" class="text-sm font-medium text-slate-900 dark:text-slate-50 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors" data-row-ignore-click>
                                                     {{ $user->name }}
                                                 </a>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <a href="{{ route('admin.users.show', $user) }}" class="text-sm text-slate-900 dark:text-slate-50 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">
+                                        <a href="{{ $profileUrl }}" class="text-sm text-slate-900 dark:text-slate-50 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors" data-row-ignore-click>
                                             {{ $user->email }}
                                         </a>
                                     </td>
@@ -175,19 +180,20 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <a
-                                                href="{{ route('admin.users.show', $user) }}"
+                                                href="{{ $profileUrl }}"
                                                 class="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 transition"
+                                                data-row-ignore-click
                                             >
                                                 View Profile
                                             </a>
 
-                                            <a href="{{ route('admin.users.edit', $user) }}" class="text-emerald-600 hover:text-emerald-700 transition-colors" title="Edit User">
+                                            <a href="{{ route('admin.users.edit', $user) }}" class="text-emerald-600 hover:text-emerald-700 transition-colors" title="Edit User" data-row-ignore-click>
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                 </svg>
                                             </a>
                                             @if($user->id !== auth()->id())
-                                                <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" data-confirm="Delete this user? This cannot be undone.">
+                                                <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" data-confirm="Delete this user? This cannot be undone." data-row-ignore-click>
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900" title="Delete User">
@@ -338,6 +344,18 @@
                 }
             }
         }
+
+        document.querySelectorAll('tr[data-profile-url]').forEach((row) => {
+            row.addEventListener('click', (event) => {
+                if (event.target.closest('a, button, input, form, [data-row-ignore-click]')) {
+                    return;
+                }
+                const profileUrl = row.getAttribute('data-profile-url');
+                if (profileUrl) {
+                    window.location.href = profileUrl;
+                }
+            });
+        });
     </script>
 </x-app-layout>
 
