@@ -362,8 +362,8 @@ class EventRegistrationController extends Controller
     ): void {
         try {
             $targets = [];
-            foreach (['admin', 'president'] as $role) {
-                $rows = $this->queryService->getUsers(1, 200, ['role' => $role]);
+            foreach (['superadmin', 'admin', 'president'] as $role) {
+                $rows = $this->queryService->getUsersPrivileged(1, 200, ['role' => $role]);
                 if (is_array($rows) && !isset($rows['error'])) {
                     foreach ($rows as $row) {
                         if (is_array($row) && !empty($row['id'])) {

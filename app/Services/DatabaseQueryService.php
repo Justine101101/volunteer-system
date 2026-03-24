@@ -585,6 +585,34 @@ class DatabaseQueryService
     }
 
     /**
+     * Get users with service-role access (bypass RLS) for backend/admin workflows.
+     */
+    public function getUsersPrivileged(int $page = 1, int $limit = 10, array $filters = [])
+    {
+        try {
+            $query = $this->supabase->fromPrivileged('users')
+                ->select('id, name, email, role, created_at, updated_at')
+                ->order('created_at', 'desc');
+
+            if (isset($filters['role'])) {
+                $query = $query->eq('role', $filters['role']);
+            }
+
+            if (isset($filters['search'])) {
+                $query = $query->or('name.ilike.%' . $filters['search'] . '%,email.ilike.%' . $filters['search'] . '%');
+            }
+
+            $offset = ($page - 1) * $limit;
+            $query = $query->range($offset, $offset + $limit - 1);
+
+            return $query->execute();
+        } catch (\Exception $e) {
+            Log::error('Error fetching privileged users: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch users'];
+        }
+    }
+
+    /**
      * Get user by ID (UUID string)
      */
     public function getUserById(string $userId)
