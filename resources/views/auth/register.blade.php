@@ -100,9 +100,9 @@
             <div class="text-center mt-8">
                 <p class="text-gray-600">
                     By creating an account, you agree to our
-                    <a href="#" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200">Terms of Service</a>
+                    <a href="{{ route('terms.show') }}" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200">Terms of Service</a>
                     and
-                    <a href="#" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200">Privacy Policy</a>.
+                    <a href="{{ route('privacy.show') }}" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200">Privacy Policy</a>.
                 </p>
                 <p class="text-gray-600 mt-4">
                     <a href="{{ route('home') }}" class="text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200 inline-flex items-center">

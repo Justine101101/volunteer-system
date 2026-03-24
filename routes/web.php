@@ -30,6 +30,8 @@ Route::get('/events/{eventId}', [EventController::class, 'show'])->where('eventI
 Route::get('/members', [MemberController::class, 'index'])->name('members.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::view('/terms', 'legal.terms')->name('terms.show');
+Route::view('/privacy', 'legal.privacy')->name('privacy.show');
 
 // Supabase API routes (for testing)
 Route::get('/supabase/events', [SupabaseController::class, 'getEvents'])->name('supabase.events');
