@@ -158,7 +158,7 @@ class MessagingController extends Controller
         }
     }
 
-    private function buildConversations(int $userId)
+    private function buildConversations($userId)
     {
         $messages = Message::where(function($query) use ($userId) {
                 $query->where('sender_id', $userId)
