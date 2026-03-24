@@ -593,6 +593,4 @@
             transition: transform 0.3s ease-in-out;
         }
     </style>
-
-    {{-- Modal state is handled by Alpine x-data inline above (no global JS needed). --}}
 </x-app-layout>
