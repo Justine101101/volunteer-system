@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Event;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -13,6 +14,9 @@ use App\Services\SupabaseService;
 
 class EventController extends Controller
 {
+    private const EVENTS_INDEX_CACHE_TTL_SECONDS = 180;
+    private const USER_REG_CACHE_TTL_SECONDS = 60;
+
     public function __construct(
         private DatabaseQueryService $queryService,
         private SupabaseService $supabaseService
@@ -128,7 +132,9 @@ class EventController extends Controller
      */
     public function index()
     {
-        $result = $this->queryService->getEvents(1, 1000); // Get all events
+        $result = Cache::remember('events:index:v1', self::EVENTS_INDEX_CACHE_TTL_SECONDS, function () {
+            return $this->queryService->getEvents(1, 1000); // Get all events
+        });
         
         if (isset($result['error'])) {
             Log::error('Failed to fetch events: ' . $result['error']);
@@ -206,21 +212,27 @@ class EventController extends Controller
         if (Auth::check() && isset(Auth::user()->email)) {
             try {
                 $user = Auth::user();
-                $supabaseUser = $this->queryService->getUserByEmail($user->email);
-                $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+                $cacheKey = 'events:user-reg-map:v1:' . sha1((string) $user->email);
+                $userRegistrationsByEvent = Cache::remember($cacheKey, self::USER_REG_CACHE_TTL_SECONDS, function () use ($user) {
+                    $map = [];
+                    $supabaseUser = $this->queryService->getUserByEmail($user->email);
+                    $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
 
-                if ($supabaseUserId) {
-                    // Use a lightweight, user-scoped query so we always see this volunteer's registrations
-                    $regs = $this->queryService->getEventRegistrationsForUser($supabaseUserId);
-                    if (is_array($regs) && !isset($regs['error'])) {
-                        foreach ($regs as $reg) {
-                            $eventId = $reg['event_id'] ?? null;
-                            if ($eventId) {
-                                $userRegistrationsByEvent[$eventId] = strtolower($reg['registration_status'] ?? 'pending');
+                    if ($supabaseUserId) {
+                        // Use a lightweight, user-scoped query so we always see this volunteer's registrations
+                        $regs = $this->queryService->getEventRegistrationsForUser($supabaseUserId);
+                        if (is_array($regs) && !isset($regs['error'])) {
+                            foreach ($regs as $reg) {
+                                $eventId = $reg['event_id'] ?? null;
+                                if ($eventId) {
+                                    $map[$eventId] = strtolower($reg['registration_status'] ?? 'pending');
+                                }
                             }
                         }
                     }
-                }
+
+                    return $map;
+                });
             } catch (\Throwable $e) {
                 Log::error('Error building user event registration map', [
                     'message' => $e->getMessage(),
@@ -372,6 +384,11 @@ class EventController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->with('error', $userMessage);
+        }
+
+        Cache::forget('events:index:v1');
+        if (Auth::check() && !empty(Auth::user()->email)) {
+            Cache::forget('events:user-reg-map:v1:' . sha1((string) Auth::user()->email));
         }
 
         return redirect()->route('events.index')->with('success', 'Event created successfully!');
@@ -552,6 +569,8 @@ class EventController extends Controller
                 ->with('error', 'Failed to update event. Please try again.');
         }
 
+        Cache::forget('events:index:v1');
+
         return redirect()->route('events.index')->with('success', 'Event updated successfully!');
     }
 
@@ -571,6 +590,8 @@ class EventController extends Controller
             Log::error('Failed to delete event from Supabase: ' . ($result['error'] ?? 'Unknown error'));
             return redirect()->back()->with('error', 'Failed to delete event. Please try again.');
         }
+
+        Cache::forget('events:index:v1');
         
         return redirect()->route('events.index')->with('success', 'Event deleted successfully!');
     }

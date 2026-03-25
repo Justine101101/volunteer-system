@@ -7,6 +7,7 @@ use App\Models\EventRegistration;
 use Illuminate\Support\Facades\Auth;
 use App\Services\DatabaseQueryService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\RegistrationDecisionMail;
@@ -95,6 +96,10 @@ class EventRegistrationController extends Controller
             return redirect()->back()->with('error', 'Failed to register for event. Please try again.');
         }
 
+        if (!empty($user->email)) {
+            Cache::forget('events:user-reg-map:v1:' . sha1((string) $user->email));
+        }
+
         // Notify admins/presidents that a volunteer submitted a registration.
         // Keep registration success independent from notification errors.
         $this->notifyAdminsOfNewRegistration(
@@ -142,6 +147,10 @@ class EventRegistrationController extends Controller
         if (isset($result['error'])) {
             Log::error('Failed to delete registration from Supabase: ' . ($result['error'] ?? 'Unknown error'));
             return redirect()->back()->with('error', 'Failed to unregister. Please try again.');
+        }
+
+        if (!empty($user->email)) {
+            Cache::forget('events:user-reg-map:v1:' . sha1((string) $user->email));
         }
 
         return redirect()->back()->with('success', 'Successfully unregistered from the event.');

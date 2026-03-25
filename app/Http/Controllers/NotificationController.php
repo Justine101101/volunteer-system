@@ -6,10 +6,13 @@ use App\Services\DatabaseQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
 {
+    private const NOTIFICATIONS_CACHE_TTL_SECONDS = 30;
+
     public function __construct(private DatabaseQueryService $queryService)
     {
         $this->middleware('auth');
@@ -37,8 +40,11 @@ class NotificationController extends Controller
 
         $notifications = [];
         if ($supabaseUserId) {
-            $result = $this->queryService->getNotificationsForUser($supabaseUserId, 50);
-            $notifications = (is_array($result) && !isset($result['error'])) ? $result : [];
+            $cacheKey = 'notifications:user:v1:' . $supabaseUserId;
+            $notifications = Cache::remember($cacheKey, self::NOTIFICATIONS_CACHE_TTL_SECONDS, function () use ($supabaseUserId) {
+                $result = $this->queryService->getNotificationsForUser($supabaseUserId, 50);
+                return (is_array($result) && !isset($result['error'])) ? $result : [];
+            });
         }
 
         return view('notifications.index', [
@@ -49,6 +55,14 @@ class NotificationController extends Controller
     public function markRead(Request $request, string $notificationId): RedirectResponse
     {
         $this->queryService->markNotificationRead($notificationId);
+        $user = Auth::user();
+        if ($user && $user->email) {
+            $supabaseUser = $this->queryService->getUserByEmail($user->email);
+            $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+            if ($supabaseUserId) {
+                Cache::forget('notifications:user:v1:' . $supabaseUserId);
+            }
+        }
         return redirect()->back();
     }
 }
