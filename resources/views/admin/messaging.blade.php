@@ -632,6 +632,46 @@
 
         // Auto-scroll to bottom on load
         document.addEventListener('DOMContentLoaded', function() {
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function appendOutgoingMessage(payload) {
+                const messagesContainer = document.getElementById('messagesContainer');
+                if (!messagesContainer) return;
+                const wrapper = messagesContainer.querySelector('.max-w-4xl');
+                if (!wrapper) return;
+
+                const subject = payload?.subject ? `<p class="text-xs font-semibold text-slate-500 mb-1 px-1">${escapeHtml(payload.subject)}</p>` : '';
+                const timeText = escapeHtml(payload?.created_at || '');
+                const bodyText = escapeHtml(payload?.message || '');
+                const id = escapeHtml(payload?.id || '');
+
+                const html = `
+                    <div class="group flex items-end gap-3 message-item justify-end" data-message-id="${id}">
+                        <div class="flex flex-col max-w-[70%] items-end">
+                            ${subject}
+                            <div class="px-4 py-2.5 rounded-2xl shadow-sm bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-br-sm">
+                                <p class="text-sm whitespace-pre-wrap break-words">${bodyText}</p>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1 px-1">
+                                <span class="text-xs text-slate-500">${timeText}</span>
+                                <svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                wrapper.insertAdjacentHTML('beforeend', html);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
             // Make dropdown rows reliably clickable (avoids fragile inline JS string escaping issues).
             const dropdown = document.getElementById('userDropdown');
             if (dropdown) {
@@ -684,12 +724,18 @@
                             }
                         });
                         
-                        if (response.ok) {
-                            // Reload page to show new message (backend redirects)
-                            window.location.reload();
-                        } else {
+                        if (!response.ok) {
                             throw new Error('Failed to send message');
                         }
+
+                        const json = await response.json();
+                        if (!json?.ok || !json?.message) {
+                            throw new Error('Invalid response');
+                        }
+
+                        appendOutgoingMessage(json.message);
+                        messageInput.value = '';
+                        messageInput.style.height = 'auto';
                     } catch (error) {
                         console.error('Error sending message:', error);
                         alert('Failed to send message. Please try again.');

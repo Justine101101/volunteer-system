@@ -93,7 +93,7 @@ class MessagingController extends Controller
         $subjectFilter = ContentFilter::redact((string)($request->subject ?? ''));
         $messageFilter = ContentFilter::redact((string)$request->message);
 
-        Message::create([
+        $created = Message::create([
             'sender_id' => $user->id,
             'receiver_id' => $request->receiver_id,
             'subject' => $subjectFilter['clean'] ?: null,
@@ -105,8 +105,22 @@ class MessagingController extends Controller
             $notice .= ' Note: Some words were redacted.';
         }
 
-        return redirect()->route('messaging.chat', $request->receiver_id)
-            ->with('success', $notice);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'notice' => $notice,
+                'message' => [
+                    'id' => $created->id,
+                    'subject' => $created->subject,
+                    'message' => $created->message,
+                    'created_at' => optional($created->created_at)->format('h:i A'),
+                    'read_at' => $created->read_at,
+                    'sender_id' => $created->sender_id,
+                ],
+            ]);
+        }
+
+        return redirect()->route('messaging.chat', $request->receiver_id)->with('success', $notice);
     }
 
     /**
