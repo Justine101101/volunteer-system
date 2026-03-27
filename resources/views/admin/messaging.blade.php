@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="h-screen flex flex-col bg-slate-50">
+    <div class="min-h-screen md:h-screen flex flex-col bg-slate-50">
         <!-- Success/Error Messages -->
         @if(session('success'))
             <div class="bg-emerald-100 border-l-4 border-emerald-500 text-emerald-700 px-4 py-3 mx-4 mt-4 rounded-lg shadow-sm" role="alert">
@@ -15,7 +15,7 @@
 
         <div class="flex-1 flex overflow-hidden">
             <!-- LEFT SIDEBAR - Conversation List (320px) -->
-            <div class="w-80 bg-white border-r border-slate-200 flex flex-col shadow-sm">
+            <div class="w-full md:w-80 bg-white md:border-r border-slate-200 flex flex-col shadow-sm {{ isset($otherUser) && isset($messages) ? 'hidden md:flex' : 'flex' }}">
                 <!-- Sidebar Header -->
                 <div class="p-4 border-b border-slate-200 bg-white">
                     <div class="flex items-center justify-between mb-4">
@@ -123,12 +123,19 @@
             </div>
 
             <!-- CENTER PANEL - Chat Area -->
-            <div class="flex-1 flex flex-col bg-white">
+            <div class="flex-1 flex-col bg-white {{ isset($otherUser) && isset($messages) ? 'flex' : 'hidden md:flex' }}">
                 @if(isset($otherUser) && isset($messages))
                     <!-- Chat Header -->
-                    <div class="px-6 py-4 border-b border-slate-200 bg-white shadow-sm">
+                    <div class="px-4 sm:px-6 py-4 border-b border-slate-200 bg-white shadow-sm">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
+                                <a href="{{ route('admin.messaging') }}"
+                                   class="inline-flex md:hidden items-center justify-center h-9 w-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                   aria-label="Back to conversations">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </a>
                                 <!-- Avatar -->
                                 <div class="relative">
                                     @if($otherUser->photo_url)
@@ -178,7 +185,7 @@
 
                     <!-- Messages Area (Scrollable) -->
                     <div 
-                        class="flex-1 overflow-y-auto px-6 py-6 bg-gradient-to-b from-slate-50 to-white"
+                        class="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 bg-gradient-to-b from-slate-50 to-white"
                         id="messagesContainer"
                         data-current-user-id="{{ auth()->id() }}"
                         data-other-user-id="{{ $otherUser->id }}">
@@ -204,7 +211,7 @@
                                     @endif
 
                                     <!-- Message Bubble -->
-                                    <div class="flex flex-col max-w-[70%] {{ $message->sender_id === auth()->id() ? 'items-end' : 'items-start' }}">
+                                    <div class="flex flex-col max-w-[85%] sm:max-w-[70%] {{ $message->sender_id === auth()->id() ? 'items-end' : 'items-start' }}">
                                         @if($message->sanitized_subject)
                                             <p class="text-xs font-semibold text-slate-500 mb-1 px-1">
                                                 {{ $message->sanitized_subject }}
@@ -268,7 +275,7 @@
                                 
                                 @if($message->sender_id === auth()->id())
                                     <!-- Edit Form (Hidden by default) -->
-                                    <form id="edit-{{ $message->id }}" action="{{ route('admin.messaging.update', $message) }}" method="POST" class="hidden max-w-[70%] ml-auto mt-2">
+                                    <form id="edit-{{ $message->id }}" action="{{ route('admin.messaging.update', $message) }}" method="POST" class="hidden max-w-[85%] sm:max-w-[70%] ml-auto mt-2">
                                         @csrf
                                         @method('PUT')
                                         <input type="text" name="subject" value="{{ $message->sanitized_subject }}" placeholder="Subject (optional)" class="w-full px-3 py-2 border border-slate-300 rounded-lg mb-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
@@ -284,7 +291,7 @@
                     </div>
 
                     <!-- Typing Indicator (Hidden by default) -->
-                    <div id="typingIndicator" class="px-6 py-2 hidden">
+                    <div id="typingIndicator" class="px-3 sm:px-6 py-2 hidden">
                         <div class="flex items-center gap-2 max-w-[70%]">
                             <div class="w-8 h-8 rounded-full bg-slate-300"></div>
                             <div class="bg-white border border-slate-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
@@ -298,15 +305,15 @@
                     </div>
 
                     <!-- Message Input Area (Sticky Footer) -->
-                    <div class="px-6 py-4 border-t border-slate-200 bg-white shadow-lg">
-                        <form action="{{ route('admin.messaging.send') }}" method="POST" id="messageForm" class="flex items-end gap-3">
+                    <div class="px-3 sm:px-6 py-3 sm:py-4 border-t border-slate-200 bg-white shadow-lg">
+                        <form action="{{ route('admin.messaging.send') }}" method="POST" id="messageForm" class="flex items-end gap-2 sm:gap-3">
                             @csrf
                             <input type="hidden" name="receiver_id" value="{{ $otherUser->id }}">
                             
                             <!-- Emoji Button -->
                             <button 
                                 type="button"
-                                class="flex-shrink-0 p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+                                class="hidden sm:inline-flex flex-shrink-0 p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
                                 title="Add emoji">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -316,7 +323,7 @@
                             <!-- Attachment Button -->
                             <button 
                                 type="button"
-                                class="flex-shrink-0 p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+                                class="hidden sm:inline-flex flex-shrink-0 p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
                                 title="Attach file">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
@@ -654,7 +661,7 @@
 
                 const html = `
                     <div class="group flex items-end gap-3 message-item justify-end" data-message-id="${id}">
-                        <div class="flex flex-col max-w-[70%] items-end">
+                        <div class="flex flex-col max-w-[85%] sm:max-w-[70%] items-end">
                             ${subject}
                             <div class="px-4 py-2.5 rounded-2xl shadow-sm bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-br-sm">
                                 <p class="text-sm whitespace-pre-wrap break-words">${bodyText}</p>
