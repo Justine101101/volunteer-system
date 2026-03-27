@@ -12,6 +12,19 @@ Alpine.start();
 // UX animations and helpers (non-intrusive)
 import './ux';
 
-// Realtime chat (only loads on messaging pages)
-import RealtimeChat from './chat';
-window.RealtimeChat = RealtimeChat;
+// Realtime chat: lazy-load only when a messaging container is present.
+window.loadRealtimeChat = async function loadRealtimeChat() {
+    if (window.RealtimeChat) {
+        return window.RealtimeChat;
+    }
+
+    const mod = await import('./chat');
+    window.RealtimeChat = mod.default;
+    return window.RealtimeChat;
+};
+
+if (document.getElementById('messagesContainer')) {
+    window.loadRealtimeChat().catch((error) => {
+        console.error('Failed to load realtime chat module:', error);
+    });
+}

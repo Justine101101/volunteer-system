@@ -722,20 +722,32 @@
                     }, index * 50);
                 });
 
-                // Initialize Realtime Chat if available
+                // Initialize Realtime Chat (lazy-loaded module)
                 const currentUserId = messagesContainer.getAttribute('data-current-user-id');
                 const otherUserId = messagesContainer.getAttribute('data-other-user-id');
-                
-                if (currentUserId && otherUserId && window.RealtimeChat) {
+
+                if (currentUserId && otherUserId) {
                     const supabaseConfig = {
                         url: @json(config('supabase.url')),
                         anonKey: @json(config('supabase.anon_key')),
                         currentUserId: parseInt(currentUserId),
                         otherUserId: parseInt(otherUserId)
                     };
-                    
+
                     if (supabaseConfig.url && supabaseConfig.anonKey) {
-                        window.realtimeChat = new window.RealtimeChat(supabaseConfig);
+                        const initRealtime = async () => {
+                            try {
+                                const RealtimeChatClass = window.loadRealtimeChat
+                                    ? await window.loadRealtimeChat()
+                                    : window.RealtimeChat;
+                                if (RealtimeChatClass) {
+                                    window.realtimeChat = new RealtimeChatClass(supabaseConfig);
+                                }
+                            } catch (error) {
+                                console.error('Failed to initialize realtime chat:', error);
+                            }
+                        };
+                        initRealtime();
                     }
                 }
             }
