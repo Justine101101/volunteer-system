@@ -1,5 +1,20 @@
 @php
     $mobile = $mobile ?? false;
+    $messagingConversationCount = 0;
+    if (auth()->check()) {
+        try {
+            $userId = auth()->id();
+            $messagingConversationCount = \Illuminate\Support\Facades\DB::table('messages')
+                ->selectRaw('COUNT(DISTINCT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END) as aggregate_count', [$userId])
+                ->where(function ($query) use ($userId) {
+                    $query->where('sender_id', $userId)
+                        ->orWhere('receiver_id', $userId);
+                })
+                ->value('aggregate_count') ?? 0;
+        } catch (\Throwable $e) {
+            $messagingConversationCount = 0;
+        }
+    }
 @endphp
 
 <aside class="{{ $mobile ? 'flex h-full w-full max-w-[18rem] flex-col bg-slate-900 text-white shadow-2xl' : 'hidden md:flex md:flex-col fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white shadow-md z-50' }}">
@@ -59,7 +74,10 @@
         @if(auth()->user()?->isAdmin())
         <a href="{{ route('admin.messaging') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 @if(request()->routeIs('admin.messaging*')) bg-emerald-600 text-white @else text-slate-300 hover:text-white hover:bg-slate-800 @endif">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l.8-4A8.994 8.994 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-            <span>Admin Messaging</span>
+            <span class="flex-1">Admin Messaging</span>
+            <span class="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-200">
+                {{ $messagingConversationCount }}
+            </span>
         </a>
         @endif
         <a href="{{ route('settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 @if(request()->routeIs('settings')) bg-emerald-600 text-white @else text-slate-300 hover:text-white hover:bg-slate-800 @endif">

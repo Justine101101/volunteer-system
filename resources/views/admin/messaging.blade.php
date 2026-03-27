@@ -13,13 +13,30 @@
             </div>
         @endif
 
+        @php
+            $conversationCount = is_countable($conversations ?? null) ? count($conversations) : 0;
+            $unreadConversationCount = collect($conversations ?? [])->filter(function ($conversation) {
+                return (int) ($conversation['unread_count'] ?? 0) > 0;
+            })->count();
+        @endphp
+
         <div class="flex-1 flex overflow-hidden">
             <!-- LEFT SIDEBAR - Conversation List (320px) -->
             <div class="w-full md:w-80 bg-white md:border-r border-slate-200 flex flex-col shadow-sm {{ isset($otherUser) && isset($messages) ? 'hidden md:flex' : 'flex' }}">
                 <!-- Sidebar Header -->
                 <div class="p-4 border-b border-slate-200 bg-white">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-bold text-slate-900">Messages</h2>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-xl font-bold text-slate-900">Messages</h2>
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                {{ $conversationCount }}
+                            </span>
+                            @if($unreadConversationCount > 0)
+                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                    {{ $unreadConversationCount }} unread
+                                </span>
+                            @endif
+                        </div>
                         <button 
                             type="button" 
                             onclick="openNewMessageModal()" 
