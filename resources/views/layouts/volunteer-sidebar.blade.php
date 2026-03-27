@@ -1,16 +1,30 @@
-<aside class="hidden md:flex md:flex-col fixed left-0 top-0 h-screen w-64 bg-slate-900 dark:bg-slate-900 text-white shadow-xl z-50">
-    <!-- Logo Section -->
+@php
+    $mobile = $mobile ?? false;
+@endphp
+
+<aside class="{{ $mobile ? 'flex h-full w-full max-w-[18rem] flex-col bg-slate-900 text-white shadow-2xl' : 'hidden md:flex md:flex-col fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white shadow-xl z-50' }}">
     <div class="px-4 pt-4 pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-3">
-            <img src="{{ asset('images/partners/logo.png') }}" alt="Logo" class="w-12 h-12 rounded-xl object-cover ring-2 ring-slate-700" />
-            <div>
-                <p class="text-xs text-slate-400 font-medium">Volunteer System</p>
-                <p class="text-sm font-semibold text-white">Cordillera Adivay</p>
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <img src="{{ asset('images/partners/logo.png') }}" alt="Logo" class="w-12 h-12 rounded-xl object-cover ring-2 ring-slate-700" />
+                <div>
+                    <p class="text-xs text-slate-400 font-medium">Volunteer System</p>
+                    <p class="text-sm font-semibold text-white">Cordillera Adivay</p>
+                </div>
             </div>
+            @if($mobile)
+                <button type="button"
+                        class="md:hidden rounded-lg p-2 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        @click="volunteerNavOpen = false"
+                        aria-label="Close menu">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            @endif
         </div>
     </div>
 
-    <!-- Navigation Menu -->
     <nav class="flex-1 px-3 pt-4 pb-4 space-y-1 overflow-y-auto">
         <a href="{{ route('events.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 @if(request()->routeIs('events.*')) bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 @else text-slate-300 hover:bg-slate-800 hover:text-emerald-300 @endif">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

@@ -21,10 +21,41 @@
         <a href="#main" class="sr-only focus:not-sr-only focus-ring px-3 py-2 bg-white dark:bg-slate-800 text-gray-800 dark:text-white">Skip to content</a>
         <div class="min-h-screen bg-light-gray dark:bg-slate-900" role="document">
             @if(request()->routeIs('admin.*') || (request()->routeIs('messaging*') && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || ((request()->routeIs('events.*') && !request()->routeIs('events.calendar')) && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()) || (request()->routeIs('notifications*') && auth()->check() && auth()->user()?->isAdminOrSuperAdmin()))
-                <div class="bg-slate-50 dark:bg-slate-900">
+                <div class="bg-slate-50 dark:bg-slate-900" x-data="{ adminNavOpen: false }">
                     @include('layouts.sidebar')
+                    <div class="md:hidden sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:bg-slate-900/95 dark:border-slate-700">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <button type="button"
+                                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                                    @click="adminNavOpen = true"
+                                    aria-label="Open menu">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div class="flex items-center gap-2">
+                                <img src="{{ asset('images/partners/logo.png') }}" alt="Logo" class="h-8 w-8 rounded-lg object-cover ring-1 ring-slate-300 dark:ring-slate-600" />
+                                <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">Admin Panel</span>
+                            </div>
+                            <a href="{{ route('settings') }}"
+                               class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold uppercase text-white">
+                                {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="fixed inset-0 z-50 md:hidden"
+                         x-show="adminNavOpen"
+                         x-transition.opacity
+                         x-cloak
+                         aria-hidden="true">
+                        <div class="absolute inset-0 bg-black/50" @click="adminNavOpen = false"></div>
+                        <div class="absolute inset-y-0 left-0">
+                            @include('layouts.sidebar', ['mobile' => true])
+                        </div>
+                    </div>
                     <!-- Main content area with left margin for fixed sidebar -->
-                    <div class="md:ml-64 h-screen flex flex-col overflow-hidden">
+                    <div class="md:ml-64 min-h-screen md:h-screen flex flex-col overflow-hidden">
                         @isset($header)
                             <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm flex-shrink-0 z-40">
                                 <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -42,10 +73,41 @@
                     </div>
                 </div>
             @elseif(request()->routeIs('volunteer.*') || (request()->routeIs('messaging*') && auth()->user()?->isVolunteer()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isVolunteer()) || ((request()->routeIs('events.*') && !request()->routeIs('events.calendar')) && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('notifications*') && auth()->check() && auth()->user()?->isVolunteer()))
-                <div class="bg-white dark:bg-slate-900">
+                <div class="bg-white dark:bg-slate-900" x-data="{ volunteerNavOpen: false }">
                     @include('layouts.volunteer-sidebar')
+                    <div class="md:hidden sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:bg-slate-900/95 dark:border-slate-700">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <button type="button"
+                                    class="inline-flex items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                                    @click="volunteerNavOpen = true"
+                                    aria-label="Open menu">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                            </button>
+                            <div class="flex items-center gap-2">
+                                <img src="{{ asset('images/partners/logo.png') }}" alt="Logo" class="h-8 w-8 rounded-lg object-cover ring-1 ring-slate-300 dark:ring-slate-600" />
+                                <span class="text-sm font-semibold text-slate-900 dark:text-slate-100">Volunteer Panel</span>
+                            </div>
+                            <a href="{{ route('settings') }}"
+                               class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold uppercase text-white">
+                                {{ strtoupper(substr(auth()->user()->name ?? 'V', 0, 1)) }}
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="fixed inset-0 z-50 md:hidden"
+                         x-show="volunteerNavOpen"
+                         x-transition.opacity
+                         x-cloak
+                         aria-hidden="true">
+                        <div class="absolute inset-0 bg-black/50" @click="volunteerNavOpen = false"></div>
+                        <div class="absolute inset-y-0 left-0">
+                            @include('layouts.volunteer-sidebar', ['mobile' => true])
+                        </div>
+                    </div>
                     <!-- Main content area with left margin for fixed sidebar -->
-                    <div class="md:ml-64 h-screen flex flex-col overflow-hidden">
+                    <div class="md:ml-64 min-h-screen md:h-screen flex flex-col overflow-hidden">
                         @isset($header)
                             <header class="bg-white dark:bg-slate-800 shadow border-b border-slate-200 dark:border-slate-700 flex-shrink-0 z-40">
                                 <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
