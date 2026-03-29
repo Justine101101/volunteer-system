@@ -158,11 +158,7 @@
     </div>
 
     <style>
-        @media print {
-            .no-print {
-                display: none;
-            }
-        }
+        /* moved to resources/css/app.css */
     </style>
 </x-app-layout>
 

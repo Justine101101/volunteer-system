@@ -146,29 +146,5 @@
 </div>
 
 <style>
-    /* Hover animations for member cards */
-    .member-card {
-        transition: all 0.3s ease-in-out;
-    }
-    .member-card:hover {
-        transform: translateY(-8px) scale(1.05);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    }
-    .member-card:hover .member-photo-container {
-        transform: scale(1.1);
-    }
-    .member-card:hover .member-photo-circle {
-        transform: rotate(6deg);
-    }
-    .member-card:hover .member-photo-img,
-    .member-card:hover .member-photo-initial {
-        transform: scale(1.1);
-    }
-    .member-card:hover .member-name,
-    .member-card:hover .member-role {
-        transform: translateX(8px);
-    }
-    .member-card:hover .member-section {
-        opacity: 0.9;
-    }
+    /* moved to resources/css/app.css */
 </style>

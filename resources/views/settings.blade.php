@@ -805,7 +805,7 @@
     </div>
 
     <!-- Cropper.js JS -->
-    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 
     <script>
         let profileCropper = null;

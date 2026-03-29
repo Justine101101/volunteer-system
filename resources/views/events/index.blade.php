@@ -203,6 +203,7 @@
                             <img src="{{ $event->photo_url }}"
                                  alt="{{ $event->title }}"
                                  class="event-image w-full h-full object-cover"
+                                 loading="lazy" decoding="async"
                                  onerror="this.style.display='none';">
                         @endif
                         <span class="absolute top-3 left-3 inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold bg-white/95 border border-emerald-100 text-emerald-700 capitalize">
@@ -571,18 +572,7 @@
     </div>
 
     <style>
-        /* Hover animations for event cards */
-        .event-card {
-            transition: all 0.3s ease-in-out;
-        }
-        .event-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12);
-        }
-        .event-card:hover .event-image {
-            transform: scale(1.05);
-            transition: transform 0.3s ease-in-out;
-        }
+        /* moved to resources/css/app.css */
     </style>
 
     <script>

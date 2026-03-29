@@ -77,7 +77,8 @@
                                         <img 
                                             src="{{ (is_string($conversation['user']->photo_url) && str_starts_with($conversation['user']->photo_url, 'http')) ? $conversation['user']->photo_url : asset($conversation['user']->photo_url) }}" 
                                             alt="{{ $conversation['user']->name }}"
-                                            class="w-12 h-12 rounded-full object-cover border-2 border-slate-200">
+                                            class="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                                            loading="lazy" decoding="async">
                                     @else
                                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-semibold text-lg border-2 border-slate-200">
                                             {{ strtoupper(substr($conversation['user']->name ?? 'U', 0, 1)) }}
@@ -159,7 +160,8 @@
                                         <img 
                                             src="{{ (is_string($otherUser->photo_url) && str_starts_with($otherUser->photo_url, 'http')) ? $otherUser->photo_url : asset($otherUser->photo_url) }}" 
                                             alt="{{ $otherUser->name }}"
-                                            class="w-12 h-12 rounded-full object-cover border-2 border-slate-200">
+                                            class="w-12 h-12 rounded-full object-cover border-2 border-slate-200"
+                                            loading="lazy" decoding="async">
                                     @else
                                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-semibold text-lg border-2 border-slate-200">
                                             {{ strtoupper(substr($otherUser->name ?? 'U', 0, 1)) }}
@@ -218,7 +220,8 @@
                                                 <img 
                                                     src="{{ (is_string($message->sender->photo_url) && str_starts_with($message->sender->photo_url, 'http')) ? $message->sender->photo_url : asset($message->sender->photo_url) }}" 
                                                     alt="{{ $message->sender->name }}"
-                                                    class="w-8 h-8 rounded-full object-cover">
+                                                    class="w-8 h-8 rounded-full object-cover"
+                                                    loading="lazy" decoding="async">
                                             @else
                                                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 text-white flex items-center justify-center font-semibold text-xs">
                                                     {{ strtoupper(substr($message->sender->name ?? 'U', 0, 1)) }}

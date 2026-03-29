@@ -20,3 +20,22 @@
 /* Basic reveal utility */
 [data-animate] { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
 [data-animate].in-view { opacity: 1; transform: translateY(0); }
+
+/* Events page card hover (moved from inline styles) */
+.event-card { transition: all 0.3s ease-in-out; }
+.event-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12); }
+.event-card:hover .event-image { transform: scale(1.05); transition: transform 0.3s ease-in-out; }
+
+/* Members home hover effects (moved from inline styles) */
+.member-card { transition: all 0.3s ease-in-out; }
+.member-card:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+.member-card:hover .member-photo-container { transform: scale(1.1); }
+.member-card:hover .member-photo-circle { transform: rotate(6deg); }
+.member-card:hover .member-photo-img,
+.member-card:hover .member-photo-initial { transform: scale(1.1); }
+.member-card:hover .member-name,
+.member-card:hover .member-role { transform: translateX(8px); }
+.member-card:hover .member-section { opacity: 0.9; }
+
+/* Print helpers (moved from events calendar) */
+@media print { .no-print { display: none; } }
