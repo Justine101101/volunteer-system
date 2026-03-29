@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class NotificationController extends Controller
 {
@@ -42,13 +43,25 @@ class NotificationController extends Controller
         if ($supabaseUserId) {
             $cacheKey = 'notifications:user:v1:' . $supabaseUserId;
             $notifications = Cache::remember($cacheKey, self::NOTIFICATIONS_CACHE_TTL_SECONDS, function () use ($supabaseUserId) {
-                $result = $this->queryService->getNotificationsForUser($supabaseUserId, 50);
+                // Fetch a reasonably high ceiling and paginate in-memory for now.
+                // If this grows too large in the future, switch to offset/range queries.
+                $result = $this->queryService->getNotificationsForUser($supabaseUserId, 1000);
                 return (is_array($result) && !isset($result['error'])) ? $result : [];
             });
         }
 
+        // Build a paginator from the array so the UI can use page links.
+        $perPage = (int) request()->integer('per_page', 15);
+        $page = (int) request()->integer('page', 1);
+        $total = is_countable($notifications) ? count($notifications) : 0;
+        $items = array_slice($notifications, max(0, ($page - 1) * $perPage), $perPage);
+        $paginator = new LengthAwarePaginator($items, $total, $perPage, $page, [
+            'path' => request()->url(),
+            'query' => request()->query(),
+        ]);
+
         return view('notifications.index', [
-            'notifications' => $notifications,
+            'notifications' => $paginator,
         ]);
     }
 

@@ -50,6 +50,21 @@
                         </div>
                     @endforelse
                 </div>
+
+                @if(method_exists($notifications, 'total'))
+                    <div class="px-6 py-4 flex items-center justify-between border-t border-slate-100 bg-slate-50">
+                        <p class="text-xs sm:text-sm text-slate-600">
+                            @php
+                                $from = ($notifications->currentPage() - 1) * $notifications->perPage() + 1;
+                                $to = min($notifications->total(), $notifications->currentPage() * $notifications->perPage());
+                            @endphp
+                            Showing {{ $from }} to {{ $to }} of {{ $notifications->total() }} results
+                        </p>
+                        <div class="text-right">
+                            {{ $notifications->withQueryString()->onEachSide(1)->links() }}
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
