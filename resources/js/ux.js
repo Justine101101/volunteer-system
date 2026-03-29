@@ -12,8 +12,12 @@
   });
 })();
 
-// Scroll progress bar (top thin line)
+// Scroll progress bar (DISABLED by default).
+// To re-enable on a specific page, add: <body data-scroll-progress="on">
 (() => {
+  const enable = () => !!document.querySelector('[data-scroll-progress="on"]');
+  if (!enable()) return;
+
   const bar = document.createElement('div');
   bar.style.position = 'fixed';
   bar.style.top = '0';
