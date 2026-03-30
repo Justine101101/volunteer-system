@@ -387,8 +387,10 @@ class EventController extends Controller
         }
 
         Cache::forget('events:index:v1');
+        Cache::forget('home:events:v1');
         if (Auth::check() && !empty(Auth::user()->email)) {
             Cache::forget('events:user-reg-map:v1:' . sha1((string) Auth::user()->email));
+            Cache::forget('dashboard:volunteer:v1:' . sha1((string) Auth::user()->email));
         }
 
         return redirect()->route('events.index')->with('success', 'Event created successfully!');
@@ -570,6 +572,10 @@ class EventController extends Controller
         }
 
         Cache::forget('events:index:v1');
+        Cache::forget('home:events:v1');
+        if (Auth::check() && !empty(Auth::user()->email)) {
+            Cache::forget('dashboard:volunteer:v1:' . sha1((string) Auth::user()->email));
+        }
 
         return redirect()->route('events.index')->with('success', 'Event updated successfully!');
     }
@@ -592,6 +598,10 @@ class EventController extends Controller
         }
 
         Cache::forget('events:index:v1');
+        Cache::forget('home:events:v1');
+        if (Auth::check() && !empty(Auth::user()->email)) {
+            Cache::forget('dashboard:volunteer:v1:' . sha1((string) Auth::user()->email));
+        }
         
         return redirect()->route('events.index')->with('success', 'Event deleted successfully!');
     }

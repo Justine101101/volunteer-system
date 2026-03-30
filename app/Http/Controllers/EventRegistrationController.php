@@ -98,6 +98,7 @@ class EventRegistrationController extends Controller
 
         if (!empty($user->email)) {
             Cache::forget('events:user-reg-map:v1:' . sha1((string) $user->email));
+            Cache::forget('dashboard:volunteer:v1:' . sha1((string) $user->email));
         }
 
         // Notify admins/presidents that a volunteer submitted a registration.
@@ -151,6 +152,7 @@ class EventRegistrationController extends Controller
 
         if (!empty($user->email)) {
             Cache::forget('events:user-reg-map:v1:' . sha1((string) $user->email));
+            Cache::forget('dashboard:volunteer:v1:' . sha1((string) $user->email));
         }
 
         return redirect()->back()->with('success', 'Successfully unregistered from the event.');

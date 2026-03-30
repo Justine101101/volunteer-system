@@ -6,6 +6,7 @@ use App\Services\DatabaseQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class VolunteerDashboardController extends Controller
@@ -14,6 +15,8 @@ class VolunteerDashboardController extends Controller
     {
         $this->middleware('auth');
     }
+
+    private const DASHBOARD_STATS_CACHE_TTL_SECONDS = 60;
 
     private function normalizePhotoUrl(?string $photoUrl): ?string
     {
@@ -41,6 +44,19 @@ class VolunteerDashboardController extends Controller
      * This can be reused on the volunteer dashboard or profile page.
      */
     public function buildStatsForUser($user): array
+    {
+        $email = $user?->email ? (string) $user->email : null;
+        if ($email) {
+            $cacheKey = 'dashboard:volunteer:v1:' . sha1($email);
+            return Cache::remember($cacheKey, self::DASHBOARD_STATS_CACHE_TTL_SECONDS, function () use ($user) {
+                return $this->buildStatsForUserUncached($user);
+            });
+        }
+
+        return $this->buildStatsForUserUncached($user);
+    }
+
+    private function buildStatsForUserUncached($user): array
     {
         // Resolve Supabase user ID from local user (by email)
         $supabaseUserId = null;

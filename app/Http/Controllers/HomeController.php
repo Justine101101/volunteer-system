@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Member;
 use App\Services\DatabaseQueryService;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
     public function __construct(private DatabaseQueryService $queryService)
     {
     }
+
+    private const HOME_EVENTS_CACHE_TTL_SECONDS = 120;
 
     private function formatSupabaseTime(?string $time): ?string
     {
@@ -51,10 +54,12 @@ class HomeController extends Controller
         $members = Member::take(6)->get();
 
         // Upcoming events should come from Supabase (admins create events in Supabase)
-        $eventsRaw = $this->queryService->getEvents(1, 10, [
-            'status' => 'active',
-            'date_from' => now()->format('Y-m-d'),
-        ]);
+        $eventsRaw = Cache::remember('home:events:v1', self::HOME_EVENTS_CACHE_TTL_SECONDS, function () {
+            return $this->queryService->getEvents(1, 10, [
+                'status' => 'active',
+                'date_from' => now()->format('Y-m-d'),
+            ]);
+        });
 
         $events = collect(is_array($eventsRaw) && !isset($eventsRaw['error']) ? $eventsRaw : [])
             ->map(function (array $event) {
