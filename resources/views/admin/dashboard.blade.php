@@ -80,7 +80,7 @@
     @endphp
 
     <div class="py-10 bg-slate-50 dark:bg-slate-900">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div id="dashRoot" class="opacity-0 transition-opacity duration-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             <!-- Hero -->
             <section class="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 sm:p-8 dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -188,8 +188,9 @@
                             <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $analytics['growth_rate_pct'] }}%</p>
                         </div>
                     </div>
-                    <div class="mt-6 h-72">
-                        <canvas id="chartRegistrations"></canvas>
+                    <div class="mt-6 h-72 relative">
+                        <div id="skelRegistrations" class="absolute inset-0 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
+                        <canvas id="chartRegistrations" class="relative"></canvas>
                     </div>
                     @if(!$hasTrend)
                         <p class="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 dark:bg-amber-500/10 dark:text-amber-200 dark:border-amber-500/20">
@@ -205,8 +206,9 @@
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Pending, approved, and rejected</p>
                         </div>
                     </div>
-                    <div class="mt-6 h-72">
-                        <canvas id="chartUsers"></canvas>
+                    <div class="mt-6 h-72 relative">
+                        <div id="skelUsers" class="absolute inset-0 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
+                        <canvas id="chartUsers" class="relative"></canvas>
                     </div>
                     <div class="mt-6 grid grid-cols-3 gap-3 text-sm">
                         <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/40">
@@ -234,8 +236,9 @@
                             View events
                         </a>
                     </div>
-                    <div class="mt-6 h-72">
-                        <canvas id="chartEvents"></canvas>
+                    <div class="mt-6 h-72 relative">
+                        <div id="skelEvents" class="absolute inset-0 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
+                        <canvas id="chartEvents" class="relative"></canvas>
                     </div>
                 </div>
 
@@ -389,9 +392,13 @@
                     };
                 }
 
+                // Reveal UI quickly once scripts execute to improve perceived performance
+                const dashRoot = document.getElementById('dashRoot');
+                if (dashRoot) requestAnimationFrame(() => { dashRoot.classList.remove('opacity-0'); dashRoot.classList.add('opacity-100'); });
+
                 const regEl = document.getElementById('chartRegistrations');
                 if (regEl) {
-                    new Chart(regEl, {
+                    const chart = new Chart(regEl, {
                         type: 'line',
                         data: {
                             labels: @json($trendLabels),
@@ -414,11 +421,13 @@
                             scales: baseScales(),
                         }
                     });
+                    const sk = document.getElementById('skelRegistrations');
+                    if (sk) sk.style.display = 'none';
                 }
 
                 const usersEl = document.getElementById('chartUsers');
                 if (usersEl) {
-                    new Chart(usersEl, {
+                    const chart = new Chart(usersEl, {
                         type: 'doughnut',
                         data: {
                             labels: ['Pending', 'Approved', 'Rejected'],
@@ -436,6 +445,8 @@
                             plugins: { legend: { display: false } },
                         }
                     });
+                    const sk = document.getElementById('skelUsers');
+                    if (sk) sk.style.display = 'none';
                 }
 
                 const eventsEl = document.getElementById('chartEvents');
@@ -448,7 +459,7 @@
                     });
                     const data = @json($eventsTrendValues);
 
-                    new Chart(eventsEl, {
+                    const chart = new Chart(eventsEl, {
                         type: 'bar',
                         data: {
                             labels: months,
@@ -469,6 +480,8 @@
                             scales: baseScales(),
                         }
                     });
+                    const sk = document.getElementById('skelEvents');
+                    if (sk) sk.style.display = 'none';
                 }
             })();
         </script>
