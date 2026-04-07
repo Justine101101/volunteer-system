@@ -39,3 +39,59 @@
 
 /* Print helpers (moved from events calendar) */
 @media print { .no-print { display: none; } }
+
+/* -------------------------------------------------------
+   Global smooth transitions and subtle hover effects
+   (applies broadly without editing each Blade view)
+   ----------------------------------------------------- */
+/* Common interactive elements get smooth transitions */
+a, button, [role="button"], .nav a, .sidebar a {
+  transition:
+    color .20s ease,
+    background-color .20s ease,
+    border-color .20s ease,
+    box-shadow .20s ease,
+    transform .20s ease,
+    opacity .20s ease;
+}
+
+/* Subtle hover feedback for links and buttons */
+a:hover { opacity: .92; }
+button:hover, [role="button"]:hover {
+  filter: brightness(0.98);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+/* Card-like containers lift slightly on hover (opt-out by adding .no-hover-lift) */
+.card, .panel, .widget, .rounded-2xl:not(.no-hover-lift) {
+  transition: box-shadow .22s ease, transform .22s ease, background-color .22s ease, border-color .22s ease;
+}
+.card:hover, .panel:hover, .widget:hover, .rounded-2xl:hover:not(.no-hover-lift) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px -8px rgba(15, 23, 42, 0.12);
+}
+
+/* Nav items: clearer hover affordance without layout shift */
+.nav a:hover, .sidebar a:hover {
+  color: #0ea5e9; /* tailwind sky-500 */
+  transform: translateX(1px);
+}
+
+/* Image containers with zoom on hover if wrapped in .img-zoom or .group */
+.img-zoom img, .group:hover .img-zoom-target {
+  transition: transform .25s ease;
+}
+.img-zoom:hover img, .group:hover .img-zoom-target { transform: scale(1.03); }
+
+/* Utility classes to opt-in anywhere */
+.transition-base {
+  transition:
+    color .20s ease,
+    background-color .20s ease,
+    border-color .20s ease,
+    box-shadow .20s ease,
+    transform .20s ease,
+    opacity .20s ease !important;
+}
+.hover-lift:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -14px rgba(15,23,42,0.16); }
+.hover-accent:hover { filter: brightness(1.02); }
