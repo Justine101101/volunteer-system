@@ -46,7 +46,7 @@
     });
   }, { threshold: 0.12 });
   const init = () => {
-    document.querySelectorAll('[data-animate], .underline-sweep, .ls-expand').forEach((el) => observer.observe(el));
+    document.querySelectorAll('[data-animate], .reveal, .underline-sweep, .ls-expand').forEach((el) => observer.observe(el));
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

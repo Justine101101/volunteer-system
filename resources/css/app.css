@@ -19,6 +19,9 @@
 
 /* Basic reveal utility */
 [data-animate] { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+[data-animate="fade-up"] { transform: translateY(12px); }
+[data-animate="fade-in"] { transform: none; }
+[data-animate="zoom-in"] { transform: scale(0.98); }
 [data-animate].in-view { opacity: 1; transform: translateY(0); }
 
 /* Events page card hover (moved from inline styles) */
