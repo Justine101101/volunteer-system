@@ -40,8 +40,10 @@
 
 // Intersection-based reveal (AOS-lite, global auto-apply)
 (() => {
+  if (!('IntersectionObserver' in window)) return;
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReducedMotion) return;
+  document.documentElement.classList.add('motion-enabled');
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -66,6 +68,13 @@
     return true;
   };
 
+  const pickAnimation = (el, idx) => {
+    if (el.hasAttribute('data-animate')) return el.getAttribute('data-animate');
+    if (el.matches('main section, .container section')) return 'fade-up';
+    if (el.matches('.card, .panel, .rounded-2xl, .rounded-xl')) return idx % 3 === 0 ? 'zoom-in' : 'fade-up';
+    return idx % 4 === 0 ? 'slide-right' : 'fade-up';
+  };
+
   const applyAutoReveal = () => {
     const targets = [];
 
@@ -85,12 +94,10 @@
       if (!(el instanceof HTMLElement)) return;
       if (seen.has(el)) return;
       seen.add(el);
-      if (!el.hasAttribute('data-animate')) {
-        el.setAttribute('data-animate', 'fade-up');
-      }
+      el.setAttribute('data-animate', pickAnimation(el, idx));
       if (!el.style.getPropertyValue('--reveal-delay')) {
-        // Gentle stagger per page; loops every 8 items to avoid huge delays.
-        el.style.setProperty('--reveal-delay', `${(idx % 8) * 40}ms`);
+        // Gentle stagger per page; loops every 10 items to avoid huge delays.
+        el.style.setProperty('--reveal-delay', `${(idx % 10) * 35}ms`);
       }
       idx += 1;
       observer.observe(el);
@@ -178,6 +185,29 @@ export function letterPop(el, delay = 20) {
     window.addEventListener('mouseleave', reset);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+// Home hero parallax (subtle and performance-safe)
+(() => {
+  const hero = document.querySelector('[data-parallax="hero"]');
+  if (!hero) return;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) return;
+
+  let ticking = false;
+  const update = () => {
+    const y = window.scrollY || 0;
+    const shift = Math.min(24, y * 0.06);
+    hero.style.transform = `translate3d(0, ${shift}px, 0)`;
+    ticking = false;
+  };
+  const onScroll = () => {
+    if (!ticking) {
+      window.requestAnimationFrame(update);
+      ticking = true;
+    }
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
 })();
 
 

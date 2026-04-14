@@ -42,7 +42,7 @@
     </x-slot>
 
     <!-- Hero Section -->
-    <div class="py-20 bg-light-gray">
+    <div class="py-20 bg-light-gray" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-left">
                 <h1 class="text-4xl md:text-5xl font-bold text-slate-dark mb-3">Upcoming Events</h1>
@@ -65,7 +65,7 @@
     </div>
 
     <!-- Events Section -->
-    <div class="py-20 bg-white">
+    <div class="py-20 bg-white" data-animate="slide-right">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
              x-data="{ openModal: false, event: null,
                 open(payload) { this.event = payload; this.openModal = true; },
@@ -123,7 +123,7 @@
                 </div>
             </div>
 
-            <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" data-animate="fade-up">
             @forelse($events as $event)
                 @php /** @var \stdClass|\App\Models\Event $event */ @endphp
                 @php
@@ -187,6 +187,8 @@
                 @endphp
                 <div
                     class="event-card bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300"
+                    data-animate="zoom-in"
+                    style="--reveal-delay: {{ ($loop->index % 8) * 45 }}ms;"
                     data-event-card
                     data-event-title="{{ strtolower((string) ($event->title ?? '')) }}"
                     data-event-description="{{ strtolower((string) strip_tags($event->description ?? '')) }}"

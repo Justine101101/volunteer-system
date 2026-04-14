@@ -5,10 +5,10 @@
         </h2>
     </x-slot>
 
-    <div class="py-8 bg-slate-50">
+    <div class="py-8 bg-slate-50" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Calendar Header -->
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4" data-animate="fade-up">
                 <!-- Left side: Today button and navigation -->
                 <div class="flex items-center gap-4">
                     <a href="{{ route('events.calendar', ['year' => $today->year, 'month' => $today->month]) }}" 
@@ -71,7 +71,7 @@
             </div>
 
             <!-- Calendar Grid -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" data-animate="zoom-in">
                 <!-- Day Headers -->
                 <div class="grid grid-cols-7 bg-emerald-50 border-b border-slate-200">
                     @php
@@ -144,7 +144,7 @@
             </div>
 
             <!-- Event Legend -->
-            <div class="mt-6 flex items-center justify-center gap-6 text-sm text-gray-600">
+            <div class="mt-6 flex items-center justify-center gap-6 text-sm text-gray-600" data-animate="fade-up">
                 <div class="flex items-center gap-2">
                     <div class="w-4 h-4 bg-emerald-50 rounded"></div>
                     <span>Event</span>

@@ -6,7 +6,7 @@
     </x-slot>
 
     <!-- Hero Section -->
-    <section class="py-16 bg-light-gray">
+    <section class="py-16 bg-light-gray" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
                 <h1 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">Get In Touch</h1>
@@ -15,7 +15,7 @@
         </div>
     </section>
 
-    <section class="py-20 bg-white">
+    <section class="py-20 bg-white" data-animate="slide-right">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             @if ($errors->any())
                 <div x-data="{init(){ $el.scrollIntoView({behavior:'smooth', block:'start'}); $el.focus(); }}" tabindex="-1" class="mb-8 rounded-2xl border-2 border-red-400 bg-red-50 px-6 py-4 text-sm text-red-800" role="alert" aria-live="assertive">
@@ -33,7 +33,7 @@
                 </div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12" data-animate="fade-up" style="--reveal-delay: 40ms;">
                 <!-- Contact Form -->
                 <div class="bg-white rounded-3xl shadow-soft-lg p-8 md:p-10">
                     <div class="mb-8">
@@ -188,7 +188,7 @@
             </div>
 
             <!-- Map Section -->
-            <div class="mt-16">
+            <div class="mt-16" data-animate="zoom-in">
                 <div class="bg-white rounded-3xl shadow-soft-lg p-8 md:p-10">
                     <div class="text-center mb-8">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">

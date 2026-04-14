@@ -6,7 +6,7 @@
     </x-slot>
 
     <!-- History Section -->
-    <section class="py-20 bg-light-gray">
+    <section class="py-20 bg-light-gray" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">About Us</h2>
@@ -29,7 +29,7 @@
     </section>
 
     <!-- Mission & Vision Section -->
-    <section class="py-20 bg-white">
+    <section class="py-20 bg-white" data-animate="slide-right">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- Mission -->
@@ -69,7 +69,7 @@
     </section>
 
     <!-- Officers Section -->
-    <section class="py-20 bg-light-gray">
+    <section class="py-20 bg-light-gray" data-animate="slide-left">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-3xl font-bold text-slate-dark mb-4">Our Leadership Team</h2>
@@ -78,7 +78,7 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 @forelse($officers as $index => $officer)
-                    <div class="text-center group">
+                    <div class="text-center group" data-animate="zoom-in" style="--reveal-delay: {{ ($index % 6) * 60 }}ms;">
                         <!-- Minimalist Avatar Circle -->
                         <div class="mb-6 flex justify-center">
                             <div class="w-24 h-24 bg-lions-green/10 rounded-full flex items-center justify-center border-4 border-white shadow-soft-lg group-hover:shadow-soft-xl transition-shadow duration-300">
@@ -105,7 +105,7 @@
     </section>
 
     <!-- Values Section -->
-    <section class="py-20 bg-white">
+    <section class="py-20 bg-white" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-3xl font-bold text-slate-dark mb-4">Our Core Values</h2>
@@ -113,7 +113,7 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="text-center bg-light-gray rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300">
+                <div class="text-center bg-light-gray rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300" data-animate="slide-right" style="--reveal-delay: 40ms;">
                     <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                         <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
@@ -123,7 +123,7 @@
                     <p class="text-gray-600 leading-relaxed">We serve with empathy and understanding, putting the needs of others first.</p>
                 </div>
                 
-                <div class="text-center bg-light-gray rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300">
+                <div class="text-center bg-light-gray rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300" data-animate="fade-up" style="--reveal-delay: 80ms;">
                     <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                         <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -133,7 +133,7 @@
                     <p class="text-gray-600 leading-relaxed">We maintain the highest standards of honesty and ethical behavior in all our actions.</p>
                 </div>
                 
-                <div class="text-center bg-light-gray rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300">
+                <div class="text-center bg-light-gray rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300" data-animate="slide-left" style="--reveal-delay: 120ms;">
                     <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                         <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>

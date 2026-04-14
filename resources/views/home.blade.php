@@ -1,24 +1,24 @@
 <x-app-layout>
     <!-- Hero Section -->
-    <section class="bg-light-gray py-8">
+    <section class="bg-light-gray py-8" data-animate="zoom-in">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Hero Banner with Glassmorphism Overlay -->
-            <div class="mb-12 rounded-3xl overflow-hidden relative shadow-soft-lg">
+            <div class="home-hero-banner mb-12 rounded-3xl overflow-hidden relative shadow-soft-lg" data-animate="fade-in" data-parallax="hero">
                 <img src="{{ asset('images/partners/banner.jpg') }}" alt="Find Your Purpose - Community Event" class="w-full h-96 md:h-[500px] object-cover">
                 
                 <!-- Glassmorphism Text Overlay -->
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent backdrop-blur-sm">
                     <div class="absolute bottom-0 left-0 right-0 p-8 md:p-12 lg:p-16">
                         <!-- Main Title with Glow Effect -->
-                        <div class="mb-6">
+                        <div class="mb-6" data-animate="slide-left" style="--reveal-delay: 60ms;">
                             <div class="inline-block">
-                                <span class="bg-lions-green/90 backdrop-blur-sm text-white px-6 py-3 md:px-8 md:py-4 text-3xl md:text-5xl lg:text-6xl font-bold rounded-2xl animate-glow shadow-soft-lg">Find Your</span>
+                                <span class="bg-emerald-600/90 backdrop-blur-sm text-white px-6 py-3 md:px-8 md:py-4 text-3xl md:text-5xl lg:text-6xl font-bold rounded-2xl animate-glow shadow-soft-lg">Find Your</span>
                                 <span class="text-white text-3xl md:text-5xl lg:text-6xl font-bold ml-3 drop-shadow-2xl">Purpose</span>
                             </div>
                         </div>
                         
                         <!-- Subtitle Text -->
-                        <p class="text-white/95 text-lg md:text-xl lg:text-2xl drop-shadow-lg max-w-3xl leading-relaxed">
+                        <p class="text-white/95 text-lg md:text-xl lg:text-2xl drop-shadow-lg max-w-3xl leading-relaxed" data-animate="slide-right" style="--reveal-delay: 120ms;">
                             Support local events and connect with us at the Cordillera Adivay Lions Club.<br>
                             Everyone is welcome! #BecomeUnstoppableLions
                         </p>
@@ -27,21 +27,21 @@
             </div>
 
             <!-- Call to Action Section -->
-            <div class="text-center max-w-4xl mx-auto mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6 leading-tight">
-                    Join us for a meaningful day of service and giving back!
+            <div class="text-center max-w-4xl mx-auto mb-16" data-animate="fade-up" style="--reveal-delay: 80ms;">
+                <h2 class="home-section-title text-4xl md:text-5xl font-bold text-slate-dark mb-6 leading-tight" data-animate="text-pop" style="--reveal-delay: 120ms;">
+                    A premium volunteer platform built for impact.
                 </h2>
-                <p class="text-xl text-gray-600 mb-10 leading-relaxed max-w-3xl mx-auto">
-                    Be part of our upcoming activities and community programs. It's more than just an event—it's an opportunity to combine your passion for helping others with a mission to make a meaningful difference.
+                <p class="text-xl text-gray-600 mb-10 leading-relaxed max-w-3xl mx-auto" data-animate="fade-up" style="--reveal-delay: 170ms;">
+                    Join upcoming outreach activities, track registrations, and collaborate with your community through a clean and modern experience.
                 </p>
                 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row gap-6 justify-center">
-                    <a href="{{ route('register') }}" class="px-10 py-4 bg-lions-green text-white font-semibold rounded-3xl hover:bg-lions-green/90 shadow-soft hover:shadow-soft-lg transform hover:scale-105 transition-all duration-300 text-lg">
-                        Register Now
+                    <a href="{{ route('register') }}" class="home-cta-primary px-10 py-4 bg-emerald-600 text-white font-semibold rounded-3xl hover:bg-emerald-500 shadow-soft hover:shadow-soft-lg transform hover:scale-105 transition-all duration-300 text-lg">
+                        Join as Volunteer
                     </a>
-                    <a href="{{ route('login') }}" class="px-10 py-4 bg-white text-gray-700 font-semibold rounded-3xl hover:bg-gray-50 shadow-soft hover:shadow-soft-lg border border-gray-200 transition-all duration-300 text-lg">
-                        Login
+                    <a href="{{ route('events.index') }}" class="home-cta-secondary px-10 py-4 bg-white text-gray-700 font-semibold rounded-3xl hover:bg-gray-50 shadow-soft hover:shadow-soft-lg border border-gray-200 transition-all duration-300 text-lg">
+                        Explore Events
                     </a>
                 </div>
             </div>
@@ -49,11 +49,11 @@
     </section>
 
     <!-- About Section -->
-    <section id="about" class="py-20 bg-white">
+    <section id="about" class="py-20 bg-white" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">About Us</h2>
-                <p class="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">A Chronicle of Service and Community in the Cordillera Region</p>
+                <h2 class="home-section-title text-4xl md:text-5xl font-bold text-slate-dark mb-6" data-animate="text-pop">About Us</h2>
+                <p class="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto" data-animate="slide-right" style="--reveal-delay: 90ms;">A Chronicle of Service and Community in the Cordillera Region</p>
             </div>
             
             <!-- History -->
@@ -73,7 +73,7 @@
 
             <!-- Mission & Vision -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-                <div class="bg-white rounded-3xl shadow-soft-lg p-8 md:p-10 border border-gray-100">
+                <div class="home-feature-card bg-white rounded-3xl shadow-soft-lg p-8 md:p-10 border border-gray-100" data-animate="slide-right" style="--reveal-delay: 40ms;">
                     <div class="text-center mb-8">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@
                     </p>
                 </div>
 
-                <div class="bg-white rounded-3xl shadow-soft-lg p-8 md:p-10 border border-gray-100">
+                <div class="home-feature-card bg-white rounded-3xl shadow-soft-lg p-8 md:p-10 border border-gray-100" data-animate="slide-left" style="--reveal-delay: 100ms;">
                     <div class="text-center mb-8">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,7 @@
             <div class="mb-20">
                 <h3 class="text-3xl font-bold text-slate-dark mb-12 text-center">Our Core Values</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="text-center bg-white rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300">
+                    <div class="home-feature-card text-center bg-white rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300" data-animate="zoom-in" style="--reveal-delay: 20ms;">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
@@ -117,7 +117,7 @@
                         <p class="text-gray-600 leading-relaxed">We serve with empathy and understanding, putting the needs of others first.</p>
                     </div>
                     
-                    <div class="text-center bg-white rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300">
+                    <div class="home-feature-card text-center bg-white rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300" data-animate="zoom-in" style="--reveal-delay: 80ms;">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -127,7 +127,7 @@
                         <p class="text-gray-600 leading-relaxed">We maintain the highest standards of honesty and ethical behavior in all our actions.</p>
                     </div>
                     
-                    <div class="text-center bg-white rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300">
+                    <div class="home-feature-card text-center bg-white rounded-3xl shadow-soft-lg p-8 hover:shadow-soft-xl transition-shadow duration-300" data-animate="zoom-in" style="--reveal-delay: 140ms;">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -145,7 +145,7 @@
                 <h3 class="text-3xl font-bold text-slate-dark mb-12 text-center">Our Leadership Team</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     @foreach($officers as $index => $officer)
-                        <div class="text-center group">
+                        <div class="text-center group" data-animate="fade-up" style="--reveal-delay: {{ ($index % 6) * 50 }}ms;">
                             <!-- Minimalist Avatar Circle -->
                             <div class="mb-6 flex justify-center">
                                 <div class="w-24 h-24 bg-lions-green/10 rounded-full flex items-center justify-center border-4 border-white shadow-soft-lg group-hover:shadow-soft-xl transition-shadow duration-300">
@@ -170,11 +170,11 @@
     </section>
 
     <!-- Upcoming Events Section -->
-    <section id="events" class="bg-light-gray py-20">
+    <section id="events" class="bg-light-gray py-20" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">Upcoming Events</h2>
-                <p class="text-xl text-gray-600 mb-8">Join us for our community activities and programs</p>
+                <h2 class="home-section-title text-4xl md:text-5xl font-bold text-slate-dark mb-6" data-animate="text-pop">Upcoming Events</h2>
+                <p class="text-xl text-gray-600 mb-8" data-animate="slide-right" style="--reveal-delay: 80ms;">Join us for our community activities and programs</p>
                 <a href="{{ route('events.index') }}" class="inline-flex items-center text-lions-green font-semibold hover:text-lions-green/80 transition-colors duration-200 text-lg">
                     View All Events 
                     <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +186,7 @@
             <div class="space-y-6">
                 @forelse(($events ?? collect()) as $event)
                     <!-- Premium Ticket-Style Event Card -->
-                    <div class="bg-white rounded-3xl shadow-soft-lg hover:shadow-soft-xl transition-all duration-300 overflow-hidden group">
+                    <div class="home-event-card bg-white rounded-3xl shadow-soft-lg hover:shadow-soft-xl transition-all duration-300 overflow-hidden group" data-animate="slide-right" style="--reveal-delay: {{ ($loop->index % 8) * 40 }}ms;">
                         <div class="flex items-stretch">
                             <!-- Date Box (Left Side) -->
                             <div class="flex-shrink-0 w-28 bg-lions-green flex flex-col items-center justify-center text-white p-4">
@@ -236,7 +236,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="bg-white rounded-3xl shadow-soft p-12 text-center">
+                    <div class="bg-white rounded-3xl shadow-soft p-12 text-center" data-animate="zoom-in">
                         <div class="mx-auto mb-6 w-20 h-20 bg-lions-green/10 rounded-full flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -250,12 +250,55 @@
         </div>
     </section>
 
+    <!-- Calendar Preview Section -->
+    <section id="calendar" class="bg-white py-20" data-animate="fade-up">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="rounded-3xl border border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-8 md:p-12 shadow-soft-lg" data-animate="fade-up">
+                <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-center">
+                    <div>
+                        <p class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 shadow-sm border border-emerald-100">
+                            Calendar
+                        </p>
+                        <h2 class="home-section-title mt-4 text-3xl md:text-4xl font-bold text-slate-dark leading-tight" data-animate="text-pop">
+                            Plan your service schedule with a modern event calendar.
+                        </h2>
+                        <p class="mt-4 text-lg text-slate-600">
+                            Browse upcoming activities by date, quickly spot event availability, and stay aligned with club programs.
+                        </p>
+                        <div class="mt-8 flex flex-wrap gap-4">
+                            <a href="{{ route('events.calendar') }}" class="inline-flex items-center rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-lg">
+                                Open Calendar
+                            </a>
+                            <a href="{{ route('events.index') }}" class="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-600">
+                                View Event List
+                            </a>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft" data-animate="zoom-in" style="--reveal-delay: 120ms;">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h3 class="text-sm font-semibold text-slate-700">This Month</h3>
+                            <span class="text-xs font-medium text-emerald-600">Live updates</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-2 text-center text-xs font-medium text-slate-500">
+                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                        </div>
+                        <div class="mt-3 grid grid-cols-7 gap-2 text-center text-sm">
+                            @for($i = 1; $i <= 28; $i++)
+                                <span class="rounded-xl py-2 {{ in_array($i, [4, 9, 14, 20, 26], true) ? 'bg-emerald-100 text-emerald-700 font-semibold' : 'bg-slate-50 text-slate-600' }}">{{ $i }}</span>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Contact Section -->
-    <section id="contact" class="py-20 bg-white">
+    <section id="contact" class="py-20 bg-white" data-animate="fade-up">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl md:text-5xl font-bold text-slate-dark mb-6">Contact Us</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+                <h2 class="home-section-title text-4xl md:text-5xl font-bold text-slate-dark mb-6" data-animate="text-pop">Contact Us</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto" data-animate="slide-right" style="--reveal-delay: 80ms;">We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
             </div>
 
             @if ($errors->any())
@@ -276,7 +319,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <!-- Contact Form -->
-                <div class="bg-white rounded-3xl shadow-soft-lg p-8 md:p-10">
+                <div class="home-feature-card bg-white rounded-3xl shadow-soft-lg p-8 md:p-10" data-animate="slide-right">
                     <div class="mb-8">
                         <div class="w-20 h-20 bg-lions-green/10 rounded-full mx-auto mb-6 flex items-center justify-center">
                             <svg class="w-10 h-10 text-lions-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,7 +380,7 @@
                 </div>
 
                 <!-- Contact Information -->
-                <div class="space-y-8">
+                <div class="space-y-8" data-animate="slide-left" style="--reveal-delay: 80ms;">
                     <!-- Contact Details -->
                     <div class="bg-lions-green/5 rounded-3xl shadow-soft-lg p-8 md:p-10">
                         <div class="mb-8">
