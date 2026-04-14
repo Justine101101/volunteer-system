@@ -7,6 +7,9 @@
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+html { scroll-behavior: smooth; }
+body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+
 :focus-visible { outline: 3px solid #6366f1; outline-offset: 2px; }
 .focus-ring { outline: 3px solid #6366f1; outline-offset: 2px; }
 
@@ -18,7 +21,15 @@
 .link-underline:hover::after { width: 100%; }
 
 /* Basic reveal utility */
-[data-animate] { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+[data-animate] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity .65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform .65s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
 [data-animate="fade-up"] { transform: translateY(12px); }
 [data-animate="fade-in"] { transform: none; }
 [data-animate="zoom-in"] { transform: scale(0.98); }

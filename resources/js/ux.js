@@ -38,17 +38,66 @@
   setProgress();
 })();
 
-// Intersection-based reveal (AOS-lite)
+// Intersection-based reveal (AOS-lite, global auto-apply)
 (() => {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) return;
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
-      if (entry.isIntersecting) entry.target.classList.add('in-view');
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('in-view');
+      observer.unobserve(entry.target);
     });
-  }, { threshold: 0.12 });
-  const init = () => {
-    document.querySelectorAll('[data-animate], .reveal, .underline-sweep, .ls-expand').forEach((el) => observer.observe(el));
+  }, {
+    threshold: 0.08,
+    rootMargin: '0px 0px -8% 0px',
+  });
+
+  const isEligibleAutoReveal = (el) => {
+    if (!(el instanceof HTMLElement)) return false;
+    if (el.hasAttribute('data-animate')) return false;
+    if (el.classList.contains('no-reveal')) return false;
+    const tag = el.tagName.toLowerCase();
+    // Avoid animating tiny/structural table/list nodes to keep UI stable.
+    if (['tr', 'td', 'th', 'tbody', 'thead', 'li', 'ul', 'ol', 'script', 'style', 'nav', 'footer'].includes(tag)) return false;
+    const text = (el.textContent || '').trim();
+    if (!text && el.children.length === 0) return false;
+    return true;
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+  const applyAutoReveal = () => {
+    const targets = [];
+
+    // Explicit opt-in stays supported.
+    document.querySelectorAll('[data-animate], .reveal, .underline-sweep, .ls-expand')
+      .forEach((el) => targets.push(el));
+
+    // Global auto-reveal: cover common section-like blocks site-wide.
+    document.querySelectorAll('main section, main article, main .rounded-2xl, main .rounded-xl, main .card, main .panel, main [data-auto-reveal], .container section')
+      .forEach((el) => {
+        if (isEligibleAutoReveal(el)) targets.push(el);
+      });
+
+    const seen = new Set();
+    let idx = 0;
+    targets.forEach((el) => {
+      if (!(el instanceof HTMLElement)) return;
+      if (seen.has(el)) return;
+      seen.add(el);
+      if (!el.hasAttribute('data-animate')) {
+        el.setAttribute('data-animate', 'fade-up');
+      }
+      if (!el.style.getPropertyValue('--reveal-delay')) {
+        // Gentle stagger per page; loops every 8 items to avoid huge delays.
+        el.style.setProperty('--reveal-delay', `${(idx % 8) * 40}ms`);
+      }
+      idx += 1;
+      observer.observe(el);
+    });
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyAutoReveal); else applyAutoReveal();
 })();
 
 // Sticky navbar slide behavior
