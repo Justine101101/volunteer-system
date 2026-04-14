@@ -773,6 +773,77 @@ class DatabaseQueryService
     }
 
     /**
+     * Fetch audit logs from Supabase (service role), paginated by range.
+     */
+    public function getAuditLogsPrivileged(int $page = 1, int $limit = 25, array $filters = []): array
+    {
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return ['error' => 'Supabase not configured'];
+            }
+
+            $query = $this->supabase->fromPrivileged('audit_logs')
+                ->select('id,local_audit_log_id,user_id,local_user_id,user_email,action,resource_type,resource_id,payload,created_at,updated_at,user:users!audit_logs_user_id_fkey(name,email)')
+                ->order('created_at', 'desc');
+
+            if (!empty($filters['action'])) {
+                $query = $query->eq('action', (string) $filters['action']);
+            }
+
+            if (!empty($filters['resource_type'])) {
+                $query = $query->eq('resource_type', (string) $filters['resource_type']);
+            }
+
+            $offset = ($page - 1) * $limit;
+            $query = $query->range($offset, $offset + $limit - 1);
+
+            $result = $query->execute();
+
+            if (is_array($result) && isset($result['error'])) {
+                return $result;
+            }
+
+            return is_array($result) ? $result : [];
+        } catch (\Throwable $e) {
+            Log::error('Error fetching audit logs from Supabase: ' . $e->getMessage());
+            return ['error' => 'Failed to fetch audit logs'];
+        }
+    }
+
+    /**
+     * Count audit logs in Supabase with optional filters.
+     */
+    public function countAuditLogsPrivileged(array $filters = []): int
+    {
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return 0;
+            }
+
+            $query = $this->supabase->fromPrivileged('audit_logs')
+                ->select('id');
+
+            if (!empty($filters['action'])) {
+                $query = $query->eq('action', (string) $filters['action']);
+            }
+
+            if (!empty($filters['resource_type'])) {
+                $query = $query->eq('resource_type', (string) $filters['resource_type']);
+            }
+
+            $result = $query->execute();
+            if (is_array($result) && !isset($result['error'])) {
+                return count($result);
+            }
+
+            return 0;
+        } catch (\Throwable $e) {
+            Log::error('Error counting audit logs from Supabase: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
      * Upsert a password reset token row into Supabase (idempotent by email).
      */
     public function upsertPasswordResetToken(array $row): array
