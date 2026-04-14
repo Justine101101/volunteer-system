@@ -279,6 +279,103 @@ class EventRegistrationController extends Controller
         return redirect()->back()->with('success', 'Registration rejected.');
     }
 
+    /**
+     * Mark an approved registration as physically present (Supabase UUID).
+     */
+    public function markPresentSupabase(string $registrationId)
+    {
+        if (!Auth::user() || !Auth::user()->isAdminOrSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // attendance_marked_by references Supabase users(id), not the local Laravel users table.
+        // Resolve the current admin's Supabase UUID by email (upsert if missing) so we don't
+        // violate the FK constraint when writing attendance.
+        $admin = Auth::user();
+        $supabaseAdminId = null;
+        if (!empty($admin?->email)) {
+            $supabaseAdmin = $this->queryService->getUserByEmail((string) $admin->email);
+            if (!is_array($supabaseAdmin) || isset($supabaseAdmin['error'])) {
+                $upsert = $this->queryService->upsertUser([
+                    'name' => $admin->name ?? null,
+                    'email' => $admin->email ?? null,
+                    'role' => $admin->role ?? 'admin',
+                    'email_verified_at' => $admin->email_verified_at ?? null,
+                ]);
+                if (is_array($upsert) && !isset($upsert['error'])) {
+                    $row = (is_array($upsert) && isset($upsert[0]) && is_array($upsert[0])) ? $upsert[0] : $upsert;
+                    $supabaseAdminId = is_array($row) ? ($row['id'] ?? null) : null;
+                }
+            } else {
+                $supabaseAdminId = $supabaseAdmin['id'] ?? null;
+            }
+        }
+
+        $reg = $this->queryService->getEventRegistrationById($registrationId);
+        if (!is_array($reg) || isset($reg['error'])) {
+            return redirect()->back()->with('error', 'Registration not found.');
+        }
+
+        $status = strtolower((string) ($reg['registration_status'] ?? ''));
+        if ($status !== 'approved') {
+            return redirect()->back()->with('error', 'Only approved volunteers can be marked present.');
+        }
+
+        $result = $this->queryService->updateRegistrationAttendance(
+            $registrationId,
+            Carbon::now()->toIso8601String(),
+            is_string($supabaseAdminId) && $supabaseAdminId !== '' ? $supabaseAdminId : null
+        );
+
+        if (isset($result['error'])) {
+            Log::error('Failed to mark registration present', [
+                'registration_id' => $registrationId,
+                'error' => $result['error'] ?? null,
+            ]);
+
+            return redirect()->back()->with('error', 'Could not save attendance. If this persists, run the Supabase SQL patch `database/supabase/ensure_event_registrations_attendance.sql`.');
+        }
+
+        Cache::forget('admin:dashboard:v1');
+
+        return redirect()->back()->with('success', 'Marked present.');
+    }
+
+    /**
+     * Clear onsite attendance for an approved registration (Supabase UUID).
+     */
+    public function markAbsentSupabase(string $registrationId)
+    {
+        if (!Auth::user() || !Auth::user()->isAdminOrSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $reg = $this->queryService->getEventRegistrationById($registrationId);
+        if (!is_array($reg) || isset($reg['error'])) {
+            return redirect()->back()->with('error', 'Registration not found.');
+        }
+
+        $status = strtolower((string) ($reg['registration_status'] ?? ''));
+        if ($status !== 'approved') {
+            return redirect()->back()->with('error', 'Attendance can only be cleared for approved registrations.');
+        }
+
+        $result = $this->queryService->updateRegistrationAttendance($registrationId, null, null);
+
+        if (isset($result['error'])) {
+            Log::error('Failed to clear registration attendance', [
+                'registration_id' => $registrationId,
+                'error' => $result['error'] ?? null,
+            ]);
+
+            return redirect()->back()->with('error', 'Could not clear attendance. If this persists, run the Supabase SQL patch `database/supabase/ensure_event_registrations_attendance.sql`.');
+        }
+
+        Cache::forget('admin:dashboard:v1');
+
+        return redirect()->back()->with('success', 'Attendance cleared.');
+    }
+
     private function notifyRegistrationDecision(string $registrationId, string $status): void
     {
         try {

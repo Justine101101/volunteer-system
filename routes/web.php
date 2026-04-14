@@ -149,6 +149,14 @@ Route::middleware('auth')->group(function () {
             ->name('supabase.registrations.bulk-approve');
         Route::post('/supabase/registrations/bulk-reject', [EventRegistrationController::class, 'bulkRejectSupabase'])
             ->name('supabase.registrations.bulk-reject');
+
+        // Onsite attendance (approved registrations only)
+        Route::patch('/supabase/registrations/{registrationId}/present', [EventRegistrationController::class, 'markPresentSupabase'])
+            ->name('supabase.registrations.present')
+            ->where('registrationId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        Route::patch('/supabase/registrations/{registrationId}/absent', [EventRegistrationController::class, 'markAbsentSupabase'])
+            ->name('supabase.registrations.absent')
+            ->where('registrationId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
     });
 
     // Admin-only routes

@@ -1019,11 +1019,18 @@ class DatabaseQueryService
     public function updateRegistrationStatus(string $registrationId, string $status): array
     {
         try {
+            $payload = [
+                'registration_status' => $status,
+                'updated_at' => now()->toISOString(),
+            ];
+            // Onsite attendance only applies to approved rows; clear when moving out of approved.
+            if (strtolower($status) !== 'approved') {
+                $payload['attended_at'] = null;
+                $payload['attendance_marked_by'] = null;
+            }
+
             $result = $this->supabase->from('event_registrations')
-                ->updatePrivileged([
-                    'registration_status' => $status,
-                    'updated_at' => now()->toISOString(),
-                ], ['id' => 'eq.' . $registrationId]);
+                ->updatePrivileged($payload, ['id' => 'eq.' . $registrationId]);
 
             if (isset($result['error'])) {
                 return $result;
@@ -1033,6 +1040,40 @@ class DatabaseQueryService
         } catch (\Exception $e) {
             Log::error('Error updating registration: ' . $e->getMessage());
             return ['error' => 'Failed to update registration'];
+        }
+    }
+
+    /**
+     * Set or clear onsite attendance for a Supabase event_registration (UUID).
+     * Mark present: pass $attendedAtIso (ISO-8601) and the marking admin's Supabase user UUID.
+     * Clear: pass null, null.
+     */
+    public function updateRegistrationAttendance(string $registrationId, ?string $attendedAtIso, ?string $markedByUserId): array
+    {
+        try {
+            $payload = [
+                'updated_at' => now()->toISOString(),
+            ];
+            if ($attendedAtIso === null) {
+                $payload['attended_at'] = null;
+                $payload['attendance_marked_by'] = null;
+            } else {
+                $payload['attended_at'] = $attendedAtIso;
+                $payload['attendance_marked_by'] = $markedByUserId;
+            }
+
+            $result = $this->supabase->from('event_registrations')
+                ->updatePrivileged($payload, ['id' => 'eq.' . $registrationId]);
+
+            if (isset($result['error'])) {
+                return $result;
+            }
+
+            return is_array($result) && count($result) > 0 ? $result[0] : $result;
+        } catch (\Exception $e) {
+            Log::error('Error updating registration attendance: ' . $e->getMessage());
+
+            return ['error' => 'Failed to update attendance'];
         }
     }
 
@@ -1102,7 +1143,7 @@ class DatabaseQueryService
         try {
             $result = $this->supabase->fromPrivileged('event_registrations')
                 // Keep this query minimal and reliable (do not depend on PostgREST embedded relationships)
-                ->select('id,user_id,event_id,registration_status,created_at')
+                ->select('id,user_id,event_id,registration_status,attended_at,attendance_marked_by,created_at')
                 ->eq('id', $registrationId)
                 ->single()
                 ->execute();

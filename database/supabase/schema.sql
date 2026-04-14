@@ -55,6 +55,8 @@ CREATE TABLE event_registrations (
     event_id UUID REFERENCES events(id) ON DELETE CASCADE,
     registration_status VARCHAR(50) DEFAULT 'pending' CHECK (registration_status IN ('pending', 'approved', 'rejected', 'cancelled')),
     notes TEXT,
+    attended_at TIMESTAMP WITH TIME ZONE,
+    attendance_marked_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user_id, event_id)

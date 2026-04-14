@@ -86,10 +86,20 @@ class AttendanceController extends Controller
                 ];
             }
 
+            $attendedAt = null;
+            if (!empty($reg['attended_at'])) {
+                try {
+                    $attendedAt = \Carbon\Carbon::parse((string) $reg['attended_at']);
+                } catch (\Throwable $e) {
+                    $attendedAt = null;
+                }
+            }
+
             return (object) [
                 'id' => $registrationId,
                 'registration_status' => $status,
                 'created_at' => $createdAt,
+                'attended_at' => $attendedAt,
                 'user' => $user,
                 'local_user_id' => $localUserId,
                 'event' => $event,
@@ -97,11 +107,24 @@ class AttendanceController extends Controller
         });
 
         $total = (is_array($all) && !isset($all['error'])) ? count($all) : 0;
+        $presentOnsite = 0;
+        if (is_array($all) && !isset($all['error'])) {
+            foreach ($all as $row) {
+                if (empty($row['attended_at'])) {
+                    continue;
+                }
+                $st = strtolower((string) ($row['registration_status'] ?? ($row['status'] ?? '')));
+                if ($st === 'approved') {
+                    $presentOnsite++;
+                }
+            }
+        }
         $summary = [
             'total' => $total,
             'pending' => (is_array($pending) && !isset($pending['error'])) ? count($pending) : 0,
             'approved' => (is_array($approved) && !isset($approved['error'])) ? count($approved) : 0,
             'rejected' => (is_array($rejected) && !isset($rejected['error'])) ? count($rejected) : 0,
+            'present_onsite' => $presentOnsite,
         ];
 
         // Build a paginator so the Blade view can keep using ->links()

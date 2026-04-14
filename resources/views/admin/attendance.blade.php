@@ -7,7 +7,7 @@
 
     <div class="py-12 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
                     <p class="text-sm text-slate-600 font-medium">Total Registrations</p>
                     <p class="text-2xl font-bold text-slate-900 mt-2">{{ $summary['total'] }}</p>
@@ -19,6 +19,10 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-5 hover:shadow-md transition-shadow">
                     <p class="text-sm text-slate-600 font-medium">Approved</p>
                     <p class="text-2xl font-bold text-emerald-700 mt-2">{{ $summary['approved'] }}</p>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-sky-200 p-5 hover:shadow-md transition-shadow">
+                    <p class="text-sm text-slate-600 font-medium">Marked present</p>
+                    <p class="text-2xl font-bold text-sky-700 mt-2">{{ $summary['present_onsite'] }}</p>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-rose-200 p-5 hover:shadow-md transition-shadow">
                     <p class="text-sm text-slate-600 font-medium">Rejected</p>
@@ -47,6 +51,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">User</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Event</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Onsite</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Registered</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Actions</th>
                             </tr>
@@ -95,6 +100,31 @@
                                             {{ ucfirst($reg->registration_status) }}
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        @if($status === 'approved' && !empty($registrationId))
+                                            @if($reg->attended_at)
+                                                <div class="flex flex-col gap-1">
+                                                    <span class="inline-flex items-center w-fit px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-900">Present</span>
+                                                    <span class="text-xs text-slate-600">{{ $reg->attended_at->timezone(config('app.timezone'))->format('M j, Y g:i A') }}</span>
+                                                    <form method="POST" action="{{ route('supabase.registrations.absent', ['registrationId' => $registrationId]) }}" class="w-fit" data-confirm="Clear onsite attendance for this volunteer?">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit" class="text-xs font-semibold text-rose-600 hover:text-rose-800">Clear</button>
+                                                    </form>
+                                                </div>
+                                            @else
+                                                <form method="POST" action="{{ route('supabase.registrations.present', ['registrationId' => $registrationId]) }}" class="w-fit">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700">Mark present</button>
+                                                </form>
+                                            @endif
+                                        @elseif($status === 'approved')
+                                            <span class="text-xs text-amber-600">Missing registration id</span>
+                                        @else
+                                            <span class="text-xs text-slate-400">—</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->created_at ? $reg->created_at->format('M j, Y') : '' }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                                         @php $isPending = $status === 'pending'; @endphp
@@ -136,7 +166,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-8 text-center text-gray-500" style="color: #6b7280;">No registrations found.</td>
+                                    <td colspan="7" class="px-6 py-8 text-center text-gray-500" style="color: #6b7280;">No registrations found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
