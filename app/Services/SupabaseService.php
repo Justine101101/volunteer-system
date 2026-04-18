@@ -97,6 +97,33 @@ class SupabaseService
     }
 
     /**
+     * Add IN filter (PostgREST `in.(...)`).
+     *
+     * @param array<int, scalar|null> $values
+     */
+    public function in(string $column, array $values): self
+    {
+        $clean = [];
+        foreach ($values as $v) {
+            if ($v === null) {
+                continue;
+            }
+            $s = trim((string) $v);
+            if ($s === '') {
+                continue;
+            }
+            // PostgREST expects UUIDs/strings without quotes inside in.(...)
+            $clean[] = str_replace(',', '', $s);
+        }
+
+        if (!empty($clean)) {
+            $this->queryParams[$column] = 'in.(' . implode(',', $clean) . ')';
+        }
+
+        return $this;
+    }
+
+    /**
      * Add order by
      */
     public function order(string $column, string $direction = 'asc'): self

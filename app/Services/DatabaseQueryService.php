@@ -121,10 +121,9 @@ class DatabaseQueryService
             }
 
             $rows = $this->supabase->fromPrivileged('event_registrations')
-                ->select('event_id, count')
+                ->select('event_id')
                 ->in('event_id', $eventIds)
                 ->eq('registration_status', 'approved')
-                ->group('event_id')
                 ->execute();
 
             if (!is_array($rows) || isset($rows['error'])) {
@@ -140,7 +139,7 @@ class DatabaseQueryService
                 if ($id === '') {
                     continue;
                 }
-                $map[$id] = (int) ($row['count'] ?? 0);
+                $map[$id] = ($map[$id] ?? 0) + 1;
             }
 
             return $map;
@@ -168,17 +167,12 @@ class DatabaseQueryService
             }
 
             $rows = $this->supabase->fromPrivileged('event_registrations')
-                ->select('count')
+                ->select('id')
                 ->eq('event_id', $eventId)
                 ->eq('registration_status', 'approved')
                 ->execute();
 
-            // PostgREST "count" aggregate returns an array with one row like [{count: N}]
-            if (is_array($rows) && isset($rows[0]) && is_array($rows[0])) {
-                return (int) ($rows[0]['count'] ?? 0);
-            }
-
-            return 0;
+            return (is_array($rows) && !isset($rows['error'])) ? count($rows) : 0;
         } catch (\Throwable $e) {
             Log::warning('Error fetching approved registration count (privileged)', [
                 'event_id' => $eventId,
