@@ -165,6 +165,15 @@
                                     <span class="text-gray-600">Created by:</span>
                                     <span class="font-medium">{{ $event->creator?->name ?? '—' }}</span>
                                 </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Volunteers:</span>
+                                    <span class="font-medium">
+                                        {{ (int) ($event->approved_registrations_count ?? 0) }}
+                                        @if(!empty($event->max_participants))
+                                            / {{ (int) $event->max_participants }}
+                                        @endif
+                                    </span>
+                                </div>
                             </div>
                         </div>
 

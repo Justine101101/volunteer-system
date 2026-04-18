@@ -141,8 +141,13 @@ class EventController extends Controller
             $events = [];
         } else {
             $events = is_array($result) ? $result : [];
+
+            // Approved volunteer counts (safe server-side aggregate; avoids RLS hiding data)
+            $eventIds = array_values(array_filter(array_map(static fn ($e) => is_array($e) ? ($e['id'] ?? null) : null, $events)));
+            $approvedCounts = $this->queryService->getApprovedRegistrationCountsForEventsPrivileged($eventIds);
+
             // Transform Supabase response to match expected format
-            $events = array_map(function($event) {
+            $events = array_map(function($event) use ($approvedCounts) {
                 $photoUrl = $event['photo_url'] ?? null;
                 
                 // Log original photo_url for debugging
@@ -170,6 +175,9 @@ class EventController extends Controller
                     ]);
                 }
                 
+                $id = (string) ($event['id'] ?? '');
+                $approved = $id !== '' ? (int) ($approvedCounts[$id] ?? 0) : 0;
+
                 return (object) [
                     'id' => $event['id'] ?? null,
                     'title' => $event['title'] ?? '',
@@ -187,6 +195,9 @@ class EventController extends Controller
                     'photo_url' => $photoUrl,
                     'created_by' => $event['created_by'] ?? null,
                     'event_status' => $event['event_status'] ?? 'active',
+                    // Used in the event modal ("Volunteers")
+                    'current_volunteers' => $approved,
+                    'max_participants' => $event['max_participants'] ?? null,
                 ];
             }, $events);
 
@@ -435,9 +446,8 @@ class EventController extends Controller
             ];
         });
 
-        $approvedRegistrationsCount = $registrations
-            ->filter(fn ($r) => strtolower((string) ($r->registration_status ?? '')) === 'approved')
-            ->count();
+        // Always compute approved count via privileged aggregate so it works even when RLS hides registrations.
+        $approvedRegistrationsCount = $this->queryService->getApprovedRegistrationCountForEventPrivileged($eventId);
 
         $eventData = (object) [
             'id' => $supabaseEvent['id'] ?? null,
@@ -458,6 +468,7 @@ class EventController extends Controller
             'registrations' => $registrations,
             'registrations_count' => $registrations->count(),
             'approved_registrations_count' => $approvedRegistrationsCount,
+            'max_participants' => $supabaseEvent['max_participants'] ?? null,
         ];
 
         // Resolve current user's Supabase UUID for registration lookups

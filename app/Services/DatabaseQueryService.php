@@ -104,6 +104,91 @@ class DatabaseQueryService
     }
 
     /**
+     * Get approved registration counts for a list of event IDs (privileged).
+     *
+     * @return array<string,int> map of event_id => approved_count
+     */
+    public function getApprovedRegistrationCountsForEventsPrivileged(array $eventIds): array
+    {
+        $eventIds = array_values(array_filter(array_map(static fn ($v) => is_string($v) ? trim($v) : '', $eventIds)));
+        if (empty($eventIds)) {
+            return [];
+        }
+
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return [];
+            }
+
+            $rows = $this->supabase->fromPrivileged('event_registrations')
+                ->select('event_id, count')
+                ->in('event_id', $eventIds)
+                ->eq('registration_status', 'approved')
+                ->group('event_id')
+                ->execute();
+
+            if (!is_array($rows) || isset($rows['error'])) {
+                return [];
+            }
+
+            $map = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $id = (string) ($row['event_id'] ?? '');
+                if ($id === '') {
+                    continue;
+                }
+                $map[$id] = (int) ($row['count'] ?? 0);
+            }
+
+            return $map;
+        } catch (\Throwable $e) {
+            Log::warning('Error fetching approved registration counts (privileged)', [
+                'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get approved registration count for a single event (privileged).
+     */
+    public function getApprovedRegistrationCountForEventPrivileged(string $eventId): int
+    {
+        $eventId = trim($eventId);
+        if ($eventId === '') {
+            return 0;
+        }
+
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return 0;
+            }
+
+            $rows = $this->supabase->fromPrivileged('event_registrations')
+                ->select('count')
+                ->eq('event_id', $eventId)
+                ->eq('registration_status', 'approved')
+                ->execute();
+
+            // PostgREST "count" aggregate returns an array with one row like [{count: N}]
+            if (is_array($rows) && isset($rows[0]) && is_array($rows[0])) {
+                return (int) ($rows[0]['count'] ?? 0);
+            }
+
+            return 0;
+        } catch (\Throwable $e) {
+            Log::warning('Error fetching approved registration count (privileged)', [
+                'event_id' => $eventId,
+                'message' => $e->getMessage(),
+            ]);
+            return 0;
+        }
+    }
+
+    /**
      * Get event by ID with full details
      * Accepts UUID string (Supabase) or can find by title+date+location for compatibility
      */

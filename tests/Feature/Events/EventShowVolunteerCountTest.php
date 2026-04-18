@@ -54,6 +54,11 @@ class EventShowVolunteerCountTest extends TestCase
             $mock->shouldReceive('getEventById')
                 ->never();
 
+            $mock->shouldReceive('getApprovedRegistrationCountForEventPrivileged')
+                ->once()
+                ->with($eventId)
+                ->andReturn(1);
+
             // Used by EventController@show to resolve the current user's Supabase ID
             $mock->shouldReceive('getUserByEmail')
                 ->andReturn(['id' => 'cccccccc-cccc-cccc-cccc-cccccccccccc']);
