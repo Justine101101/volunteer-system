@@ -26,6 +26,14 @@
                                 <p class="text-base text-gray-700">{{ $user->phone }}</p>
                             </div>
                         @endif
+                        @if($user->age)
+                            <div class="flex items-center gap-2 mt-2">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M7 7h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2z" />
+                                </svg>
+                                <p class="text-base text-gray-700">Age: {{ $user->age }}</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

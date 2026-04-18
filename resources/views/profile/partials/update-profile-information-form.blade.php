@@ -105,6 +105,21 @@
         <p class="mt-2 text-sm text-slate-500">Example: +63 912 345 6789</p>
     </div>
 
+    <div>
+        <label for="age" class="block text-sm font-medium text-gray-700 mb-2">Age</label>
+        <input id="age"
+               name="age"
+               type="number"
+               min="18"
+               max="120"
+               step="1"
+               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('age') border-red-500 @enderror"
+               value="{{ old('age', $user->age ?? '') }}"
+               inputmode="numeric" />
+        <x-input-error class="mt-2" :messages="$errors->get('age')" />
+        <p class="mt-2 text-sm text-slate-500">Must be 18 or older.</p>
+    </div>
+
     <div class="flex items-center gap-4 pt-4">
         <button type="submit" 
                 class="px-6 py-3 bg-purple-900 text-white font-semibold rounded-lg hover:bg-purple-800 transition duration-300 flex items-center gap-2 shadow-md hover:shadow-lg">

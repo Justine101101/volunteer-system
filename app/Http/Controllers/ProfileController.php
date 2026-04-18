@@ -84,6 +84,7 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone ?? null,
+                'age' => $user->age ?? null,
                 'google_id' => $user->google_id ?? null,
                 'role' => $user->role ?? 'volunteer',
                 'notification_pref' => $user->notification_pref ?? true,

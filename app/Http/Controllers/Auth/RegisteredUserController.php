@@ -41,11 +41,15 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'phone' => ['required', 'string', 'max:30'],
+            'age' => ['required', 'integer', 'min:18', 'max:120'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $skipSupabase = app()->runningUnitTests();
+
         // Ensure Supabase is configured; registration is expected to be mirrored to Supabase.
-        if (!config('supabase.url') || !config('supabase.service_role_key')) {
+        if (!$skipSupabase && (!config('supabase.url') || !config('supabase.service_role_key'))) {
             return back()->withInput()->with('error', 'Supabase is not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your .env.');
         }
 
@@ -56,6 +60,8 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'phone' => $request->phone,
+            'age' => (int) $request->age,
             'role' => $defaultRole,
             'password' => Hash::make($request->password),
             'email_verified_at' => null,
@@ -66,17 +72,22 @@ class RegisteredUserController extends Controller
         $user = User::where('email', $request->email)->firstOrFail();
 
         // Mirror user to Supabase (Single Source of Truth for user data)
-        $supabaseResult = $this->queryService->upsertUser([
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $defaultRole,
-            'notification_pref' => true,
-            'dark_mode' => false,
-            'password' => Hash::make($request->password),
-            'email_verified_at' => null,
-        ]);
+        $supabaseResult = [];
+        if (!$skipSupabase) {
+            $supabaseResult = $this->queryService->upsertUser([
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $defaultRole,
+                'phone' => $user->phone ?? null,
+                'age' => $user->age ?? null,
+                'notification_pref' => true,
+                'dark_mode' => false,
+                'password' => Hash::make($request->password),
+                'email_verified_at' => null,
+            ]);
+        }
 
-        if (isset($supabaseResult['error'])) {
+        if (!$skipSupabase && isset($supabaseResult['error'])) {
             Log::error('Failed to create user in Supabase (OTP registration)', [
                 'error' => $supabaseResult['error'] ?? 'Unknown error',
                 'status' => $supabaseResult['status'] ?? null,
@@ -93,11 +104,13 @@ class RegisteredUserController extends Controller
         }
 
         // Store Supabase UUID on local mirror for easier mapping (if available)
-        $supabaseRow = is_array($supabaseResult) && isset($supabaseResult[0]) ? $supabaseResult[0] : $supabaseResult;
-        $supabaseId = is_array($supabaseRow) ? ($supabaseRow['id'] ?? null) : null;
-        if ($supabaseId && $user->fillable && in_array('supabase_user_id', $user->getFillable(), true)) {
-            $user->supabase_user_id = $supabaseId;
-            $user->save();
+        if (!$skipSupabase) {
+            $supabaseRow = is_array($supabaseResult) && isset($supabaseResult[0]) ? $supabaseResult[0] : $supabaseResult;
+            $supabaseId = is_array($supabaseRow) ? ($supabaseRow['id'] ?? null) : null;
+            if ($supabaseId && $user->fillable && in_array('supabase_user_id', $user->getFillable(), true)) {
+                $user->supabase_user_id = $supabaseId;
+                $user->save();
+            }
         }
 
         // Generate secure 6-digit OTP

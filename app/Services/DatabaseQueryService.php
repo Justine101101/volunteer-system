@@ -691,6 +691,7 @@ class DatabaseQueryService
                 'password' => $passwordToSet,
                 'role' => $this->normalizeSupabaseUserRole($user['role'] ?? null),
                 'phone' => $user['phone'] ?? null,
+                'age' => $user['age'] ?? null,
                 'google_id' => $user['google_id'] ?? null,
                 'photo_url' => $user['photo_url'] ?? null,
                 'notification_pref' => $user['notification_pref'] ?? true,
