@@ -159,11 +159,11 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Organizer:</span>
-                                    <span class="font-medium">{{ $event->organizer ?: ($event->creator->name ?? 'Organizer') }}</span>
+                                    <span class="font-medium">{{ $event->organizer ?: ($event->creator?->name ?? 'Organizer') }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Created by:</span>
-                                    <span class="font-medium">{{ $event->creator->name }}</span>
+                                    <span class="font-medium">{{ $event->creator?->name ?? '—' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -264,17 +264,27 @@
                     @auth
                         @if(auth()->user()->isAdminOrSuperAdmin() && $event->registrations->count() > 0)
                             <div class="bg-gray-50 p-6 rounded-lg">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Registered Volunteers ({{ $event->registrations->count() }})</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                    Registered Volunteers ({{ $event->registrations_count ?? $event->registrations->count() }})
+                                    <span class="text-sm font-medium text-gray-600">
+                                        • Approved: {{ $event->approved_registrations_count ?? $event->registrations->where('registration_status', 'approved')->count() }}
+                                    </span>
+                                </h3>
                                 <div class="space-y-3">
                                     @foreach($event->registrations as $registration)
+                                        @php
+                                            $regUserName = $registration->user?->name ?? 'Volunteer';
+                                            $regUserEmail = $registration->user?->email ?? '—';
+                                            $regInitial = strtoupper(substr((string) $regUserName, 0, 1));
+                                        @endphp
                                         <div class="flex items-center justify-between bg-white p-4 rounded-lg">
                                             <div class="flex items-center">
                                                 <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                                    <span class="text-blue-600 font-semibold">{{ substr($registration->user->name, 0, 1) }}</span>
+                                                    <span class="text-blue-600 font-semibold">{{ $regInitial }}</span>
                                                 </div>
                                                 <div>
-                                                    <p class="font-medium text-gray-900">{{ $registration->user->name }}</p>
-                                                    <p class="text-sm text-gray-600">{{ $registration->user->email }}</p>
+                                                    <p class="font-medium text-gray-900">{{ $regUserName }}</p>
+                                                    <p class="text-sm text-gray-600">{{ $regUserEmail }}</p>
                                                 </div>
                                             </div>
                                             <div class="flex items-center space-x-2">

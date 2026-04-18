@@ -129,6 +129,30 @@ class DatabaseQueryService
     }
 
     /**
+     * Get event by ID with registrations using privileged access (service role).
+     * Use this for admin views so RLS doesn't hide registrations.
+     */
+    public function getEventByIdWithRegistrationsPrivileged(string $eventId)
+    {
+        try {
+            $result = $this->supabase->fromPrivileged('events')
+                ->select('*, creator:users(name, email), registrations:event_registrations!event_registrations_event_id_fkey(*, user:users(name, email))')
+                ->eq('id', $eventId)
+                ->single()
+                ->execute();
+
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error('Error fetching event (privileged w/ registrations): ' . $e->getMessage());
+            return ['error' => 'Event not found'];
+        }
+    }
+
+    /**
      * Get event by ID using privileged (service role) access, for admin screens.
      */
     public function getEventByIdPrivileged(string $eventId)

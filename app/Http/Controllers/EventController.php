@@ -404,8 +404,12 @@ class EventController extends Controller
      */
     public function show(string $eventId)
     {
-        // Get event from Supabase by UUID
-        $supabaseEvent = $this->queryService->getEventById($eventId);
+        // Get event from Supabase by UUID.
+        // Use privileged access for admin views so RLS doesn't hide registrations.
+        $isAdminViewer = auth()->check() && method_exists(auth()->user(), 'isAdminOrSuperAdmin') && auth()->user()->isAdminOrSuperAdmin();
+        $supabaseEvent = $isAdminViewer
+            ? $this->queryService->getEventByIdWithRegistrationsPrivileged($eventId)
+            : $this->queryService->getEventById($eventId);
 
         if (!$supabaseEvent || isset($supabaseEvent['error'])) {
             abort(404, 'Event not found');
@@ -431,6 +435,10 @@ class EventController extends Controller
             ];
         });
 
+        $approvedRegistrationsCount = $registrations
+            ->filter(fn ($r) => strtolower((string) ($r->registration_status ?? '')) === 'approved')
+            ->count();
+
         $eventData = (object) [
             'id' => $supabaseEvent['id'] ?? null,
             'title' => $supabaseEvent['title'] ?? '',
@@ -448,6 +456,8 @@ class EventController extends Controller
             'event_status' => $supabaseEvent['event_status'] ?? 'active',
             'creator' => isset($supabaseEvent['creator']) ? (object) $supabaseEvent['creator'] : null,
             'registrations' => $registrations,
+            'registrations_count' => $registrations->count(),
+            'approved_registrations_count' => $approvedRegistrationsCount,
         ];
 
         // Resolve current user's Supabase UUID for registration lookups
