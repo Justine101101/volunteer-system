@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
         
         // Attendance (Admin)
         Route::get('/admin/attendance', [AttendanceController::class, 'index'])->name('admin.attendance');
+        Route::get('/admin/attendance/event', [AttendanceController::class, 'event'])->name('admin.attendance.event');
         
         // Event registration management (Admin)
         // Legacy MySQL-backed approvals

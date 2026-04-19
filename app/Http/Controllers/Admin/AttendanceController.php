@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Services\DatabaseQueryService;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
@@ -17,51 +16,94 @@ class AttendanceController extends Controller
         $this->middleware('role:admin');
     }
 
-    public function index()
+    /**
+     * Attendance is always scoped to one event; keep this URL for bookmarks and nav.
+     */
+    public function index(): RedirectResponse
     {
-        $page = (int) request()->get('page', 1);
-        $perPage = 15;
+        return redirect()->route('admin.attendance.event');
+    }
 
-        // Supabase-backed registrations (Single Source of Truth)
-        $raw = $this->queryService->getEventRegistrations($page, $perPage);
-        $all = $this->queryService->getEventRegistrations(1, 5000);
-        $pending = $this->queryService->getEventRegistrations(1, 5000, ['status' => 'pending']);
-        $approved = $this->queryService->getEventRegistrations(1, 5000, ['status' => 'approved']);
-        $rejected = $this->queryService->getEventRegistrations(1, 5000, ['status' => 'rejected']);
+    /**
+     * Attendance scoped to a single event (admin selects event first).
+     */
+    public function event(Request $request)
+    {
+        $eventId = trim((string) $request->query('event_id', ''));
 
-        // Log a small sample so we can see exactly what Supabase returns
-        if (is_array($raw)) {
-            Log::debug('AttendanceController@index raw registrations sample', [
-                'sample' => array_slice($raw, 0, 5),
-            ]);
-        } else {
-            Log::debug('AttendanceController@index raw registrations non-array', [
-                'raw' => $raw,
-            ]);
+        $eventsResult = $this->queryService->getEventsPrivileged(1, 1000);
+        $events = [];
+        if (is_array($eventsResult) && !isset($eventsResult['error'])) {
+            $events = collect($eventsResult)
+                ->filter(fn ($e) => is_array($e) && !empty($e['id']))
+                ->map(function ($e) {
+                    $date = isset($e['event_date']) ? \Carbon\Carbon::parse((string) $e['event_date']) : null;
+
+                    return (object) [
+                        'id' => (string) ($e['id'] ?? ''),
+                        'title' => (string) ($e['title'] ?? ''),
+                        'date' => $date,
+                    ];
+                })
+                ->sortByDesc(fn ($e) => $e->date?->timestamp ?? 0)
+                ->values()
+                ->all();
         }
 
-        // Build a lookup of local users by email so Attendance can link directly
-        // to Manage Users profile page.
-        $pageRows = collect(is_array($raw) && !isset($raw['error']) ? $raw : []);
+        $selectedEvent = null;
+        $registrations = collect();
+        $summary = [
+            'total' => 0,
+            'pending' => 0,
+            'approved' => 0,
+            'rejected' => 0,
+            'present_onsite' => 0,
+        ];
+
+        if ($eventId !== '') {
+            $selectedEvent = collect($events)->firstWhere('id', $eventId);
+
+            $all = $this->queryService->getEventRegistrations(1, 5000, ['event_id' => $eventId]);
+            $pending = $this->queryService->getEventRegistrations(1, 5000, ['event_id' => $eventId, 'status' => 'pending']);
+            $approved = $this->queryService->getEventRegistrations(1, 5000, ['event_id' => $eventId, 'status' => 'approved']);
+            $rejected = $this->queryService->getEventRegistrations(1, 5000, ['event_id' => $eventId, 'status' => 'rejected']);
+
+            $rows = collect(is_array($all) && !isset($all['error']) ? $all : []);
+            $registrations = $this->mapRegistrationRowsToViewModels($rows);
+            $summary = $this->buildRegistrationSummary($all, $pending, $approved, $rejected);
+        }
+
+        return view('admin.attendance-event', [
+            'events' => $events,
+            'selectedEventId' => $eventId,
+            'selectedEvent' => $selectedEvent,
+            'registrations' => $registrations,
+            'summary' => $summary,
+        ]);
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string,mixed>> $pageRows
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    private function mapRegistrationRowsToViewModels(\Illuminate\Support\Collection $pageRows): \Illuminate\Support\Collection
+    {
         $emails = $pageRows
             ->pluck('user.email')
             ->filter(fn ($email) => is_string($email) && $email !== '')
             ->unique()
             ->values();
+
         $localUsersByEmail = User::query()
             ->whereIn('email', $emails->all())
             ->get(['id', 'email'])
             ->keyBy('email');
 
-        // Build human-friendly objects for the Blade view.
-        // Use the embedded `user` and `event` data that already comes from Supabase
-        // to avoid doing hundreds of extra HTTP requests (which were causing timeouts).
-        $items = $pageRows->map(function ($reg) use ($localUsersByEmail) {
+        return $pageRows->map(function ($reg) use ($localUsersByEmail) {
             $registrationId = $reg['id'] ?? null;
             $status = $reg['registration_status'] ?? ($reg['status'] ?? 'pending');
             $createdAt = isset($reg['created_at']) ? \Carbon\Carbon::parse($reg['created_at']) : null;
 
-            // Prefer embedded user if present; fall back to minimal object
             $embeddedUser = $reg['user'] ?? null;
             $user = null;
             if (is_array($embeddedUser)) {
@@ -71,13 +113,11 @@ class AttendanceController extends Controller
                 ];
             }
 
-            // Resolve local Laravel user so Attendance can link to the same admin profile page.
             $localUser = (!empty($user?->email) && $localUsersByEmail->has($user->email))
                 ? $localUsersByEmail->get($user->email)
                 : null;
             $localUserId = $localUser?->id;
 
-            // Prefer embedded event if present; fall back to minimal object
             $embeddedEvent = $reg['event'] ?? null;
             $event = null;
             if (is_array($embeddedEvent)) {
@@ -105,7 +145,17 @@ class AttendanceController extends Controller
                 'event' => $event,
             ];
         });
+    }
 
+    /**
+     * @param mixed $all
+     * @param mixed $pending
+     * @param mixed $approved
+     * @param mixed $rejected
+     * @return array{total:int,pending:int,approved:int,rejected:int,present_onsite:int}
+     */
+    private function buildRegistrationSummary(mixed $all, mixed $pending, mixed $approved, mixed $rejected): array
+    {
         $total = (is_array($all) && !isset($all['error'])) ? count($all) : 0;
         $presentOnsite = 0;
         if (is_array($all) && !isset($all['error'])) {
@@ -119,27 +169,14 @@ class AttendanceController extends Controller
                 }
             }
         }
-        $summary = [
+
+        return [
             'total' => $total,
             'pending' => (is_array($pending) && !isset($pending['error'])) ? count($pending) : 0,
             'approved' => (is_array($approved) && !isset($approved['error'])) ? count($approved) : 0,
             'rejected' => (is_array($rejected) && !isset($rejected['error'])) ? count($rejected) : 0,
             'present_onsite' => $presentOnsite,
         ];
-
-        // Build a paginator so the Blade view can keep using ->links()
-        $registrations = new LengthAwarePaginator(
-            $items,
-            $total,
-            $perPage,
-            $page,
-            [
-                'path' => request()->url(),
-                'query' => request()->query(),
-            ]
-        );
-
-        return view('admin.attendance', compact('registrations', 'summary'));
     }
 }
 

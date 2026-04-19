@@ -100,7 +100,7 @@
                             </svg>
                             Create event
                         </a>
-                        <a href="{{ route('admin.attendance') }}"
+                        <a href="{{ route('admin.attendance.event') }}"
                            class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-white transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:focus:ring-offset-slate-900">
                             Review approvals
                         </a>
@@ -158,7 +158,7 @@
                     </div>
                 </a>
 
-                <a href="{{ route('admin.attendance') }}"
+                <a href="{{ route('admin.attendance.event') }}"
                    class="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition dark:border-slate-700 dark:bg-slate-900">
                     <div class="flex items-start justify-between gap-4">
                         <div class="min-w-0">
@@ -279,7 +279,7 @@
                             <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">Recent Activity</h3>
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Latest registrations and contact messages</p>
                         </div>
-                        <a href="{{ route('admin.attendance') }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200 transition">
+                        <a href="{{ route('admin.attendance.event') }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-300 dark:hover:text-emerald-200 transition">
                             Open approvals
                         </a>
                     </div>

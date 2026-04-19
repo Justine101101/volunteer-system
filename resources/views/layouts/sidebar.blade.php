@@ -67,7 +67,7 @@
             <span>Audit Logs</span>
         </a>
         @endif
-        <a href="{{ route('admin.attendance') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 @if(request()->routeIs('admin.attendance')) bg-emerald-600 text-white @else text-slate-300 hover:text-white hover:bg-slate-800 @endif">
+        <a href="{{ route('admin.attendance.event') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 @if(request()->routeIs('admin.attendance*')) bg-emerald-600 text-white @else text-slate-300 hover:text-white hover:bg-slate-800 @endif">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
             <span>Attendance</span>
         </a>

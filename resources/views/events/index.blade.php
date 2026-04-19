@@ -356,6 +356,7 @@
                                         'status' => (string) ($statusLabel ?? 'Upcoming'),
                                         'current_volunteers' => (int) ($currentVolunteers ?? 0),
                                         'max_volunteers' => $maxVolunteers !== null ? (int) $maxVolunteers : null,
+                                        'approved_volunteers' => $event->approved_volunteers ?? [],
                                         'organizer' => (string) (($event->organizer ?? '') ?: ($creatorName ?? 'Organizer')),
                                         'venue' => (string) (($event->venue ?? '') ?: ($event->location ?? '')),
                                         'requirements' => (string) ($event->requirements ?? ''),
@@ -529,6 +530,23 @@
                                 <div class="rounded-lg border border-amber-100 bg-amber-50/70 p-3">
                                     <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Requirements</p>
                                     <p class="mt-1 text-sm text-slate-700" x-text="event.requirements || 'No special requirements listed.'"></p>
+                                </div>
+
+                                <div class="rounded-lg border border-slate-200 bg-white p-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">Joined Volunteers</p>
+                                    <template x-if="event.approved_volunteers && event.approved_volunteers.length > 0">
+                                        <div class="mt-2 max-h-40 overflow-y-auto space-y-2">
+                                            <template x-for="(volunteer, idx) in event.approved_volunteers" :key="idx">
+                                                <div class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                                                    <p class="text-sm font-medium text-slate-900" x-text="volunteer.name || 'Volunteer'"></p>
+                                                    <p class="text-xs text-slate-600" x-text="volunteer.email || ''"></p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="!event.approved_volunteers || event.approved_volunteers.length === 0">
+                                        <p class="mt-2 text-sm text-slate-600">No approved volunteers yet.</p>
+                                    </template>
                                 </div>
                             </div>
                         </div>

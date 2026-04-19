@@ -183,6 +183,134 @@ class DatabaseQueryService
     }
 
     /**
+     * Get approved volunteers (users) for a single event (privileged).
+     *
+     * @return array<int, array{name:string,email:string}>
+     */
+    public function getApprovedVolunteersForEventPrivileged(string $eventId): array
+    {
+        $eventId = trim($eventId);
+        if ($eventId === '') {
+            return [];
+        }
+
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return [];
+            }
+
+            $rows = $this->supabase->fromPrivileged('event_registrations')
+                ->select('user:users!event_registrations_user_id_fkey(name,email),created_at')
+                ->eq('event_id', $eventId)
+                ->eq('registration_status', 'approved')
+                ->order('created_at', 'asc')
+                ->execute();
+
+            if (!is_array($rows) || isset($rows['error'])) {
+                return [];
+            }
+
+            $volunteers = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $user = $row['user'] ?? null;
+                if (!is_array($user)) {
+                    continue;
+                }
+
+                $name = trim((string) ($user['name'] ?? ''));
+                $email = trim((string) ($user['email'] ?? ''));
+                if ($name === '' && $email === '') {
+                    continue;
+                }
+
+                $volunteers[] = [
+                    'name' => $name !== '' ? $name : 'Volunteer',
+                    'email' => $email,
+                ];
+            }
+
+            return $volunteers;
+        } catch (\Throwable $e) {
+            Log::warning('Error fetching approved volunteers list (privileged)', [
+                'event_id' => $eventId,
+                'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get approved volunteers grouped by event ID (privileged).
+     *
+     * @param array<int, string> $eventIds
+     * @return array<string, array<int, array{name:string,email:string}>>
+     */
+    public function getApprovedVolunteersForEventsPrivileged(array $eventIds): array
+    {
+        $eventIds = array_values(array_filter(array_map(static fn ($v) => is_string($v) ? trim($v) : '', $eventIds)));
+        if (empty($eventIds)) {
+            return [];
+        }
+
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return [];
+            }
+
+            $rows = $this->supabase->fromPrivileged('event_registrations')
+                ->select('event_id,user:users!event_registrations_user_id_fkey(name,email),created_at')
+                ->in('event_id', $eventIds)
+                ->eq('registration_status', 'approved')
+                ->order('created_at', 'asc')
+                ->execute();
+
+            if (!is_array($rows) || isset($rows['error'])) {
+                return [];
+            }
+
+            $grouped = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $eventId = trim((string) ($row['event_id'] ?? ''));
+                if ($eventId === '') {
+                    continue;
+                }
+
+                $user = $row['user'] ?? null;
+                if (!is_array($user)) {
+                    continue;
+                }
+
+                $name = trim((string) ($user['name'] ?? ''));
+                $email = trim((string) ($user['email'] ?? ''));
+                if ($name === '' && $email === '') {
+                    continue;
+                }
+
+                $grouped[$eventId] ??= [];
+                $grouped[$eventId][] = [
+                    'name' => $name !== '' ? $name : 'Volunteer',
+                    'email' => $email,
+                ];
+            }
+
+            return $grouped;
+        } catch (\Throwable $e) {
+            Log::warning('Error fetching approved volunteers grouped by event (privileged)', [
+                'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Get event by ID with full details
      * Accepts UUID string (Supabase) or can find by title+date+location for compatibility
      */

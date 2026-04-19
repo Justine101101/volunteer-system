@@ -145,9 +145,10 @@ class EventController extends Controller
             // Approved volunteer counts (safe server-side aggregate; avoids RLS hiding data)
             $eventIds = array_values(array_filter(array_map(static fn ($e) => is_array($e) ? ($e['id'] ?? null) : null, $events)));
             $approvedCounts = $this->queryService->getApprovedRegistrationCountsForEventsPrivileged($eventIds);
+            $approvedVolunteersByEvent = $this->queryService->getApprovedVolunteersForEventsPrivileged($eventIds);
 
             // Transform Supabase response to match expected format
-            $events = array_map(function($event) use ($approvedCounts) {
+            $events = array_map(function($event) use ($approvedCounts, $approvedVolunteersByEvent) {
                 $photoUrl = $event['photo_url'] ?? null;
                 
                 // Log original photo_url for debugging
@@ -177,6 +178,7 @@ class EventController extends Controller
                 
                 $id = (string) ($event['id'] ?? '');
                 $approved = $id !== '' ? (int) ($approvedCounts[$id] ?? 0) : 0;
+                $approvedVolunteers = $id !== '' ? ($approvedVolunteersByEvent[$id] ?? []) : [];
 
                 return (object) [
                     'id' => $event['id'] ?? null,
@@ -197,6 +199,7 @@ class EventController extends Controller
                     'event_status' => $event['event_status'] ?? 'active',
                     // Used in the event modal ("Volunteers")
                     'current_volunteers' => $approved,
+                    'approved_volunteers' => $approvedVolunteers,
                     'max_participants' => $event['max_participants'] ?? null,
                 ];
             }, $events);
@@ -415,6 +418,8 @@ class EventController extends Controller
      */
     public function show(string $eventId)
     {
+        $showVolunteers = request()->boolean('show_volunteers');
+
         // Get event from Supabase by UUID.
         // Use privileged access for admin views so RLS doesn't hide registrations.
         $isAdminViewer = auth()->check() && method_exists(auth()->user(), 'isAdminOrSuperAdmin') && auth()->user()->isAdminOrSuperAdmin();
@@ -448,6 +453,7 @@ class EventController extends Controller
 
         // Always compute approved count via privileged aggregate so it works even when RLS hides registrations.
         $approvedRegistrationsCount = $this->queryService->getApprovedRegistrationCountForEventPrivileged($eventId);
+        $approvedVolunteers = $this->queryService->getApprovedVolunteersForEventPrivileged($eventId);
 
         $eventData = (object) [
             'id' => $supabaseEvent['id'] ?? null,
@@ -468,6 +474,7 @@ class EventController extends Controller
             'registrations' => $registrations,
             'registrations_count' => $registrations->count(),
             'approved_registrations_count' => $approvedRegistrationsCount,
+            'approved_volunteers' => $approvedVolunteers,
             'max_participants' => $supabaseEvent['max_participants'] ?? null,
         ];
 
@@ -483,6 +490,7 @@ class EventController extends Controller
         return view('events.show', [
             'event' => $eventData,
             'currentUserSupabaseId' => $currentUserSupabaseId,
+            'showVolunteers' => $showVolunteers,
         ]);
     }
 

@@ -24,7 +24,7 @@ class EventShowVolunteerCountTest extends TestCase
 
         $this->mock(DatabaseQueryService::class, function ($mock) use ($eventId) {
             $mock->shouldReceive('getEventByIdWithRegistrationsPrivileged')
-                ->once()
+                ->twice()
                 ->with($eventId)
                 ->andReturn([
                     'id' => $eventId,
@@ -55,12 +55,20 @@ class EventShowVolunteerCountTest extends TestCase
                 ->never();
 
             $mock->shouldReceive('getApprovedRegistrationCountForEventPrivileged')
-                ->once()
+                ->twice()
                 ->with($eventId)
                 ->andReturn(1);
 
+            $mock->shouldReceive('getApprovedVolunteersForEventPrivileged')
+                ->twice()
+                ->with($eventId)
+                ->andReturn([
+                    ['name' => 'Approved User', 'email' => 'approved@example.com'],
+                ]);
+
             // Used by EventController@show to resolve the current user's Supabase ID
             $mock->shouldReceive('getUserByEmail')
+                ->twice()
                 ->andReturn(['id' => 'cccccccc-cccc-cccc-cccc-cccccccccccc']);
         });
 
@@ -69,6 +77,12 @@ class EventShowVolunteerCountTest extends TestCase
         $response->assertOk();
         $response->assertSee('Registered Volunteers (2)');
         $response->assertSee('Approved: 1');
+        $response->assertSee('show_volunteers=1');
+
+        $expandedResponse = $this->actingAs($admin)->get("/events/{$eventId}?show_volunteers=1");
+        $expandedResponse->assertOk();
+        $expandedResponse->assertSee('Joined Volunteers');
+        $expandedResponse->assertSee('Approved User');
     }
 }
 

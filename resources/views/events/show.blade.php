@@ -167,14 +167,35 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Volunteers:</span>
-                                    <span class="font-medium">
+                                    <a href="{{ route('events.show', ['eventId' => $event->id, 'show_volunteers' => 1]) }}#joined-volunteers"
+                                       class="font-medium text-blue-700 hover:text-blue-800 hover:underline cursor-pointer">
                                         {{ (int) ($event->approved_registrations_count ?? 0) }}
                                         @if(!empty($event->max_participants))
                                             / {{ (int) $event->max_participants }}
                                         @endif
-                                    </span>
+                                    </a>
                                 </div>
                             </div>
+
+                            <div class="mt-4 border-t border-gray-200 pt-4">
+                                <h4 class="text-sm font-semibold text-gray-900 mb-2">Joined Volunteers</h4>
+                                @if(!empty($event->approved_volunteers) && count($event->approved_volunteers) > 0)
+                                    <div class="max-h-56 overflow-y-auto space-y-2">
+                                        @foreach($event->approved_volunteers as $volunteer)
+                                            <div class="rounded-md border border-gray-200 bg-white px-3 py-2">
+                                                <p class="text-sm font-medium text-gray-900">{{ $volunteer['name'] ?? 'Volunteer' }}</p>
+                                                @if(!empty($volunteer['email']))
+                                                    <p class="text-xs text-gray-600">{{ $volunteer['email'] }}</p>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-sm text-gray-600">No approved volunteers yet.</p>
+                                @endif
+                            </div>
+
+                            <div id="joined-volunteers"></div>
                         </div>
 
                         <!-- Registration Status -->
