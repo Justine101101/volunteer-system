@@ -239,7 +239,7 @@ class EventController extends Controller
                             foreach ($regs as $reg) {
                                 $eventId = $reg['event_id'] ?? null;
                                 if ($eventId) {
-                                    $map[$eventId] = strtolower($reg['registration_status'] ?? 'pending');
+                                    $map[(string) $eventId] = strtolower($reg['registration_status'] ?? 'pending');
                                 }
                             }
                         }
@@ -253,10 +253,42 @@ class EventController extends Controller
                 ]);
             }
         }
-        
+
+        $showVolunteerEventSections = Auth::check() && Auth::user()->isVolunteer();
+        $volunteerMyEvents = [];
+        $volunteerBrowseEvents = [];
+        if ($showVolunteerEventSections) {
+            foreach ($events as $event) {
+                $eid = isset($event->id) ? (string) $event->id : '';
+                if ($eid !== '' && isset($userRegistrationsByEvent[$eid])) {
+                    $volunteerMyEvents[] = $event;
+                } else {
+                    $volunteerBrowseEvents[] = $event;
+                }
+            }
+            usort($volunteerMyEvents, function ($a, $b) {
+                $da = $a->date ?? null;
+                $db = $b->date ?? null;
+                if (!$da instanceof \Carbon\Carbon && !$db instanceof \Carbon\Carbon) {
+                    return 0;
+                }
+                if (!$da instanceof \Carbon\Carbon) {
+                    return 1;
+                }
+                if (!$db instanceof \Carbon\Carbon) {
+                    return -1;
+                }
+
+                return $da->timestamp <=> $db->timestamp;
+            });
+        }
+
         return view('events.index', [
             'events' => $events,
             'userRegistrationsByEvent' => $userRegistrationsByEvent,
+            'showVolunteerEventSections' => $showVolunteerEventSections,
+            'volunteerMyEvents' => $volunteerMyEvents,
+            'volunteerBrowseEvents' => $volunteerBrowseEvents,
         ]);
     }
 

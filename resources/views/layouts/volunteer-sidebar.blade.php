@@ -41,10 +41,20 @@
     </div>
 
     <nav class="flex-1 px-3 pt-4 pb-4 space-y-1 overflow-y-auto">
-        <a href="{{ route('events.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 @if(request()->routeIs('events.*')) bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 @else text-slate-300 hover:bg-slate-800 hover:text-emerald-300 @endif">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <span>Events</span>
-        </a>
+        <div class="space-y-1">
+            <a href="{{ route('events.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 @if(request()->routeIs('events.*')) bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 @else text-slate-300 hover:bg-slate-800 hover:text-emerald-300 @endif">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Events</span>
+            </a>
+            <div class="ml-3 border-l border-slate-700/80 pl-3 space-y-0.5">
+                <a href="{{ route('events.index') }}#my-events" class="block rounded-lg py-1.5 pl-2 text-xs font-medium text-slate-400 transition hover:bg-slate-800/80 hover:text-emerald-300">
+                    My events
+                </a>
+                <a href="{{ route('events.index') }}#browse-events" class="block rounded-lg py-1.5 pl-2 text-xs font-medium text-slate-400 transition hover:bg-slate-800/80 hover:text-emerald-300">
+                    Browse events
+                </a>
+            </div>
+        </div>
         <a href="{{ route('notifications.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 @if(request()->routeIs('notifications.*')) bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 @else text-slate-300 hover:bg-slate-800 hover:text-emerald-300 @endif">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0H9"/></svg>
             <span>Notifications</span>
