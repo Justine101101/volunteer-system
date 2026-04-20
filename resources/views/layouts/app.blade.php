@@ -64,13 +64,16 @@
                             </header>
                         @endisset
 
-                        <main id="main" role="main" class="flex-1 bg-light-gray dark:bg-slate-900 overflow-y-auto flex flex-col">
+                        <main id="main" role="main" class="flex-1 bg-light-gray dark:bg-slate-900 overflow-y-auto flex flex-col pb-24 md:pb-0">
                             <div class="flex-1">
                                 {{ $slot }}
                             </div>
-                            @include('layouts.footer')
+                            @unless(request()->routeIs('settings*') || request()->routeIs('profile.*'))
+                                @include('layouts.footer')
+                            @endunless
                         </main>
                     </div>
+                    @include('layouts.volunteer-mobile-bottom-nav')
                 </div>
             @elseif(request()->routeIs('volunteer.*') || (request()->routeIs('messaging*') && auth()->user()?->isVolunteer()) || (request()->routeIs('members.*') && auth()->check() && auth()->user()?->isVolunteer()) || ((request()->routeIs('events.*') && !request()->routeIs('events.calendar')) && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('settings*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('profile.*') && auth()->check() && auth()->user()?->isVolunteer()) || (request()->routeIs('notifications*') && auth()->check() && auth()->user()?->isVolunteer()))
                 <div class="bg-white dark:bg-slate-900" x-data="{ volunteerNavOpen: false }">
@@ -116,13 +119,16 @@
                             </header>
                         @endisset
 
-                        <main id="main" role="main" class="flex-1 bg-light-gray dark:bg-slate-900 overflow-y-auto flex flex-col">
+                        <main id="main" role="main" class="flex-1 bg-light-gray dark:bg-slate-900 overflow-y-auto flex flex-col pb-24 lg:pb-0">
                             <div class="flex-1">
                                 {{ $slot }}
                             </div>
-                            @include('layouts.footer')
+                            @unless(request()->routeIs('settings*') || request()->routeIs('profile.*'))
+                                @include('layouts.footer')
+                            @endunless
                         </main>
                     </div>
+                    @include('layouts.volunteer-mobile-bottom-nav')
                 </div>
             @else
                 @include('layouts.header')

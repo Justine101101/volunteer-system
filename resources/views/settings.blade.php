@@ -1,6 +1,6 @@
 <x-app-layout>
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="{ section: 'profile' }">
+    <div class="bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8" x-data="{ section: 'profile' }">
             <!-- Header / User summary -->
             <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex items-center gap-4">

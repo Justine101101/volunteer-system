@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use App\Services\DatabaseQueryService;
 use App\Services\SupabaseService;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Http\RedirectResponse;
 
 class EventController extends Controller
 {
@@ -98,6 +101,41 @@ class EventController extends Controller
         }
 
         return '/storage/' . ltrim($photoUrl, '/');
+    }
+
+    private function resolveCheckInExpiry(array $event): \Carbon\Carbon
+    {
+        $eventDateRaw = (string) ($event['event_date'] ?? '');
+        $endTimeRaw = trim((string) ($event['event_end_time'] ?? ''));
+
+        try {
+            $eventDate = \Carbon\Carbon::parse($eventDateRaw);
+        } catch (\Throwable $e) {
+            return now()->addMinutes(30);
+        }
+
+        // Default: event day end with small grace period.
+        $expiresAt = $eventDate->copy()->endOfDay()->addMinutes(90);
+
+        if ($endTimeRaw !== '') {
+            try {
+                $endTime = \Carbon\Carbon::createFromFormat('H:i:s', $endTimeRaw);
+                $expiresAt = $eventDate->copy()->setTime($endTime->hour, $endTime->minute, $endTime->second)->addMinutes(90);
+            } catch (\Throwable $e) {
+                try {
+                    $endTime = \Carbon\Carbon::createFromFormat('H:i', $endTimeRaw);
+                    $expiresAt = $eventDate->copy()->setTime($endTime->hour, $endTime->minute, 0)->addMinutes(90);
+                } catch (\Throwable $e2) {
+                    // Keep end-of-day fallback.
+                }
+            }
+        }
+
+        if ($expiresAt->isPast()) {
+            return now()->addMinutes(5);
+        }
+
+        return $expiresAt;
     }
 
     private function uploadEventPhoto(\Illuminate\Http\UploadedFile $photo, string $title): ?string
@@ -519,11 +557,105 @@ class EventController extends Controller
             }
         }
 
+        $checkInUrl = null;
+        $checkInQrSvg = null;
+        if ($isAdminViewer) {
+            $checkInUrl = URL::temporarySignedRoute(
+                'events.checkin.show',
+                $this->resolveCheckInExpiry($supabaseEvent),
+                ['eventId' => $eventId]
+            );
+
+            try {
+                $checkInQrSvg = QrCode::format('svg')->size(260)->margin(1)->generate($checkInUrl);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to generate event check-in QR SVG', [
+                    'event_id' => $eventId,
+                    'message' => $e->getMessage(),
+                ]);
+                $checkInQrSvg = null;
+            }
+        }
+
+        $feedbackSummary = $this->queryService->getEventFeedbackSummaryForEventPrivileged($eventId);
+        $currentUserFeedback = null;
+        if (!$isAdminViewer && $currentUserSupabaseId) {
+            $currentUserFeedback = $this->queryService->getEventFeedbackForUser($eventId, (string) $currentUserSupabaseId);
+        }
+
         return view('events.show', [
             'event' => $eventData,
             'currentUserSupabaseId' => $currentUserSupabaseId,
             'showVolunteers' => $showVolunteers,
+            'checkInUrl' => $checkInUrl,
+            'checkInQrSvg' => $checkInQrSvg,
+            'feedbackSummary' => $feedbackSummary,
+            'currentUserFeedback' => $currentUserFeedback,
         ]);
+    }
+
+    /**
+     * Submit a 1-5 star feedback rating for an event (volunteers only).
+     */
+    public function submitFeedback(Request $request, string $eventId): RedirectResponse
+    {
+        $user = auth()->user();
+        if (!$user || !$user->isVolunteer() || empty($user->email)) {
+            abort(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        $event = $this->queryService->getEventByIdPrivileged($eventId);
+        if (!is_array($event) || isset($event['error'])) {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'Event not found.');
+        }
+
+        $eventStatus = strtolower((string) ($event['event_status'] ?? 'active'));
+        $eventDate = null;
+        if (!empty($event['event_date'])) {
+            try {
+                $eventDate = \Carbon\Carbon::parse((string) $event['event_date']);
+            } catch (\Throwable $e) {
+                $eventDate = null;
+            }
+        }
+        $eventIsOver = ($eventStatus === 'completed') || ($eventDate instanceof \Carbon\Carbon && $eventDate->isPast() && !$eventDate->isToday());
+        if (!$eventIsOver) {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'Feedback is available after the event ends.');
+        }
+
+        $supabaseUser = $this->queryService->getUserByEmail((string) $user->email);
+        $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+        if (!is_string($supabaseUserId) || $supabaseUserId === '') {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'Could not identify your event account.');
+        }
+
+        $registration = $this->queryService->getEventRegistration($supabaseUserId, $eventId);
+        if (!is_array($registration) || isset($registration['error'])) {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'You must be registered to leave feedback.');
+        }
+
+        $status = strtolower((string) ($registration['registration_status'] ?? 'pending'));
+        if ($status !== 'approved') {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'Only approved volunteers can leave feedback.');
+        }
+
+        $result = $this->queryService->upsertEventFeedback(
+            eventId: $eventId,
+            userId: $supabaseUserId,
+            rating: (int) $validated['rating'],
+            comment: isset($validated['comment']) ? trim((string) $validated['comment']) : null
+        );
+
+        if (is_array($result) && isset($result['error'])) {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'Could not save feedback. Please try again.');
+        }
+
+        return redirect()->route('events.show', ['eventId' => $eventId])->with('success', 'Thanks for your feedback!');
     }
 
     /**
@@ -533,17 +665,86 @@ class EventController extends Controller
      */
     public function edit(string $eventId)
     {
-        // Get event from Supabase by UUID
-        $supabaseEvent = $this->queryService->getEventById($eventId);
+        // Admin edit must use privileged access to avoid RLS returning partial/empty data.
+        $supabaseEvent = $this->queryService->getEventByIdWithRegistrationsPrivileged($eventId);
+        if (!$supabaseEvent || isset($supabaseEvent['error'])) {
+            // Fallback to non-privileged lookup for environments with permissive policies.
+            $supabaseEvent = $this->queryService->getEventById($eventId);
+        }
 
         if (!$supabaseEvent || isset($supabaseEvent['error'])) {
             abort(404, 'Event not found');
+        }
+
+        // Some environments can return partial event payloads on single-row fetch.
+        // If critical fields are missing, merge from the privileged events list.
+        $criticalFields = ['title', 'description', 'location', 'event_date', 'event_time'];
+        $missingCriticalField = false;
+        foreach ($criticalFields as $field) {
+            if (!array_key_exists($field, $supabaseEvent) || $supabaseEvent[$field] === null || $supabaseEvent[$field] === '') {
+                $missingCriticalField = true;
+                break;
+            }
+        }
+
+        if ($missingCriticalField) {
+            $allEvents = $this->queryService->getEventsPrivileged(1, 1000);
+            if (is_array($allEvents) && !isset($allEvents['error'])) {
+                foreach ($allEvents as $candidate) {
+                    if (!is_array($candidate)) {
+                        continue;
+                    }
+                    if ((string) ($candidate['id'] ?? '') !== $eventId) {
+                        continue;
+                    }
+                    $supabaseEvent = array_merge($candidate, $supabaseEvent);
+                    break;
+                }
+            }
         }
 
         // Transform Supabase response to object for view compatibility
         $photoUrl = $supabaseEvent['photo_url'] ?? null;
         $photoUrl = $this->normalizePhotoUrl($photoUrl);
         
+        $eventDate = null;
+        if (!empty($supabaseEvent['event_date'])) {
+            try {
+                $eventDate = \Carbon\Carbon::parse((string) $supabaseEvent['event_date']);
+            } catch (\Throwable $e) {
+                $eventDate = null;
+            }
+        }
+
+        $startTime = (string) ($supabaseEvent['event_time'] ?? '');
+        $endTime = (string) ($supabaseEvent['event_end_time'] ?? '');
+        $startTimeForInput = '';
+        $endTimeForInput = '';
+
+        if ($startTime !== '') {
+            try {
+                $startTimeForInput = \Carbon\Carbon::createFromFormat('H:i:s', $startTime)->format('H:i');
+            } catch (\Throwable $e) {
+                try {
+                    $startTimeForInput = \Carbon\Carbon::createFromFormat('H:i', $startTime)->format('H:i');
+                } catch (\Throwable $e2) {
+                    $startTimeForInput = '';
+                }
+            }
+        }
+
+        if ($endTime !== '') {
+            try {
+                $endTimeForInput = \Carbon\Carbon::createFromFormat('H:i:s', $endTime)->format('H:i');
+            } catch (\Throwable $e) {
+                try {
+                    $endTimeForInput = \Carbon\Carbon::createFromFormat('H:i', $endTime)->format('H:i');
+                } catch (\Throwable $e2) {
+                    $endTimeForInput = '';
+                }
+            }
+        }
+
         $eventData = (object) [
             'id' => $supabaseEvent['id'] ?? null,
             'title' => $supabaseEvent['title'] ?? '',
@@ -551,10 +752,10 @@ class EventController extends Controller
             'organizer' => $supabaseEvent['organizer'] ?? '',
             'requirements' => $supabaseEvent['requirements'] ?? '',
             'venue' => $supabaseEvent['venue'] ?? '',
-            'date' => isset($supabaseEvent['event_date']) ? \Carbon\Carbon::parse($supabaseEvent['event_date']) : null,
-            'start_time' => $supabaseEvent['event_time'] ?? '',
-            'end_time' => $supabaseEvent['event_end_time'] ?? null,
-            'time' => trim(($supabaseEvent['event_time'] ?? '') . (!empty($supabaseEvent['event_end_time']) ? (' - ' . $supabaseEvent['event_end_time']) : '')),
+            'date' => $eventDate,
+            'start_time' => $startTimeForInput,
+            'end_time' => $endTimeForInput,
+            'time' => trim(($startTimeForInput !== '' ? $startTimeForInput : '') . ($endTimeForInput !== '' ? (' - ' . $endTimeForInput) : '')),
             'location' => $supabaseEvent['location'] ?? '',
             'photo_url' => $photoUrl,
             'created_by' => $supabaseEvent['created_by'] ?? null,

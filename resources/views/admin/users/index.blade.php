@@ -109,11 +109,11 @@
                         <thead class="bg-slate-50 dark:bg-slate-700">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">User</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Email</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Phone</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Role</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Created</th>
-                                <th class="px-6 py-3 text-right text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Actions</th>
+                                <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Email</th>
+                                <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Phone</th>
+                                <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Role</th>
+                                <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Created</th>
+                                <th class="hidden md:table-cell px-6 py-3 text-right text-xs font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
@@ -146,12 +146,12 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                                         <a href="{{ $profileUrl }}" class="text-sm text-slate-900 dark:text-slate-50 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors" data-row-ignore-click>
                                             {{ $user->email }}
                                         </a>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-slate-900 dark:text-slate-50">
                                             @if($user->phone)
                                                 <div class="flex items-center gap-2">
@@ -165,7 +165,7 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                                         <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
                                             @if($user->role === 'admin') bg-indigo-100 text-indigo-800
                                             @elseif($user->role === 'president') bg-purple-100 text-purple-800
@@ -174,10 +174,10 @@
                                             {{ $user->role === 'superadmin' ? 'Admin' : ucfirst($user->role) }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                                         {{ $user->created_at->format('M j, Y') }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <a
                                                 href="{{ $profileUrl }}"

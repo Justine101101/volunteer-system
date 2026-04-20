@@ -1,4 +1,8 @@
 <x-app-layout>
+    @php
+        $eventDateLabel = ($event->date instanceof \Carbon\Carbon) ? $event->date->format('F j, Y') : 'Date TBA';
+        $eventShowId = !empty($event->id) ? (string) $event->id : (string) request()->route('eventId', '');
+    @endphp
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -77,7 +81,7 @@
                                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
-                                    <span class="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">{{ $event->date->format('F j, Y') }}</span>
+                                    <span class="text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">{{ $eventDateLabel }}</span>
                                 </div>
                                 <div class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
                                     <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,13 +99,13 @@
                             </div>
                         </div>
                         @auth
-                            @if(auth()->user()->isAdminOrSuperAdmin() && isset($event->id) && $event->id)
+                            @if(auth()->user()->isAdminOrSuperAdmin() && $eventShowId !== '')
                                 <div class="flex items-center gap-2 sm:pt-1">
-                                    <a href="{{ route('events.edit', $event->id) }}" 
+                                    <a href="{{ route('events.edit', ['eventId' => $eventShowId]) }}" 
                                        class="border border-blue-600 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-50 transition duration-300 text-sm font-semibold">
                                         Edit
                                     </a>
-                                    <form method="POST" action="{{ route('events.destroy', $event->id) }}" 
+                                    <form method="POST" action="{{ route('events.destroy', ['eventId' => $eventShowId]) }}" 
                                           class="inline" 
                                           data-confirm="Delete this event? This action cannot be undone.">
                                         @csrf
@@ -132,7 +136,7 @@
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-gray-900 mb-4">Event Description</h2>
                         <div class="prose max-w-none text-gray-600">
-                            {{ $event->description }}
+                            {{ !empty($event->description) ? $event->description : 'Details will be announced soon.' }}
                         </div>
                     </div>
 
@@ -143,19 +147,19 @@
                             <div class="space-y-3">
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Date:</span>
-                                    <span class="font-medium">{{ $event->date->format('F j, Y') }}</span>
+                                    <span class="font-medium">{{ $eventDateLabel }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Time:</span>
-                                    <span class="font-medium">{{ $event->time }}</span>
+                                    <span class="font-medium">{{ !empty($event->time) ? $event->time : 'Time TBA' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Location:</span>
-                                    <span class="font-medium">{{ $event->location }}</span>
+                                    <span class="font-medium">{{ !empty($event->location) ? $event->location : 'Location TBA' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Venue:</span>
-                                    <span class="font-medium">{{ $event->venue ?: 'Not specified' }}</span>
+                                    <span class="font-medium">{{ !empty($event->venue) ? $event->venue : 'Not specified' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Organizer:</span>
@@ -167,13 +171,38 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Volunteers:</span>
-                                    <a href="{{ route('events.show', ['eventId' => $event->id, 'show_volunteers' => 1]) }}#joined-volunteers"
-                                       class="font-medium text-blue-700 hover:text-blue-800 hover:underline cursor-pointer">
-                                        {{ (int) ($event->approved_registrations_count ?? 0) }}
-                                        @if(!empty($event->max_participants))
-                                            / {{ (int) $event->max_participants }}
-                                        @endif
-                                    </a>
+                                    @if($eventShowId !== '')
+                                        <a href="{{ route('events.show', ['eventId' => $eventShowId, 'show_volunteers' => 1]) }}#joined-volunteers"
+                                           class="font-medium text-blue-700 hover:text-blue-800 hover:underline cursor-pointer">
+                                            {{ (int) ($event->approved_registrations_count ?? 0) }}
+                                            @if(!empty($event->max_participants))
+                                                / {{ (int) $event->max_participants }}
+                                            @endif
+                                        </a>
+                                    @else
+                                        <span class="font-medium text-slate-700">
+                                            {{ (int) ($event->approved_registrations_count ?? 0) }}
+                                            @if(!empty($event->max_participants))
+                                                / {{ (int) $event->max_participants }}
+                                            @endif
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            @php
+                                $avg = is_array($feedbackSummary ?? null) ? ($feedbackSummary['average'] ?? null) : null;
+                                $cnt = is_array($feedbackSummary ?? null) ? (int) ($feedbackSummary['count'] ?? 0) : 0;
+                            @endphp
+                            <div class="mt-4 border-t border-gray-200 pt-4">
+                                <h4 class="text-sm font-semibold text-gray-900 mb-2">Event Rating</h4>
+                                <div class="flex items-center gap-2">
+                                    @if($avg !== null)
+                                        <span class="text-sm font-semibold text-slate-900">{{ number_format((float) $avg, 1) }}/5</span>
+                                        <span class="text-xs text-slate-500">({{ $cnt }} rating{{ $cnt === 1 ? '' : 's' }})</span>
+                                    @else
+                                        <span class="text-sm text-slate-600">No ratings yet.</span>
+                                    @endif
                                 </div>
                             </div>
 
@@ -231,7 +260,8 @@
                                             </span>
                                         </div>
                                         
-                                        <form id="leave-event-{{ $event->id }}" method="POST" action="{{ route('events.leave', ['eventId' => $event->id]) }}" class="inline">
+                                        @if($eventShowId !== '')
+                                        <form id="leave-event-{{ $eventShowId }}" method="POST" action="{{ route('events.leave', ['eventId' => $eventShowId]) }}" class="inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" 
@@ -242,23 +272,28 @@
                                                         confirmLabel: 'Leave Event',
                                                         cancelLabel: 'Cancel',
                                                         tone: 'danger',
-                                                        formId: 'leave-event-{{ $event->id }}'
+                                                        formId: 'leave-event-{{ $eventShowId }}'
                                                     })">
                                                 Leave Event
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 @else
                                     <div class="text-center">
                                         @if($canJoin)
                                             <p class="text-gray-600 mb-4">You haven't registered for this event yet.</p>
-                                            <form method="POST" action="{{ route('events.join', ['eventId' => $event->id]) }}" class="inline">
+                                            @if($eventShowId !== '')
+                                            <form method="POST" action="{{ route('events.join', ['eventId' => $eventShowId]) }}" class="inline">
                                                 @csrf
                                                 <button type="submit" 
                                                         class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-300">
                                                     Join Event
                                                 </button>
                                             </form>
+                                            @else
+                                                <p class="text-sm text-amber-700">Event ID missing. Refresh and try again.</p>
+                                            @endif
                                         @else
                                             <p class="text-gray-600 mb-4">This event has ended. Registration is closed.</p>
                                             <button type="button" disabled
@@ -280,6 +315,98 @@
                             </div>
                         @endauth
                     </div>
+
+                    @auth
+                        @if(auth()->user()->isVolunteer() && !empty($eventShowId))
+                            @php
+                                $userRating = is_array($currentUserFeedback ?? null) ? (int) ($currentUserFeedback['rating'] ?? 0) : 0;
+                                $userComment = is_array($currentUserFeedback ?? null) ? (string) ($currentUserFeedback['comment'] ?? '') : '';
+                                $rawStatusFeedback = strtolower((string) ($event->event_status ?? ''));
+                                $eventIsPastFeedback = ($event->date instanceof \Carbon\Carbon) ? $event->date->isPast() && !$event->date->isToday() : false;
+                                $canRate = $rawStatusFeedback === 'completed' || $eventIsPastFeedback;
+                            @endphp
+                            <div class="mb-8 bg-white border border-slate-200 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Leave Feedback</h3>
+                                <p class="text-sm text-gray-600 mb-4">Rate your experience for this event (1–5 stars).</p>
+
+                                @if(!$canRate)
+                                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                        Feedback will be available after the event ends.
+                                    </div>
+                                @else
+                                    <form method="POST" action="{{ route('events.feedback.submit', ['eventId' => $eventShowId]) }}" class="space-y-4">
+                                        @csrf
+
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-800 mb-2">Your rating</p>
+                                            <div class="flex items-center gap-1" role="radiogroup" aria-label="Event rating">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <label class="cursor-pointer">
+                                                        <input type="radio" name="rating" value="{{ $i }}" class="sr-only" @checked((int) old('rating', $userRating) === $i)>
+                                                        <svg class="h-7 w-7 transition"
+                                                             viewBox="0 0 20 20"
+                                                             fill="{{ (int) old('rating', $userRating) >= $i ? '#F59E0B' : 'none' }}"
+                                                             stroke="{{ (int) old('rating', $userRating) >= $i ? '#F59E0B' : '#94A3B8' }}"
+                                                             stroke-width="1.5">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.955a1 1 0 00.95.69h4.158c.969 0 1.371 1.24.588 1.81l-3.364 2.445a1 1 0 00-.364 1.118l1.286 3.955c.3.921-.755 1.688-1.54 1.118l-3.364-2.445a1 1 0 00-1.176 0l-3.364 2.445c-.784.57-1.838-.197-1.539-1.118l1.286-3.955a1 1 0 00-.364-1.118L1.07 9.382c-.783-.57-.38-1.81.588-1.81h4.158a1 1 0 00.95-.69l1.286-3.955z"/>
+                                                        </svg>
+                                                    </label>
+                                                @endfor
+                                            </div>
+                                            @error('rating')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="comment" class="block text-sm font-semibold text-slate-800 mb-2">Comment (optional)</label>
+                                            <textarea id="comment" name="comment" rows="3" maxlength="500"
+                                                      class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500"
+                                                      placeholder="Share what went well or what can improve...">{{ old('comment', $userComment) }}</textarea>
+                                            @error('comment')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div class="flex items-center justify-between">
+                                            <p class="text-xs text-slate-500">You can update your rating later.</p>
+                                            <button type="submit" class="inline-flex items-center px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
+                                                Submit
+                                            </button>
+                                        </div>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
+                        @if(auth()->user()->isAdminOrSuperAdmin() && !empty($checkInUrl))
+                            <div class="mb-8 bg-white border border-emerald-200 rounded-xl p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">QR Check-In</h3>
+                                <p class="text-sm text-gray-600 mb-4">
+                                    Let volunteers scan this code at the event. Their attendance is marked automatically after validation.
+                                </p>
+                                <div class="flex flex-col md:flex-row md:items-start gap-4">
+                                    <div class="w-[260px] h-[260px] border border-gray-200 rounded-lg p-2 bg-white">
+                                        @if(!empty($checkInQrSvg))
+                                            {!! $checkInQrSvg !!}
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-xs text-slate-500 text-center px-4">
+                                                QR preview unavailable. Use the check-in URL.
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-xs uppercase tracking-wide text-gray-500 mb-2">Check-in URL</p>
+                                        <div class="rounded-md border border-gray-200 bg-gray-50 p-3 break-all text-sm text-gray-700">{{ $checkInUrl }}</div>
+                                        <div class="mt-3">
+                                            <a href="{{ $checkInUrl }}" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+                                                Open check-in page
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endauth
 
                     @if(!empty($event->requirements))
                         <div class="mb-8">

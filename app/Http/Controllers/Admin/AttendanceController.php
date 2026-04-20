@@ -7,9 +7,37 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Services\DatabaseQueryService;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Log;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AttendanceController extends Controller
 {
+    private function resolveCheckInExpiry(?object $event): \Carbon\Carbon
+    {
+        if (!$event || !($event->date instanceof \Carbon\Carbon)) {
+            return now()->addMinutes(30);
+        }
+
+        $expiresAt = $event->date->copy()->endOfDay()->addMinutes(90);
+        $endTimeRaw = trim((string) ($event->end_time ?? ''));
+        if ($endTimeRaw !== '') {
+            try {
+                $endTime = \Carbon\Carbon::createFromFormat('H:i:s', $endTimeRaw);
+                $expiresAt = $event->date->copy()->setTime($endTime->hour, $endTime->minute, $endTime->second)->addMinutes(90);
+            } catch (\Throwable $e) {
+                try {
+                    $endTime = \Carbon\Carbon::createFromFormat('H:i', $endTimeRaw);
+                    $expiresAt = $event->date->copy()->setTime($endTime->hour, $endTime->minute, 0)->addMinutes(90);
+                } catch (\Throwable $e2) {
+                    // Keep end-of-day fallback.
+                }
+            }
+        }
+
+        return $expiresAt->isPast() ? now()->addMinutes(5) : $expiresAt;
+    }
+
     public function __construct(private DatabaseQueryService $queryService)
     {
         $this->middleware('auth');
@@ -43,6 +71,7 @@ class AttendanceController extends Controller
                         'id' => (string) ($e['id'] ?? ''),
                         'title' => (string) ($e['title'] ?? ''),
                         'date' => $date,
+                        'end_time' => (string) ($e['event_end_time'] ?? ''),
                     ];
                 })
                 ->sortByDesc(fn ($e) => $e->date?->timestamp ?? 0)
@@ -59,6 +88,8 @@ class AttendanceController extends Controller
             'rejected' => 0,
             'present_onsite' => 0,
         ];
+        $checkInUrl = null;
+        $checkInQrSvg = null;
 
         if ($eventId !== '') {
             $selectedEvent = collect($events)->firstWhere('id', $eventId);
@@ -71,12 +102,32 @@ class AttendanceController extends Controller
             $rows = collect(is_array($all) && !isset($all['error']) ? $all : []);
             $registrations = $this->mapRegistrationRowsToViewModels($rows);
             $summary = $this->buildRegistrationSummary($all, $pending, $approved, $rejected);
+
+            if (!empty($selectedEvent?->id)) {
+                $checkInUrl = URL::temporarySignedRoute(
+                    'events.checkin.show',
+                    $this->resolveCheckInExpiry($selectedEvent),
+                    ['eventId' => (string) $selectedEvent->id]
+                );
+
+                try {
+                    $checkInQrSvg = QrCode::format('svg')->size(260)->margin(1)->generate($checkInUrl);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to generate attendance QR SVG', [
+                        'event_id' => (string) $selectedEvent->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                    $checkInQrSvg = null;
+                }
+            }
         }
 
         return view('admin.attendance-event', [
             'events' => $events,
             'selectedEventId' => $eventId,
             'selectedEvent' => $selectedEvent,
+            'checkInUrl' => $checkInUrl,
+            'checkInQrSvg' => $checkInQrSvg,
             'registrations' => $registrations,
             'summary' => $summary,
         ]);

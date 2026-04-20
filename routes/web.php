@@ -46,8 +46,8 @@ Route::get('/dashboard', function () {
         // Admins/President → admin dashboard
         return redirect()->route('admin.dashboard');
     } elseif ($user->isVolunteer()) {
-        // Volunteers → events list
-        return redirect()->route('events.index');
+        // Volunteers → volunteer overview dashboard
+        return redirect()->route('volunteer.dashboard');
     }
 
     // Fallback for other roles: send to home
@@ -86,6 +86,19 @@ Route::middleware('auth')->group(function () {
         ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
     Route::delete('/events/{eventId}/leave', [EventRegistrationController::class, 'leave'])
         ->name('events.leave')
+        ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+    Route::get('/events/{eventId}/check-in', [EventRegistrationController::class, 'showQrCheckIn'])
+        ->name('events.checkin.show')
+        ->middleware('signed')
+        ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+    Route::post('/events/{eventId}/check-in', [EventRegistrationController::class, 'submitQrCheckIn'])
+        ->name('events.checkin.submit')
+        ->middleware('signed')
+        ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+    // Volunteer feedback (5-star rating)
+    Route::post('/events/{eventId}/feedback', [EventController::class, 'submitFeedback'])
+        ->name('events.feedback.submit')
         ->where('eventId', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
     // Notifications (for all authenticated users)

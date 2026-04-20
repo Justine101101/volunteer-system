@@ -41,6 +41,10 @@
     </div>
 
     <nav class="flex-1 px-3 pt-4 pb-4 space-y-1 overflow-y-auto">
+        <a href="{{ route('volunteer.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 @if(request()->routeIs('volunteer.dashboard')) bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 @else text-slate-300 hover:bg-slate-800 hover:text-emerald-300 @endif">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4 0V9m5 3l2 2"/></svg>
+            <span>Overview</span>
+        </a>
         <div class="space-y-1">
             <a href="{{ route('events.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 @if(request()->routeIs('events.*')) bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 @else text-slate-300 hover:bg-slate-800 hover:text-emerald-300 @endif">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

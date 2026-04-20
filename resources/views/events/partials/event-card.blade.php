@@ -67,13 +67,59 @@
     data-event-category="{{ $category }}"
     data-event-date="{{ optional($event->date)->format('Y-m-d') ?? '' }}"
 >
+    @php
+        $eventShowUrl = !empty($event->id) ? route('events.show', ['eventId' => $event->id]) : null;
+        $useModalDetails = auth()->check() && auth()->user()?->isVolunteer();
+        $creatorName = $event instanceof \App\Models\Event
+            ? optional($event->creator)->name
+            : null;
+        $modalPayload = [
+            'id' => (string) ($event->id ?? ''),
+            'title' => (string) ($event->title ?? ''),
+            'description' => (string) ($event->description ? strip_tags($event->description) : ''),
+            'date' => (string) (optional($event->date)->format('M j, Y') ?? ''),
+            'time' => (string) ($event->time ?? ''),
+            'location' => (string) ($event->location ?? ''),
+            'image' => (string) ($event->photo_url ?? ''),
+            'status' => (string) ($statusLabel ?? 'Upcoming'),
+            'current_volunteers' => (int) ($currentVolunteers ?? 0),
+            'max_volunteers' => $maxVolunteers !== null ? (int) $maxVolunteers : null,
+            'approved_volunteers' => $event->approved_volunteers ?? [],
+            'organizer' => (string) (($event->organizer ?? '') ?: ($creatorName ?? 'Organizer')),
+            'venue' => (string) (($event->venue ?? '') ?: ($event->location ?? '')),
+            'requirements' => (string) ($event->requirements ?? ''),
+            'join_url' => !empty($event->id) ? (string) route('events.join', ['eventId' => $event->id]) : '',
+        ];
+    @endphp
     <div class="relative h-44 bg-slate-100 overflow-hidden">
-        @if($event->photo_url)
-            <img src="{{ $event->photo_url }}"
-                 alt="{{ $event->title }}"
-                 class="event-image w-full h-full object-cover"
-                 loading="lazy" decoding="async"
-                 onerror="this.style.display='none';">
+        @if($useModalDetails)
+            <button type="button" class="block h-full w-full text-left" title="View event details" @click='open(@json($modalPayload))'>
+                @if($event->photo_url)
+                    <img src="{{ $event->photo_url }}"
+                         alt="{{ $event->title }}"
+                         class="event-image w-full h-full object-cover"
+                         loading="lazy" decoding="async"
+                         onerror="this.style.display='none';">
+                @endif
+            </button>
+        @elseif($eventShowUrl)
+            <a href="{{ $eventShowUrl }}" class="block h-full w-full" title="Open event details">
+                @if($event->photo_url)
+                    <img src="{{ $event->photo_url }}"
+                         alt="{{ $event->title }}"
+                         class="event-image w-full h-full object-cover"
+                         loading="lazy" decoding="async"
+                         onerror="this.style.display='none';">
+                @endif
+            </a>
+        @else
+            @if($event->photo_url)
+                <img src="{{ $event->photo_url }}"
+                     alt="{{ $event->title }}"
+                     class="event-image w-full h-full object-cover"
+                     loading="lazy" decoding="async"
+                     onerror="this.style.display='none';">
+            @endif
         @endif
         <span class="absolute top-3 left-3 inline-flex items-center h-7 px-3 rounded-full text-xs font-semibold bg-white/95 border border-emerald-100 text-emerald-700 capitalize">
             {{ $category }}
@@ -114,7 +160,17 @@
         @endauth
 
         <h3 class="event-title text-xl font-bold text-slate-900 leading-snug line-clamp-2 min-h-[3.25rem]">
-            {{ e($event->title ?: 'Untitled event') }}
+            @if($useModalDetails)
+                <button type="button" class="hover:text-emerald-700 transition text-left" title="View event details" @click='open(@json($modalPayload))'>
+                    {{ e($event->title ?: 'Untitled event') }}
+                </button>
+            @elseif($eventShowUrl)
+                <a href="{{ $eventShowUrl }}" class="hover:text-emerald-700 transition" title="Open event details">
+                    {{ e($event->title ?: 'Untitled event') }}
+                </a>
+            @else
+                {{ e($event->title ?: 'Untitled event') }}
+            @endif
         </h3>
 
         <p class="mt-2 text-sm text-slate-600 line-clamp-2 min-h-[2.5rem]">
@@ -206,35 +262,30 @@
             @endauth
 
             <div class="mt-4 flex justify-between items-center">
-                @php
-                    $creatorName = $event instanceof \App\Models\Event
-                        ? optional($event->creator)->name
-                        : null;
-                    $modalPayload = [
-                        'id' => (string) ($event->id ?? ''),
-                        'title' => (string) ($event->title ?? ''),
-                        'description' => (string) ($event->description ? strip_tags($event->description) : ''),
-                        'date' => (string) (optional($event->date)->format('M j, Y') ?? ''),
-                        'time' => (string) ($event->time ?? ''),
-                        'location' => (string) ($event->location ?? ''),
-                        'image' => (string) ($event->photo_url ?? ''),
-                        'status' => (string) ($statusLabel ?? 'Upcoming'),
-                        'current_volunteers' => (int) ($currentVolunteers ?? 0),
-                        'max_volunteers' => $maxVolunteers !== null ? (int) $maxVolunteers : null,
-                        'approved_volunteers' => $event->approved_volunteers ?? [],
-                        'organizer' => (string) (($event->organizer ?? '') ?: ($creatorName ?? 'Organizer')),
-                        'venue' => (string) (($event->venue ?? '') ?: ($event->location ?? '')),
-                        'requirements' => (string) ($event->requirements ?? ''),
-                        'join_url' => (string) route('events.join', ['eventId' => $event->id]),
-                    ];
-                @endphp
-                <button
-                    type="button"
-                    class="inline-flex items-center text-base font-semibold text-slate-800 hover:text-emerald-700 transition"
-                    @click='open(@json($modalPayload))'
-                >
-                    View Details →
-                </button>
+                @if($useModalDetails)
+                    <button
+                        type="button"
+                        class="inline-flex items-center text-base font-semibold text-slate-800 hover:text-emerald-700 transition"
+                        @click='open(@json($modalPayload))'
+                    >
+                        View Details →
+                    </button>
+                @elseif($eventShowUrl)
+                    <a
+                        href="{{ $eventShowUrl }}"
+                        class="inline-flex items-center text-base font-semibold text-slate-800 hover:text-emerald-700 transition"
+                    >
+                        View Details →
+                    </a>
+                @else
+                    <button
+                        type="button"
+                        class="inline-flex items-center text-base font-semibold text-slate-800 hover:text-emerald-700 transition"
+                        @click='open(@json($modalPayload))'
+                    >
+                        View Details →
+                    </button>
+                @endif
 
             </div>
         </div>

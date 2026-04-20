@@ -1462,6 +1462,112 @@ class DatabaseQueryService
         }
     }
 
+    /**
+     * Feedback: upsert a user's 1-5 star rating for an event (privileged).
+     * Enforced unique(event_id,user_id) in DB.
+     *
+     * @return array<string,mixed>
+     */
+    public function upsertEventFeedback(string $eventId, string $userId, int $rating, ?string $comment = null): array
+    {
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return ['error' => 'Supabase not configured'];
+            }
+
+            $payload = [[
+                'event_id' => $eventId,
+                'user_id' => $userId,
+                'rating' => $rating,
+                'comment' => $comment,
+                'updated_at' => now()->toISOString(),
+            ]];
+
+            return $this->supabase->from('event_feedback')
+                ->insertPrivileged($payload, 'event_id,user_id');
+        } catch (\Throwable $e) {
+            Log::error('Error upserting event feedback', [
+                'event_id' => $eventId,
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+            ]);
+            return ['error' => 'Failed to save feedback'];
+        }
+    }
+
+    /**
+     * Feedback: get a single user's feedback for an event (privileged).
+     *
+     * @return array<string,mixed>|null
+     */
+    public function getEventFeedbackForUser(string $eventId, string $userId): ?array
+    {
+        try {
+            $result = $this->supabase->fromPrivileged('event_feedback')
+                ->select('id,event_id,user_id,rating,comment,created_at,updated_at')
+                ->eq('event_id', $eventId)
+                ->eq('user_id', $userId)
+                ->single()
+                ->execute();
+
+            if (is_array($result) && isset($result[0]) && is_array($result[0])) {
+                return $result[0];
+            }
+
+            if (!is_array($result) || isset($result['error'])) {
+                return null;
+            }
+
+            return $result;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Feedback: compute average rating for an event (privileged).
+     *
+     * @return array{count:int,average:float|null}
+     */
+    public function getEventFeedbackSummaryForEventPrivileged(string $eventId): array
+    {
+        try {
+            if (!config('supabase.url') || !config('supabase.service_role_key')) {
+                return ['count' => 0, 'average' => null];
+            }
+
+            $rows = $this->supabase->fromPrivileged('event_feedback')
+                ->select('rating')
+                ->eq('event_id', $eventId)
+                ->execute();
+
+            if (!is_array($rows) || isset($rows['error'])) {
+                return ['count' => 0, 'average' => null];
+            }
+
+            $sum = 0;
+            $count = 0;
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $r = (int) ($row['rating'] ?? 0);
+                if ($r < 1 || $r > 5) {
+                    continue;
+                }
+                $sum += $r;
+                $count++;
+            }
+
+            return [
+                'count' => $count,
+                'average' => $count > 0 ? round($sum / $count, 2) : null,
+            ];
+        } catch (\Throwable $e) {
+            return ['count' => 0, 'average' => null];
+        }
+    }
+
     /** Contacts: privileged upsert by email+subject+message hash */
     public function upsertContact(array $data): array
     {

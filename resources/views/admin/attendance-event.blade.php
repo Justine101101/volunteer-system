@@ -50,6 +50,31 @@
                     @endif
                 </div>
 
+                @if(!empty($checkInUrl))
+                    <div class="bg-white rounded-2xl shadow-sm border border-emerald-200 p-6">
+                        <h3 class="text-lg font-bold text-slate-900">QR Check-In</h3>
+                        <p class="mt-1 text-sm text-slate-600">Volunteers scan this QR to mark attendance automatically.</p>
+                        <div class="mt-4 flex flex-col lg:flex-row gap-4">
+                            <div class="w-[260px] h-[260px] border border-gray-200 rounded-lg p-2 bg-white">
+                                @if(!empty($checkInQrSvg))
+                                    {!! $checkInQrSvg !!}
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center text-xs text-slate-500 text-center px-4">
+                                        QR preview unavailable. Use the check-in URL.
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Check-in URL</p>
+                                <div class="rounded-md border border-gray-200 bg-slate-50 p-3 break-all text-sm text-slate-700">{{ $checkInUrl }}</div>
+                                <a href="{{ $checkInUrl }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-900">
+                                    Open check-in page
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition-shadow">
                         <p class="text-sm text-slate-600 font-medium">Total Registrations</p>
@@ -83,10 +108,10 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">User</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Attendance</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Registered</th>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Actions</th>
+                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Status</th>
+                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Attendance</th>
+                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Registered</th>
+                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -104,18 +129,33 @@
                                             $registrationId = $reg->id ?? null;
                                         @endphp
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">
-                                            @if($profileUrl)
-                                                <a href="{{ $profileUrl }}" class="font-medium text-slate-900 hover:text-emerald-700" data-row-ignore-click>
-                                                    {{ $reg->user->name ?? 'Unknown' }}
-                                                </a>
-                                            @else
-                                                {{ $reg->user->name ?? 'Unknown' }}
-                                            @endif
-                                            @if(!empty($reg->user->email))
-                                                <div class="text-xs text-slate-500">{{ $reg->user->email }}</div>
-                                            @endif
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-10 w-10 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold">
+                                                    @if(!empty($reg->user->photo_url))
+                                                        <img
+                                                            src="{{ (is_string($reg->user->photo_url) && str_starts_with($reg->user->photo_url, 'http')) ? $reg->user->photo_url : asset($reg->user->photo_url) }}"
+                                                            alt="{{ $reg->user->name ?? 'User' }}"
+                                                            class="h-full w-full object-cover"
+                                                        >
+                                                    @else
+                                                        {{ strtoupper(substr($reg->user->name ?? 'U', 0, 1)) }}
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    @if($profileUrl)
+                                                        <a href="{{ $profileUrl }}" class="font-medium text-slate-900 hover:text-emerald-700" data-row-ignore-click>
+                                                            {{ $reg->user->name ?? 'Unknown' }}
+                                                        </a>
+                                                    @else
+                                                        {{ $reg->user->name ?? 'Unknown' }}
+                                                    @endif
+                                                    @if(!empty($reg->user->email))
+                                                        <div class="hidden md:block text-xs text-slate-500">{{ $reg->user->email }}</div>
+                                                    @endif
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                                 @if($reg->registration_status === 'approved') bg-green-100 text-green-800
                                                 @elseif($reg->registration_status === 'rejected') bg-red-100 text-red-800
@@ -123,7 +163,7 @@
                                                 {{ ucfirst($reg->registration_status) }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">
                                             @if($status === 'approved' && !empty($registrationId))
                                                 @if($reg->attended_at)
                                                     <div class="flex flex-col gap-1">
@@ -148,8 +188,8 @@
                                                 <span class="text-xs text-slate-400">Approve registration first</span>
                                             @endif
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->created_at ? $reg->created_at->format('M j, Y') : '' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->created_at ? $reg->created_at->format('M j, Y') : '' }}</td>
+                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">
                                             @php $isPending = $status === 'pending'; @endphp
                                             <div class="flex items-center justify-end space-x-3">
                                                 @if(!empty($reg->local_user_id))

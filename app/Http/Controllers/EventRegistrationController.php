@@ -14,6 +14,9 @@ use App\Mail\RegistrationDecisionMail;
 
 class EventRegistrationController extends Controller
 {
+    private const CHECKIN_EARLY_GRACE_MINUTES = 30;
+    private const CHECKIN_LATE_GRACE_MINUTES = 90;
+
     public function __construct(private DatabaseQueryService $queryService)
     {
         $this->middleware('auth');
@@ -374,6 +377,250 @@ class EventRegistrationController extends Controller
         Cache::forget('admin:dashboard:v1');
 
         return redirect()->back()->with('success', 'Attendance cleared.');
+    }
+
+    /**
+     * @return array{0:\Carbon\Carbon,1:\Carbon\Carbon}|null
+     */
+    private function resolveEventCheckInWindow(array $event): ?array
+    {
+        $eventDateRaw = (string) ($event['event_date'] ?? '');
+        if ($eventDateRaw === '') {
+            return null;
+        }
+
+        try {
+            $eventDate = Carbon::parse($eventDateRaw);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $startRaw = trim((string) ($event['event_time'] ?? ''));
+        $endRaw = trim((string) ($event['event_end_time'] ?? ''));
+
+        $startAt = $eventDate->copy()->startOfDay();
+        $endAt = $eventDate->copy()->endOfDay();
+
+        if ($startRaw !== '') {
+            try {
+                $t = Carbon::createFromFormat('H:i:s', $startRaw);
+                $startAt = $eventDate->copy()->setTime($t->hour, $t->minute, $t->second);
+            } catch (\Throwable $e) {
+                try {
+                    $t = Carbon::createFromFormat('H:i', $startRaw);
+                    $startAt = $eventDate->copy()->setTime($t->hour, $t->minute, 0);
+                } catch (\Throwable $e2) {
+                    // Keep default start of day.
+                }
+            }
+        }
+
+        if ($endRaw !== '') {
+            try {
+                $t = Carbon::createFromFormat('H:i:s', $endRaw);
+                $endAt = $eventDate->copy()->setTime($t->hour, $t->minute, $t->second);
+            } catch (\Throwable $e) {
+                try {
+                    $t = Carbon::createFromFormat('H:i', $endRaw);
+                    $endAt = $eventDate->copy()->setTime($t->hour, $t->minute, 0);
+                } catch (\Throwable $e2) {
+                    // Keep default end of day.
+                }
+            }
+        }
+
+        if ($endAt->lt($startAt)) {
+            $endAt = $startAt->copy()->addHours(4);
+        }
+
+        return [
+            $startAt->copy()->subMinutes(self::CHECKIN_EARLY_GRACE_MINUTES),
+            $endAt->copy()->addMinutes(self::CHECKIN_LATE_GRACE_MINUTES),
+        ];
+    }
+
+    private function checkInWindowErrorMessage(array $event, ?array $window): string
+    {
+        if ($window === null) {
+            return 'Check-in window is not configured for this event.';
+        }
+
+        [$windowStart, $windowEnd] = $window;
+        $title = (string) ($event['title'] ?? 'this event');
+        $timezone = config('app.timezone');
+
+        return sprintf(
+            'QR check-in for %s is only allowed from %s to %s.',
+            $title,
+            $windowStart->timezone($timezone)->format('M j, Y g:i A'),
+            $windowEnd->timezone($timezone)->format('M j, Y g:i A')
+        );
+    }
+
+    /**
+     * Show volunteer QR check-in page for a specific event.
+     */
+    public function showQrCheckIn(Request $request, string $eventId)
+    {
+        $user = Auth::user();
+        if (!$user || empty($user->email)) {
+            return redirect()->route('login');
+        }
+
+        $event = $this->queryService->getEventByIdPrivileged($eventId);
+        if (!is_array($event) || isset($event['error'])) {
+            return redirect()->route('events.index')->with('error', 'Event not found.');
+        }
+
+        $eventTitle = (string) ($event['title'] ?? 'Event');
+        $eventDate = isset($event['event_date']) ? Carbon::parse((string) $event['event_date']) : null;
+        $eventStatus = strtolower((string) ($event['event_status'] ?? 'active'));
+        $checkInWindow = $this->resolveEventCheckInWindow($event);
+
+        if ($eventStatus === 'completed') {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'This event is already completed.');
+        }
+
+        if (
+            $checkInWindow === null ||
+            now()->lt($checkInWindow[0]) ||
+            now()->gt($checkInWindow[1])
+        ) {
+            return view('events.check-in', [
+                'eventTitle' => $eventTitle,
+                'eventDate' => $eventDate,
+                'eventId' => $eventId,
+                'registrationId' => null,
+                'alreadyCheckedInAt' => null,
+                'canCheckIn' => false,
+                'statusMessage' => $this->checkInWindowErrorMessage($event, $checkInWindow),
+            ]);
+        }
+
+        $supabaseUser = $this->queryService->getUserByEmail((string) $user->email);
+        if (!is_array($supabaseUser) || isset($supabaseUser['error']) || empty($supabaseUser['id'])) {
+            return redirect()->route('events.show', ['eventId' => $eventId])->with('error', 'Could not find your event account.');
+        }
+
+        $registration = $this->queryService->getEventRegistration((string) $supabaseUser['id'], $eventId);
+        if (!is_array($registration) || isset($registration['error']) || empty($registration['id'])) {
+            return view('events.check-in', [
+                'eventTitle' => $eventTitle,
+                'eventDate' => $eventDate,
+                'eventId' => $eventId,
+                'registrationId' => null,
+                'alreadyCheckedInAt' => null,
+                'canCheckIn' => false,
+                'statusMessage' => 'You are not registered for this event.',
+            ]);
+        }
+
+        $registrationStatus = strtolower((string) ($registration['registration_status'] ?? 'pending'));
+        if ($registrationStatus !== 'approved') {
+            return view('events.check-in', [
+                'eventTitle' => $eventTitle,
+                'eventDate' => $eventDate,
+                'eventId' => $eventId,
+                'registrationId' => null,
+                'alreadyCheckedInAt' => null,
+                'canCheckIn' => false,
+                'statusMessage' => 'Your registration must be approved before check-in.',
+            ]);
+        }
+
+        $alreadyCheckedInAt = null;
+        if (!empty($registration['attended_at'])) {
+            try {
+                $alreadyCheckedInAt = Carbon::parse((string) $registration['attended_at']);
+            } catch (\Throwable $e) {
+                $alreadyCheckedInAt = null;
+            }
+        }
+
+        return view('events.check-in', [
+            'eventTitle' => $eventTitle,
+            'eventDate' => $eventDate,
+            'eventId' => $eventId,
+            'registrationId' => (string) $registration['id'],
+            'alreadyCheckedInAt' => $alreadyCheckedInAt,
+            'canCheckIn' => $alreadyCheckedInAt === null,
+            'statusMessage' => $alreadyCheckedInAt ? 'You are already checked in for this event.' : null,
+        ]);
+    }
+
+    /**
+     * Submit volunteer QR check-in for a specific event.
+     */
+    public function submitQrCheckIn(Request $request, string $eventId)
+    {
+        $user = Auth::user();
+        if (!$user || empty($user->email)) {
+            return redirect()->route('login');
+        }
+
+        $event = $this->queryService->getEventByIdPrivileged($eventId);
+        if (!is_array($event) || isset($event['error'])) {
+            return redirect()->route('events.index')->with('error', 'Event not found.');
+        }
+
+        $checkInWindow = $this->resolveEventCheckInWindow($event);
+        if (
+            $checkInWindow === null ||
+            now()->lt($checkInWindow[0]) ||
+            now()->gt($checkInWindow[1])
+        ) {
+            return redirect()->to($request->fullUrl())
+                ->with('error', $this->checkInWindowErrorMessage($event, $checkInWindow));
+        }
+
+        $supabaseUser = $this->queryService->getUserByEmail((string) $user->email);
+        $supabaseUserId = is_array($supabaseUser) ? ($supabaseUser['id'] ?? null) : null;
+        if (!is_string($supabaseUserId) || $supabaseUserId === '') {
+            return redirect()->to($request->fullUrl())
+                ->with('error', 'Could not identify your event account.');
+        }
+
+        $registration = $this->queryService->getEventRegistration($supabaseUserId, $eventId);
+        if (!is_array($registration) || isset($registration['error']) || empty($registration['id'])) {
+            return redirect()->to($request->fullUrl())
+                ->with('error', 'You are not registered for this event.');
+        }
+
+        $status = strtolower((string) ($registration['registration_status'] ?? 'pending'));
+        if ($status !== 'approved') {
+            return redirect()->to($request->fullUrl())
+                ->with('error', 'Your registration is not approved yet.');
+        }
+
+        if (!empty($registration['attended_at'])) {
+            return redirect()->to($request->fullUrl())
+                ->with('success', 'You are already checked in.');
+        }
+
+        $result = $this->queryService->updateRegistrationAttendance(
+            (string) $registration['id'],
+            Carbon::now()->toIso8601String(),
+            $supabaseUserId
+        );
+
+        if (isset($result['error'])) {
+            Log::error('Volunteer QR check-in failed', [
+                'event_id' => $eventId,
+                'registration_id' => $registration['id'] ?? null,
+                'user_id' => $supabaseUserId,
+                'error' => $result['error'] ?? null,
+            ]);
+
+            return redirect()->to($request->fullUrl())
+                ->with('error', 'Could not complete check-in. Please ask admin for assistance.');
+        }
+
+        Cache::forget('admin:dashboard:v1');
+        Cache::forget('events:user-reg-map:v1:' . sha1((string) $user->email));
+        Cache::forget('dashboard:volunteer:v1:' . sha1((string) $user->email));
+
+        return redirect()->to($request->fullUrl())
+            ->with('success', 'Check-in successful. Your attendance has been recorded.');
     }
 
     private function notifyRegistrationDecision(string $registrationId, string $status): void
