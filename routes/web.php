@@ -129,6 +129,8 @@ Route::middleware('auth')->group(function () {
             'update' => 'admin.users.update',
             'destroy' => 'admin.users.destroy',
         ]);
+        Route::patch('admin/users/{user}/role', [UserController::class, 'assignRole'])->name('admin.users.role.assign');
+        Route::delete('admin/users/{user}/role', [UserController::class, 'removeRole'])->name('admin.users.role.remove');
         
         // Event management (Admin)
         Route::get('/events/create', [EventController::class, 'create'])->name('events.create');

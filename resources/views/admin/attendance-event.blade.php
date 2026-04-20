@@ -108,10 +108,10 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">User</th>
-                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Status</th>
-                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Attendance</th>
-                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Registered</th>
-                                    <th class="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Actions</th>
+                                    <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Status</th>
+                                    <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Attendance</th>
+                                    <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Registered</th>
+                                    <th class="hidden sm:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider" style="color: #1f2937; background-color: #f9fafb;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -150,12 +150,12 @@
                                                         {{ $reg->user->name ?? 'Unknown' }}
                                                     @endif
                                                     @if(!empty($reg->user->email))
-                                                        <div class="hidden md:block text-xs text-slate-500">{{ $reg->user->email }}</div>
+                                                        <div class="hidden sm:block text-xs text-slate-500">{{ $reg->user->email }}</div>
                                                     @endif
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap">
+                                        <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                                 @if($reg->registration_status === 'approved') bg-green-100 text-green-800
                                                 @elseif($reg->registration_status === 'rejected') bg-red-100 text-red-800
@@ -163,7 +163,7 @@
                                                 {{ ucfirst($reg->registration_status) }}
                                             </span>
                                         </td>
-                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">
+                                        <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm">
                                             @if($status === 'approved' && !empty($registrationId))
                                                 @if($reg->attended_at)
                                                     <div class="flex flex-col gap-1">
@@ -188,8 +188,8 @@
                                                 <span class="text-xs text-slate-400">Approve registration first</span>
                                             @endif
                                         </td>
-                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->created_at ? $reg->created_at->format('M j, Y') : '' }}</td>
-                                        <td class="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm">
+                                        <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="color: #111827;">{{ $reg->created_at ? $reg->created_at->format('M j, Y') : '' }}</td>
+                                        <td class="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm">
                                             @php $isPending = $status === 'pending'; @endphp
                                             <div class="flex items-center justify-end space-x-3">
                                                 @if(!empty($reg->local_user_id))

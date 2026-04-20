@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\DatabaseQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -119,16 +120,17 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', Rule::in(['admin', 'president', 'volunteer'])],
             'notification_pref' => ['nullable', 'boolean'],
             'dark_mode' => ['nullable', 'boolean'],
         ]);
 
+        $generatedPassword = Str::random(24);
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make($generatedPassword),
             'role' => $validated['role'],
             'notification_pref' => $validated['notification_pref'] ?? true,
             'dark_mode' => $validated['dark_mode'] ?? false,
@@ -191,6 +193,40 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Assign a role to a user from the admin list.
+     */
+    public function assignRole(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'role' => ['required', 'string', Rule::in(['admin', 'president', 'volunteer'])],
+        ]);
+
+        $user->role = $validated['role'];
+        $user->save();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Role updated successfully.');
+    }
+
+    /**
+     * Remove elevated role and reset user to volunteer.
+     */
+    public function removeRole(User $user)
+    {
+        // Prevent removing your own elevated access while logged in.
+        if ($user->id === auth()->id()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'You cannot remove your own role.');
+        }
+
+        $user->role = 'volunteer';
+        $user->save();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', 'Role removed successfully. User is now volunteer.');
     }
 }
 

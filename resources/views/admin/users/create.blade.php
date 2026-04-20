@@ -47,31 +47,6 @@
                             @enderror
                         </div>
 
-                        <!-- Password -->
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Password</label>
-                            <input type="password" 
-                                   id="password" 
-                                   name="password" 
-                                   class="w-full px-4 py-3 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent @error('password') border-red-500 @enderror"
-                                   placeholder="Enter password (min 8 characters)"
-                                   required>
-                            @error('password')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Password Confirmation -->
-                        <div>
-                            <label for="password_confirmation" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Confirm Password</label>
-                            <input type="password" 
-                                   id="password_confirmation" 
-                                   name="password_confirmation" 
-                                   class="w-full px-4 py-3 border border-gray-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                                   placeholder="Confirm password"
-                                   required>
-                        </div>
-
                         <!-- Role -->
                         <div>
                             <label for="role" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Role</label>
