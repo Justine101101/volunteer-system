@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\DatabaseQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -20,6 +21,7 @@ class OTPVerificationController extends Controller
     {
         return view('auth.verify-otp', [
             'email' => $request->query('email'),
+            'nextEventId' => $request->query('next_event_id', $request->session()->get('post_register_event_id')),
         ]);
     }
 
@@ -28,6 +30,7 @@ class OTPVerificationController extends Controller
         $request->validate([
             'email' => ['required', 'email', 'exists:users,email'],
             'otp'   => ['required', 'digits:6'],
+            'next_event_id' => ['nullable', 'string', 'regex:/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i'],
         ]);
 
         $user = User::where('email', $request->email)->firstOrFail();
@@ -77,9 +80,19 @@ class OTPVerificationController extends Controller
 
         $otpRecord->delete();
 
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        $nextEventId = (string) ($request->input('next_event_id') ?: $request->session()->pull('post_register_event_id', ''));
+        if ($nextEventId !== '' && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $nextEventId)) {
+            return redirect()
+                ->route('events.show', ['eventId' => $nextEventId])
+                ->with('status', 'Account verified. You can now join this event.');
+        }
+
         return redirect()
-            ->route('login')
-            ->with('status', 'Your email has been verified. You can now log in.');
+            ->route('profile.edit')
+            ->with('status', 'Your email has been verified. Please complete your profile.');
     }
 }
 

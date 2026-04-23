@@ -35,6 +35,7 @@
                     @csrf
 
                     <input type="hidden" name="email" value="{{ $email }}">
+                    <input type="hidden" name="next_event_id" value="{{ $nextEventId ?? request('next_event_id') }}">
 
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Verification Code</label>

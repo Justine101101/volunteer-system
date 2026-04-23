@@ -14,7 +14,7 @@
     <div class="py-12 bg-slate-50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                <form method="POST" action="{{ route('members.update', $member) }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('members.update', ['memberId' => $member->id]) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     
@@ -53,13 +53,20 @@
                         <!-- Member Role -->
                         <div>
                             <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Role/Position</label>
-                            <input type="text" 
-                                   id="role" 
-                                   name="role" 
-                                   value="{{ old('role', $member->role) }}"
+                            <select
+                                   id="role"
+                                   name="role"
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('role') border-red-500 @enderror"
-                                   placeholder="e.g., President, Vice President, Secretary"
                                    required>
+                                <option value="">Select position</option>
+                                <option value="President" {{ old('role', $member->role) === 'President' ? 'selected' : '' }}>President</option>
+                                <option value="First Vice President" {{ old('role', $member->role) === 'First Vice President' ? 'selected' : '' }}>First Vice President</option>
+                                <option value="Secretary" {{ old('role', $member->role) === 'Secretary' ? 'selected' : '' }}>Secretary</option>
+                                <option value="Treasurer" {{ old('role', $member->role) === 'Treasurer' ? 'selected' : '' }}>Treasurer</option>
+                                <option value="Board Member" {{ old('role', $member->role) === 'Board Member' ? 'selected' : '' }}>Board Member</option>
+                                <option value="Coordinator" {{ old('role', $member->role) === 'Coordinator' ? 'selected' : '' }}>Coordinator</option>
+                                <option value="Volunteer" {{ old('role', $member->role) === 'Volunteer' ? 'selected' : '' }}>Volunteer</option>
+                            </select>
                             @error('role')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror

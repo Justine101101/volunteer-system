@@ -27,6 +27,7 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:30'],
             'age' => ['nullable', 'integer', 'min:18', 'max:120'],
+            'gender' => ['nullable', 'string', 'in:male,female,prefer_not_to_say'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
     }

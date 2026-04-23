@@ -34,6 +34,14 @@
                                 <p class="text-base text-gray-700">Age: {{ $user->age }}</p>
                             </div>
                         @endif
+                        @if($user->gender)
+                            <div class="flex items-center gap-2 mt-2">
+                                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <p class="text-base text-gray-700">Gender: {{ ucfirst(str_replace('_', ' ', $user->gender)) }}</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

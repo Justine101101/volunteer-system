@@ -54,18 +54,40 @@
                         <!-- Member Role -->
                         <div>
                             <label for="role" class="block text-sm font-medium mb-2" style="color: #1a5f3f;">Role/Position</label>
-                            <input type="text" 
-                                   id="role" 
-                                   name="role" 
-                                   value="{{ old('role') }}"
+                            <select
+                                   id="role"
+                                   name="role"
                                    class="w-full px-4 py-3 border-2 rounded-lg transition-all duration-300 @error('role') border-red-500 @else border-gray-300 focus:border-[#1a5f3f] @enderror"
-                                   placeholder="e.g., President, First Vice President, Secretary"
                                    required>
+                                <option value="">Select position</option>
+                                <option value="President" {{ old('role') === 'President' ? 'selected' : '' }}>President</option>
+                                <option value="First Vice President" {{ old('role') === 'First Vice President' ? 'selected' : '' }}>First Vice President</option>
+                                <option value="Secretary" {{ old('role') === 'Secretary' ? 'selected' : '' }}>Secretary</option>
+                                <option value="Treasurer" {{ old('role') === 'Treasurer' ? 'selected' : '' }}>Treasurer</option>
+                                <option value="Board Member" {{ old('role') === 'Board Member' ? 'selected' : '' }}>Board Member</option>
+                                <option value="Coordinator" {{ old('role') === 'Coordinator' ? 'selected' : '' }}>Coordinator</option>
+                                <option value="Volunteer" {{ old('role') === 'Volunteer' ? 'selected' : '' }}>Volunteer</option>
+                            </select>
                             <p class="mt-1 text-sm" style="color: #4a1a5f;">
                                 <span class="font-medium">Note:</span> Some positions can only have one member (e.g., President, First Vice President, Secretary, Treasurer, etc.)
                             </p>
                             @error('role')
                                 <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Member Email (optional) -->
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-slate-700 mb-2">Member Email (Optional)</label>
+                            <input type="email"
+                                   id="email"
+                                   name="email"
+                                   value="{{ old('email') }}"
+                                   class="w-full px-4 py-3 border border-slate-300 rounded-xl transition-all duration-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 @error('email') border-red-500 @enderror"
+                                   placeholder="e.g., member@example.com">
+                            <p class="mt-1 text-sm text-gray-500">If left blank, the system will auto-generate a member email ID.</p>
+                            @error('email')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 

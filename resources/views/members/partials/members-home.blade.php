@@ -80,13 +80,13 @@
 
                     @if(auth()->user() && auth()->user()->isAdmin())
                         <div class="bg-gray-50 px-4 py-3 flex items-center justify-center gap-3 border-t border-gray-200">
-                            <a href="{{ route('members.edit', $member) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wider hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">
+                            <a href="{{ route('members.edit', ['memberId' => $member->id]) }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wider hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                 </svg>
                                 EDIT
                             </a>
-                            <form action="{{ route('members.destroy', $member) }}" method="POST" class="inline" data-confirm="Delete this member? This cannot be undone.">
+                            <form action="{{ route('members.destroy', ['memberId' => $member->id]) }}" method="POST" class="inline" data-confirm="Delete this member? This cannot be undone.">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-wider hover:bg-red-700 focus:bg-red-700 active:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm">

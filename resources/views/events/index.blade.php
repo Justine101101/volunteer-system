@@ -377,17 +377,28 @@
                         Close
                     </button>
 
-                    <template x-if="event && (event.status !== 'Ended' && event.status !== 'Completed')">
-                        <form method="POST" :action="event.join_url">
-                            @csrf
-                            <button
-                                type="submit"
+                    @auth
+                        <template x-if="event && (event.status !== 'Ended' && event.status !== 'Completed')">
+                            <form method="POST" :action="event.join_url">
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+                                >
+                                    Join Event
+                                </button>
+                            </form>
+                        </template>
+                    @else
+                        <template x-if="event && (event.status !== 'Ended' && event.status !== 'Completed')">
+                            <a
+                                :href="event.register_url || '{{ route('register') }}'"
                                 class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
                             >
-                                Join Event
-                            </button>
-                        </form>
-                    </template>
+                                Register to Join
+                            </a>
+                        </template>
+                    @endauth
                     <template x-if="event && (event.status === 'Ended' || event.status === 'Completed')">
                         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs sm:text-sm font-semibold">
                             <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

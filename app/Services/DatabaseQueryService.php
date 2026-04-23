@@ -1595,11 +1595,17 @@ class DatabaseQueryService
      */
     public function getMembers(int $page = 1, int $limit = 10, array $filters = [])
     {
-        try {
-            $query = $this->supabase->from('members')
-                ->select('*')
-                ->order('order', 'asc')
-                ->order('name', 'asc');
+        $buildQuery = function (bool $withOrderColumn = true) use ($filters, $page, $limit) {
+            // Use service-role reads for members to avoid RLS visibility issues
+            // after privileged inserts from admin flows.
+            $query = $this->supabase->fromPrivileged('members')
+                ->select('*');
+
+            if ($withOrderColumn) {
+                $query = $query->order('order', 'asc');
+            }
+
+            $query = $query->order('name', 'asc');
 
             // Apply filters
             if (isset($filters['status'])) {
@@ -1614,7 +1620,18 @@ class DatabaseQueryService
             $offset = ($page - 1) * $limit;
             $query = $query->range($offset, $offset + $limit - 1);
 
-            return $query->execute();
+            return $query;
+        };
+
+        try {
+            $response = $buildQuery(true)->execute();
+
+            // If schema does not have the optional "order" column, retry without it.
+            if (is_array($response) && isset($response['message']) && str_contains(strtolower((string) $response['message']), 'order')) {
+                $response = $buildQuery(false)->execute();
+            }
+
+            return $response;
         } catch (\Exception $e) {
             Log::error('Error fetching members: ' . $e->getMessage());
             return ['error' => 'Failed to fetch members'];
@@ -1627,11 +1644,23 @@ class DatabaseQueryService
     public function getMemberById(string $memberId)
     {
         try {
-            return $this->supabase->from('members')
+            $response = $this->supabase->fromPrivileged('members')
                 ->select('*')
                 ->eq('id', $memberId)
                 ->single()
                 ->execute();
+
+            if (is_array($response) && isset($response['error'])) {
+                return $response;
+            }
+
+            // Supabase queries in this codebase can come back either as a single
+            // associative record or as a one-item list. Normalize both.
+            if (is_array($response) && array_is_list($response)) {
+                return $response[0] ?? ['error' => 'Member not found'];
+            }
+
+            return is_array($response) ? $response : ['error' => 'Member not found'];
         } catch (\Exception $e) {
             Log::error('Error fetching member: ' . $e->getMessage());
             return ['error' => 'Member not found'];
@@ -1642,24 +1671,47 @@ class DatabaseQueryService
     public function upsertMember(array $data): array
     {
         try {
-            $payload = [[
+            // Build a minimal payload first to avoid failing on optional columns
+            // that may not exist in every deployed Supabase schema.
+            $memberData = [
                 'name' => $data['name'] ?? null,
-                'email' => $data['email'] ?? null,
-                'phone' => $data['phone'] ?? null,
-                'address' => $data['address'] ?? null,
-                'skills' => $data['skills'] ?? null,
-                'availability' => $data['availability'] ?? null,
-                'emergency_contact_name' => $data['emergency_contact_name'] ?? null,
-                'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
-                'member_status' => $data['member_status'] ?? 'active',
                 'role' => $data['role'] ?? null,
                 'photo_url' => $data['photo_url'] ?? null,
                 'order' => $data['order'] ?? 0,
                 'created_at' => now()->toISOString(),
                 'updated_at' => now()->toISOString(),
-            ]];
+            ];
 
-            return $this->supabase->from('members')->insertPrivileged($payload, 'email');
+            // Add extended fields only when provided.
+            $optionalFields = [
+                'email',
+                'phone',
+                'address',
+                'skills',
+                'availability',
+                'emergency_contact_name',
+                'emergency_contact_phone',
+                'member_status',
+            ];
+
+            foreach ($optionalFields as $field) {
+                if (array_key_exists($field, $data) && $data[$field] !== null && $data[$field] !== '') {
+                    $memberData[$field] = $data[$field];
+                }
+            }
+
+            if (!isset($memberData['member_status'])) {
+                $memberData['member_status'] = 'active';
+            }
+
+            $payload = [$memberData];
+
+            // Only use email conflict target when an email is present.
+            if (!empty($memberData['email'])) {
+                return $this->supabase->from('members')->insertPrivileged($payload, 'email');
+            }
+
+            return $this->supabase->from('members')->insertPrivileged($payload);
         } catch (\Exception $e) {
             Log::error('Error upserting member: ' . $e->getMessage());
             return ['error' => 'Failed to upsert member'];

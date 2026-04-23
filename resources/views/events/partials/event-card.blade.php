@@ -69,7 +69,7 @@
 >
     @php
         $eventShowUrl = !empty($event->id) ? route('events.show', ['eventId' => $event->id]) : null;
-        $useModalDetails = auth()->check() && auth()->user()?->isVolunteer();
+        $useModalDetails = !auth()->check() || auth()->user()?->isVolunteer();
         $creatorName = $event instanceof \App\Models\Event
             ? optional($event->creator)->name
             : null;
@@ -89,6 +89,7 @@
             'venue' => (string) (($event->venue ?? '') ?: ($event->location ?? '')),
             'requirements' => (string) ($event->requirements ?? ''),
             'join_url' => !empty($event->id) ? (string) route('events.join', ['eventId' => $event->id]) : '',
+            'register_url' => !empty($event->id) ? (string) route('register', ['next_event_id' => $event->id]) : (string) route('register'),
         ];
     @endphp
     <div class="relative h-44 bg-slate-100 overflow-hidden">
@@ -252,11 +253,11 @@
                 @endif
             @else
                 <div class="text-center">
-                    <p class="text-gray-600 mb-4">Please log in to join this event</p>
-                    <a href="{{ route('login') }}"
+                    <p class="text-gray-600 mb-4">Create an account to join this event</p>
+                    <a href="{{ route('register', ['next_event_id' => $event->id]) }}"
                        class="inline-block px-6 py-3 rounded-2xl text-white font-semibold transition-all duration-300 shadow-soft hover:shadow-soft-lg transform hover:scale-105"
                        style="background: linear-gradient(to right, #008751, #10b981);">
-                        Login to Join
+                        Register to Join
                     </a>
                 </div>
             @endauth

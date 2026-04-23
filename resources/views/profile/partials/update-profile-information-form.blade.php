@@ -120,6 +120,19 @@
         <p class="mt-2 text-sm text-slate-500">Must be 18 or older.</p>
     </div>
 
+    <div>
+        <label for="gender" class="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+        <select id="gender"
+                name="gender"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent @error('gender') border-red-500 @enderror">
+            <option value="">Select gender</option>
+            <option value="male" {{ old('gender', $user->gender ?? '') === 'male' ? 'selected' : '' }}>Male</option>
+            <option value="female" {{ old('gender', $user->gender ?? '') === 'female' ? 'selected' : '' }}>Female</option>
+            <option value="prefer_not_to_say" {{ old('gender', $user->gender ?? '') === 'prefer_not_to_say' ? 'selected' : '' }}>Prefer not to say</option>
+        </select>
+        <x-input-error class="mt-2" :messages="$errors->get('gender')" />
+    </div>
+
     <div class="flex items-center gap-4 pt-4">
         <button type="submit" 
                 class="px-6 py-3 bg-purple-900 text-white font-semibold rounded-lg hover:bg-purple-800 transition duration-300 flex items-center gap-2 shadow-md hover:shadow-lg">

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Member;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\DatabaseQueryService;
@@ -24,14 +23,20 @@ class MemberController extends Controller
     public function index()
     {
         $result = $this->queryService->getMembers(1, 1000); // Get all members
-        
-        if (isset($result['error'])) {
-            Log::error('Failed to fetch members: ' . $result['error']);
+
+        $hasErrorShape = is_array($result)
+            && !array_is_list($result)
+            && (isset($result['error']) || isset($result['message']) || isset($result['code']));
+
+        if ($hasErrorShape) {
+            $errorMessage = $result['error'] ?? $result['message'] ?? 'Unknown error';
+            Log::error('Failed to fetch members: ' . $errorMessage, ['supabase_response' => $result]);
             $members = [];
         } else {
-            $members = is_array($result) ? $result : [];
+            $members = (is_array($result) && array_is_list($result)) ? $result : [];
+
             // Transform Supabase response to match expected format
-            $members = array_map(function($member) {
+            $members = array_map(function ($member) {
                 return (object) [
                     'id' => $member['id'] ?? null,
                     'name' => $member['name'] ?? '',
@@ -57,6 +62,7 @@ class MemberController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'role' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'order' => 'nullable|integer|min:0',
         ]);
@@ -70,9 +76,17 @@ class MemberController extends Controller
             $photoUrl = Storage::url($path);
         }
 
+        // Some Supabase schemas require members.email to be non-null/unique.
+        // Generate a deterministic placeholder when admin does not provide one.
+        $memberEmail = $request->email;
+        if (empty($memberEmail)) {
+            $memberEmail = Str::slug($request->name) . '-' . now()->timestamp . '@members.local';
+        }
+
         // Single Source of Truth: Write only to Supabase
         $result = $this->queryService->upsertMember([
             'name' => $request->name,
+            'email' => $memberEmail,
             'role' => $request->role,
             'photo_url' => $photoUrl,
             'order' => $request->order ?? 0,
@@ -93,17 +107,9 @@ class MemberController extends Controller
      * Primary Database: Supabase
      * Note: Route model binding still uses MySQL Member model for compatibility
      */
-    public function edit(Member $member)
+    public function edit(string $memberId)
     {
-        // Find the Supabase member by name
-        $supabaseMember = $this->queryService->findMemberByName($member->name);
-
-        if (!$supabaseMember) {
-            // Fallback: try to get by ID if it's a UUID
-            if (is_string($member->id) && strlen($member->id) > 10) {
-                $supabaseMember = $this->queryService->getMemberById($member->id);
-            }
-        }
+        $supabaseMember = $this->queryService->getMemberById($memberId);
 
         if (!$supabaseMember || isset($supabaseMember['error'])) {
             abort(404, 'Member not found');
@@ -116,12 +122,13 @@ class MemberController extends Controller
             'role' => $supabaseMember['role'] ?? '',
             'photo_url' => $supabaseMember['photo_url'] ?? null,
             'order' => $supabaseMember['order'] ?? 0,
+            'email' => $supabaseMember['email'] ?? null,
         ];
 
         return view('members.edit', ['member' => $memberData]);
     }
 
-    public function update(Request $request, Member $member)
+    public function update(Request $request, string $memberId)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -130,12 +137,19 @@ class MemberController extends Controller
             'order' => 'nullable|integer|min:0',
         ]);
 
-        $photoUrl = $member->photo_url;
+        $existingMember = $this->queryService->getMemberById($memberId);
+        if (!$existingMember || isset($existingMember['error'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Member not found in database. Please refresh and try again.');
+        }
+
+        $photoUrl = $existingMember['photo_url'] ?? null;
         
         if ($request->hasFile('photo')) {
             // Delete old photo if exists
-            if ($member->photo_url) {
-                $oldPath = str_replace('/storage/', '', $member->photo_url);
+            if ($photoUrl) {
+                $oldPath = str_replace('/storage/', '', $photoUrl);
                 Storage::disk('public')->delete($oldPath);
             }
             
@@ -146,35 +160,12 @@ class MemberController extends Controller
             $photoUrl = Storage::url($path);
         }
 
-        // Get Supabase member ID - try to find by email or name
-        // Since IDs don't match, we'll find by matching fields
-        $members = $this->queryService->getMembers(1, 100, [
-            'search' => $member->name ?? $member->email ?? '',
-        ]);
-        
-        $supabaseMemberId = null;
-        if (is_array($members) && !isset($members['error'])) {
-            foreach ($members as $m) {
-                if (isset($m['name']) && $m['name'] === $member->name) {
-                    $supabaseMemberId = $m['id'] ?? null;
-                    break;
-                }
-            }
-        }
-
-        if (!$supabaseMemberId) {
-            Log::warning('Could not find Supabase member to update for local member ID: ' . $member->id);
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Member not found in database. Please refresh and try again.');
-        }
-
         // Single Source of Truth: Update only in Supabase
-        $result = $this->queryService->updateMember($supabaseMemberId, [
+        $result = $this->queryService->updateMember($memberId, [
             'name' => $request->name,
             'role' => $request->role,
             'photo_url' => $photoUrl,
-            'order' => $request->order ?? $member->order ?? 0,
+            'order' => $request->order ?? ($existingMember['order'] ?? 0),
         ]);
 
         if (isset($result['error'])) {
@@ -187,38 +178,24 @@ class MemberController extends Controller
         return redirect()->route('members.index')->with('success', 'Member updated successfully!');
     }
 
-    public function destroy(Member $member)
+    public function destroy(string $memberId)
     {
-        // Get Supabase member ID - try to find by email or name
-        $members = $this->queryService->getMembers(1, 100, [
-            'search' => $member->name ?? $member->email ?? '',
-        ]);
-        
-        $supabaseMemberId = null;
-        if (is_array($members) && !isset($members['error'])) {
-            foreach ($members as $m) {
-                if (isset($m['name']) && $m['name'] === $member->name) {
-                    $supabaseMemberId = $m['id'] ?? null;
-                    break;
-                }
-            }
+        $existingMember = $this->queryService->getMemberById($memberId);
+        if (!$existingMember || isset($existingMember['error'])) {
+            return redirect()->back()->with('error', 'Member not found in database.');
         }
 
         // Delete photo if exists
-        if ($member->photo_url) {
-            $oldPath = str_replace('/storage/', '', $member->photo_url);
+        if (!empty($existingMember['photo_url'])) {
+            $oldPath = str_replace('/storage/', '', $existingMember['photo_url']);
             Storage::disk('public')->delete($oldPath);
         }
         
         // Single Source of Truth: Delete only from Supabase
-        if ($supabaseMemberId) {
-            $result = $this->queryService->deleteMember($supabaseMemberId);
-            if (isset($result['error'])) {
-                Log::error('Failed to delete member from Supabase: ' . ($result['error'] ?? 'Unknown error'));
-                return redirect()->back()->with('error', 'Failed to delete member. Please try again.');
-            }
-        } else {
-            Log::warning('Could not find Supabase member to delete for local member ID: ' . $member->id);
+        $result = $this->queryService->deleteMember($memberId);
+        if (isset($result['error'])) {
+            Log::error('Failed to delete member from Supabase: ' . ($result['error'] ?? 'Unknown error'));
+            return redirect()->back()->with('error', 'Failed to delete member. Please try again.');
         }
         
         return redirect()->route('members.index')->with('success', 'Member deleted successfully!');

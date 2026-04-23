@@ -26,9 +26,11 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('auth.register');
+        return view('auth.register', [
+            'nextEventId' => $request->query('next_event_id'),
+        ]);
     }
 
     /**
@@ -43,6 +45,8 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'phone' => ['required', 'string', 'max:30'],
             'age' => ['required', 'integer', 'min:18', 'max:120'],
+            'gender' => ['required', 'string', 'in:male,female,prefer_not_to_say'],
+            'next_event_id' => ['nullable', 'string', 'regex:/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -62,6 +66,7 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'age' => (int) $request->age,
+            'gender' => $request->gender,
             'role' => $defaultRole,
             'password' => Hash::make($request->password),
             'email_verified_at' => null,
@@ -80,6 +85,7 @@ class RegisteredUserController extends Controller
                 'role' => $defaultRole,
                 'phone' => $user->phone ?? null,
                 'age' => $user->age ?? null,
+                'gender' => $user->gender ?? null,
                 'notification_pref' => true,
                 'dark_mode' => false,
                 'password' => Hash::make($request->password),
@@ -135,8 +141,16 @@ class RegisteredUserController extends Controller
         // Fire Registered event (for any listeners) but DO NOT log in yet
         event(new Registered($user));
 
+        $nextEventId = (string) ($request->input('next_event_id', ''));
+        if ($nextEventId !== '') {
+            $request->session()->put('post_register_event_id', $nextEventId);
+        }
+
         return redirect()
-            ->route('otp.verify.form', ['email' => $user->email])
+            ->route('otp.verify.form', [
+                'email' => $user->email,
+                'next_event_id' => $nextEventId !== '' ? $nextEventId : null,
+            ])
             ->with('status', 'We have emailed you a 6-digit verification code.');
     }
 }

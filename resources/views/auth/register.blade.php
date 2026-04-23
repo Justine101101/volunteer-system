@@ -48,6 +48,7 @@
     @endif
     <form method="POST" action="{{ route('register') }}" x-data="{ loading:false }" x-on:submit="loading=true; $nextTick(()=>{ const el = document.querySelector('[aria-invalid=\"true\"]'); if(el) el.focus(); })">
         @csrf
+        <input type="hidden" name="next_event_id" value="{{ old('next_event_id', $nextEventId ?? request('next_event_id')) }}">
 
         <!-- Name -->
         <div>
@@ -75,6 +76,18 @@
             <x-input-label for="age" :value="__('Age')" />
             <x-text-input id="age" class="block mt-1 w-full" type="number" name="age" :value="old('age')" required min="18" max="120" step="1" inputmode="numeric" aria-invalid="{{ $errors->has('age') ? 'true' : 'false' }}" />
             <x-input-error :messages="$errors->get('age')" class="mt-2" />
+        </div>
+
+        <!-- Gender -->
+        <div class="mt-4">
+            <x-input-label for="gender" :value="__('Gender')" />
+            <select id="gender" name="gender" class="block mt-1 w-full rounded-md border-gray-300 focus:border-emerald-500 focus:ring-emerald-500" required aria-invalid="{{ $errors->has('gender') ? 'true' : 'false' }}">
+                <option value="">Select gender</option>
+                <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>Male</option>
+                <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>Female</option>
+                <option value="prefer_not_to_say" {{ old('gender') === 'prefer_not_to_say' ? 'selected' : '' }}>Prefer not to say</option>
+            </select>
+            <x-input-error :messages="$errors->get('gender')" class="mt-2" />
         </div>
 
         <!-- Password -->
