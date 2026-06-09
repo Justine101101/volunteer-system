@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Traits\RecordsAuditLogs;
@@ -1636,6 +1637,40 @@ class DatabaseQueryService
             Log::error('Error fetching members: ' . $e->getMessage());
             return ['error' => 'Failed to fetch members'];
         }
+    }
+
+    /**
+     * Fetch members from Supabase and return a collection of view objects.
+     */
+    public function getMembersCollection(int $page = 1, int $limit = 1000, array $filters = []): Collection
+    {
+        $result = $this->getMembers($page, $limit, $filters);
+
+        $hasErrorShape = is_array($result)
+            && !array_is_list($result)
+            && (isset($result['error']) || isset($result['message']) || isset($result['code']));
+
+        if ($hasErrorShape) {
+            Log::error('Failed to fetch members collection', ['supabase_response' => $result]);
+
+            return collect();
+        }
+
+        $members = (is_array($result) && array_is_list($result)) ? $result : [];
+
+        return collect($members)->map(function ($member) {
+            $member = is_array($member) ? $member : (array) $member;
+
+            return (object) [
+                'id' => $member['id'] ?? null,
+                'name' => $member['name'] ?? '',
+                'role' => $member['role'] ?? '',
+                'photo_url' => $member['photo_url'] ?? null,
+                'order' => $member['order'] ?? 0,
+                'email' => $member['email'] ?? null,
+                'phone' => $member['phone'] ?? null,
+            ];
+        });
     }
 
     /**

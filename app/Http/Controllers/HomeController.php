@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Member;
 use App\Services\DatabaseQueryService;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,6 +12,16 @@ class HomeController extends Controller
     }
 
     private const HOME_EVENTS_CACHE_TTL_SECONDS = 120;
+
+    private const HOME_MEMBERS_CACHE_TTL_SECONDS = 300;
+
+    private const OFFICER_ROLES = [
+        'President',
+        'First Vice President',
+        'Second Vice President',
+        'Secretary',
+        'Treasurer',
+    ];
 
     private function formatSupabaseTime(?string $time): ?string
     {
@@ -51,7 +59,20 @@ class HomeController extends Controller
 
     public function index()
     {
-        $members = Member::take(6)->get();
+        $membersData = Cache::remember('home:members:v1', self::HOME_MEMBERS_CACHE_TTL_SECONDS, function () {
+            $allMembers = $this->queryService->getMembersCollection(1, 1000);
+
+            return [
+                'members' => $allMembers->take(6)->values(),
+                'officers' => $allMembers
+                    ->whereIn('role', self::OFFICER_ROLES)
+                    ->sortBy('order')
+                    ->values(),
+            ];
+        });
+
+        $members = $membersData['members'];
+        $officers = $membersData['officers'];
 
         // Upcoming events should come from Supabase (admins create events in Supabase)
         $eventsRaw = Cache::remember('home:events:v1', self::HOME_EVENTS_CACHE_TTL_SECONDS, function () {
@@ -75,12 +96,7 @@ class HomeController extends Controller
             ->sortBy(fn ($e) => $e->date->timestamp)
             ->take(5)
             ->values();
-        
-        // Get officers for About section
-        $officers = Member::whereIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])
-            ->orderBy('order')
-            ->get();
-        
+
         return view('home', compact('members', 'events', 'officers'));
     }
 }

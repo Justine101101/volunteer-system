@@ -2,16 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Member;
+use App\Services\DatabaseQueryService;
 
 class AboutController extends Controller
 {
+    private const OFFICER_ROLES = [
+        'President',
+        'First Vice President',
+        'Second Vice President',
+        'Secretary',
+        'Treasurer',
+    ];
+
+    public function __construct(private DatabaseQueryService $queryService)
+    {
+    }
+
     public function index()
     {
-        $officers = Member::whereIn('role', ['President', 'First Vice President', 'Second Vice President', 'Secretary', 'Treasurer'])
-            ->orderBy('order')
-            ->get();
+        $officers = $this->queryService->getMembersCollection(1, 1000)
+            ->whereIn('role', self::OFFICER_ROLES)
+            ->sortBy('order')
+            ->values();
+
         return view('about', compact('officers'));
     }
 }

@@ -6,11 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\EventRegistration;
 use App\Models\Contact;
-use App\Models\Member;
 use App\Services\DatabaseQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -83,13 +81,15 @@ class DashboardController extends Controller
             $totalRegCount = (is_array($allRegsRaw) && !isset($allRegsRaw['error'])) ? count($allRegsRaw) : 0;
             $allRegsArray = (is_array($allRegsRaw) && !isset($allRegsRaw['error'])) ? $allRegsRaw : [];
 
+            $membersCollection = $this->queryService->getMembersCollection(1, 5000);
+
             $stats = [
                 'total_users' => User::count(),
                 'total_volunteers' => User::where('role', 'volunteer')->count(),
                 'total_events' => $totalEventsCount,
                 'total_registrations' => $totalRegCount,
                 'total_contacts' => Contact::count(),
-                'total_members' => Member::count(),
+                'total_members' => $membersCollection->count(),
                 'pending_registrations' => $pendingCount,
                 'approved_registrations' => $approvedCount,
                 'recent_events' => $recentEvents,
@@ -106,9 +106,9 @@ class DashboardController extends Controller
                 'contacts_week' => Contact::where('created_at', '>=', now()->subDays(7))->count(),
             ];
 
-            $roleBreakdown = Member::select('role', DB::raw('COUNT(*) as total'))
+            $roleBreakdown = $membersCollection
                 ->groupBy('role')
-                ->pluck('total', 'role')
+                ->map(fn ($group) => $group->count())
                 ->toArray();
 
             $approved = (int) $stats['approved_registrations'];
