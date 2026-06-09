@@ -104,7 +104,7 @@
                             $isCurrentMonth = $currentDate->month == $startDate->month;
                             $isToday = $currentDate->format('Y-m-d') == $today->format('Y-m-d');
                             $dateKey = $currentDate->format('Y-m-d');
-                            $dayEvents = $events->get($dateKey, collect());
+                            $dayEvents = collect($events)->get($dateKey, collect());
                         @endphp
                         
                         <div class="min-h-24 border-r border-b border-gray-200 p-2 {{ !$isCurrentMonth ? 'bg-gray-50' : 'bg-white' }} hover:bg-gray-50 transition">

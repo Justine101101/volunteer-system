@@ -352,10 +352,10 @@ class EventController extends Controller
             'date_to' => $endDate->format('Y-m-d'),
         ]);
         
-        $events = [];
-        if (!isset($result['error']) && is_array($result)) {
+        $events = collect();
+        if (is_array($result) && !isset($result['error']) && (empty($result) || array_is_list($result))) {
             // Transform and group events by date
-            $events = collect($result)->map(function($event) {
+            $events = collect($result)->map(function ($event) {
                 return (object) [
                     'id' => $event['id'] ?? null,
                     'title' => $event['title'] ?? '',
