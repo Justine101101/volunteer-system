@@ -2005,7 +2005,7 @@ class DatabaseQueryService
         try {
             $query = $this->supabase->from('messages')
                 ->select('*, sender:users(name, email), receiver:users(name, email)')
-                ->or(`and(sender_id.eq.${userId1},receiver_id.eq.${userId2}),and(sender_id.eq.${userId2},receiver_id.eq.${userId1})`)
+                ->or("and(sender_id.eq.{$userId1},receiver_id.eq.{$userId2}),and(sender_id.eq.{$userId2},receiver_id.eq.{$userId1})")
                 ->order('created_at', 'asc');
 
             // Apply pagination
